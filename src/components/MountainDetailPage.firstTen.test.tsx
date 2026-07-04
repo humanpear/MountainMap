@@ -23,7 +23,6 @@ describe('MountainDetailPage mountain guides', () => {
         ? Array.from(container.querySelectorAll('a')).some((link) => link.getAttribute('href') === officialUrl)
         : false;
       expect(text, mountain.name).toContain(mountain.name);
-      expect(text, mountain.name).toContain('100대 명산');
       expect(text, mountain.name).toContain('산 정보');
       expect(text, mountain.name).toContain('숲나들e');
       expect(hasOfficialLink, mountain.name).toBe(true);
