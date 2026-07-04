@@ -27,7 +27,7 @@ describe("MountainDetailPage scroll-reactive hero", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows the whole hero image first, then dims and collapses on internal scroll", async () => {
+  it("shows the whole hero image first, then dims and collapses on page scroll", async () => {
     const mountain = mountains[0];
     const { container } = render(
       <MountainDetailPage
@@ -50,8 +50,24 @@ describe("MountainDetailPage scroll-reactive hero", () => {
       "[data-scroll-hero-content]",
     ) as HTMLElement;
     const image = heroFrame.querySelector("img") as HTMLImageElement;
+    let sectionTop = 0;
+    vi.spyOn(section, "getBoundingClientRect").mockImplementation(
+      () =>
+        ({
+          bottom: sectionTop + 1200,
+          height: 1200,
+          left: 0,
+          right: 1200,
+          top: sectionTop,
+          width: 1200,
+          x: 0,
+          y: sectionTop,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    );
 
-    expect(section.className).toContain("overflow-auto");
+    expect(section.className).not.toContain("overflow-auto");
+    expect(section.className).toContain("min-h-[calc(100vh-68px)]");
     expect(header.className).not.toContain("overflow-hidden");
     expect(heroFrame.className).toContain("sticky");
     expect(heroFrame.className).toContain("overflow-hidden");
@@ -68,8 +84,8 @@ describe("MountainDetailPage scroll-reactive hero", () => {
     expect(header.style.getPropertyValue("--hero-image-opacity")).toBe("1.000");
 
     await act(async () => {
-      section.scrollTop = 120;
-      section.dispatchEvent(new Event("scroll"));
+      sectionTop = -120;
+      window.dispatchEvent(new Event("scroll"));
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
 
@@ -84,8 +100,8 @@ describe("MountainDetailPage scroll-reactive hero", () => {
     expect(header.style.getPropertyValue("--hero-image-opacity")).toBe("0.893");
 
     await act(async () => {
-      section.scrollTop = 360;
-      section.dispatchEvent(new Event("scroll"));
+      sectionTop = -360;
+      window.dispatchEvent(new Event("scroll"));
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
 
@@ -100,8 +116,8 @@ describe("MountainDetailPage scroll-reactive hero", () => {
     expect(header.style.getPropertyValue("--hero-image-opacity")).toBe("0.720");
 
     await act(async () => {
-      section.scrollTop = 0;
-      section.dispatchEvent(new Event("scroll"));
+      sectionTop = 0;
+      window.dispatchEvent(new Event("scroll"));
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
 

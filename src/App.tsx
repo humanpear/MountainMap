@@ -1,15 +1,16 @@
 import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Check, LogIn, LogOut, MapPin, Mountain as MountainIcon, Search, Shuffle, X } from 'lucide-react';
+import { Camera, Check, LogIn, LogOut, MapPin, MessageCircle, Mountain as MountainIcon, Search, Shuffle, X } from 'lucide-react';
 import { MountainDetailPage } from './components/MountainDetailPage';
 import { MountainMap } from './components/MountainMap';
 import { MountainNameWithHanja } from './components/MountainNameWithHanja';
 import { mountains } from './data/mountains';
-import { getMountainGuide } from './data/mountainDetails';
 import { getCandidateIdsForRandomMode, getRandomCandidates, pickRandomMountain } from './game/random';
 import { cn } from './lib/classNames';
+import { createAppFeedback } from './services/appFeedback';
 import { getCompletionErrorMessage } from './services/completionErrors';
 import { isSupabaseConfigured } from './services/env';
+import { fetchMountainReviews, type MountainReview } from './services/mountainReviews';
 import { playFanfare, playRouletteTick } from './services/randomSounds';
 import { supabase } from './services/supabase';
 import type { CompletionRecord, Mountain, RandomMode } from './types';
@@ -18,6 +19,13 @@ type RandomState =
   | { status: 'idle' }
   | { status: 'running'; highlightedId: string; sequence: Mountain[]; winner: Mountain }
   | { status: 'result'; winner: Mountain };
+
+type SidebarReviewPhoto = {
+  url: string;
+  routeName: string;
+  createdAt: string;
+  index: number;
+};
 
 const confettiPieces = Array.from({ length: 34 }, (_, index) => index);
 
@@ -28,6 +36,20 @@ function getConfettiStyle(index: number) {
     '--duration': `${760 + (index % 5) * 120}ms`,
     '--hue': `${38 + (index % 5) * 42}`
   } as CSSProperties;
+}
+
+function getLatestReviewPhotos(reviews: MountainReview[]) {
+  return reviews
+    .flatMap((review) =>
+      review.imageUrls.map((url, index) => ({
+        url,
+        routeName: review.routeName,
+        createdAt: review.createdAt,
+        index
+      }))
+    )
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+    .slice(0, 3);
 }
 
 const randomModeLabels: Record<RandomMode, string> = {
@@ -41,31 +63,37 @@ const appClass = {
   topbar:
     'z-[4] bg-[#00172b] text-white',
   topbarInner:
-    'mx-auto grid h-[68px] w-[1180px] max-w-[calc(100%-60px)] grid-cols-[minmax(230px,auto)_minmax(260px,420px)_auto] items-center justify-between gap-4 max-[900px]:h-auto max-[900px]:max-w-none max-[900px]:grid-cols-1 max-[900px]:gap-3 max-[900px]:px-4 max-[900px]:py-3',
+    'mx-auto grid h-[68px] w-[1180px] max-w-[calc(100%-60px)] grid-cols-[minmax(230px,1fr)_auto] items-center gap-4 max-[900px]:h-auto max-[900px]:w-full max-[900px]:max-w-none max-[900px]:grid-cols-[minmax(0,1fr)_auto] max-[900px]:gap-x-3 max-[900px]:gap-y-2 max-[900px]:px-4 max-[900px]:py-2.5',
+  topbarActions:
+    'flex min-w-0 items-center justify-end gap-2.5 max-[900px]:contents',
   brand:
-    'inline-flex cursor-pointer items-center gap-2 border-0 bg-transparent text-[20px] font-black text-white max-[900px]:justify-start [&_svg]:text-white',
+    'inline-flex min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent text-[20px] font-black text-white max-[900px]:col-start-1 max-[900px]:row-start-1 max-[900px]:justify-start max-[900px]:text-[18px] [&_span]:truncate [&_svg]:text-white',
   search:
-    'grid min-h-9 w-[252px] grid-cols-[minmax(0,1fr)_40px] overflow-hidden rounded-[9px] bg-white max-[900px]:w-full',
+    'grid min-h-9 w-[252px] grid-cols-[minmax(0,1fr)_40px] overflow-hidden rounded-[9px] bg-white max-[900px]:col-span-2 max-[900px]:row-start-2 max-[900px]:w-full',
   searchInput: 'min-w-0 border-0 px-3 text-[13px] text-[#18221d] outline-none placeholder:text-[#627168]',
   searchButton: 'inline-flex cursor-pointer items-center justify-center border-0 bg-white text-[#00172b]',
   authButton:
-    'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3.5 text-sm font-extrabold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-55 max-[900px]:w-full',
+    'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3.5 text-sm font-extrabold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-55 max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:min-h-9 max-[900px]:px-3 max-[900px]:text-[13px]',
   workspace: 'relative grid min-h-[calc(100vh-68px)] grid-cols-[minmax(0,1fr)_360px] max-[900px]:grid-cols-1',
   mapStage: 'relative min-h-[calc(100vh-68px)] overflow-visible',
+  mapControls:
+    'absolute left-5 top-5 z-[2] grid justify-items-start gap-3 max-[560px]:left-3 max-[560px]:right-auto max-[560px]:gap-2',
   filterBar:
-    'absolute left-5 top-5 z-[2] flex gap-1.5 rounded-[10px] border border-[#d8e0da] bg-white/95 p-1.5 shadow-[0_16px_50px_rgba(24,34,29,0.14)]',
+    'flex w-fit gap-1.5 rounded-[10px] border border-[#d8e0da] bg-white/95 p-1.5 shadow-[0_16px_50px_rgba(24,34,29,0.14)] max-[560px]:max-w-[calc(100vw-24px)] max-[560px]:gap-1 max-[560px]:overflow-x-auto max-[560px]:p-1',
   filterButton:
-    'inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 font-bold',
+    'inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-3 font-bold max-[560px]:min-h-8 max-[560px]:px-2.5 max-[560px]:text-[13px]',
   filterButtonIdle: 'border-[#d8e0da] bg-transparent text-[#627168]',
   filterButtonActive: 'border-[#2f6b4f] bg-[#2f6b4f] text-white',
   randomControl:
-    'absolute bottom-[22px] left-1/2 z-[2] flex -translate-x-1/2 items-center gap-2.5 rounded-xl border border-[#d8e0da] bg-white/95 p-2 shadow-[0_16px_50px_rgba(24,34,29,0.14)]',
+    'flex w-fit items-center gap-2.5 rounded-xl border border-[#d8e0da] bg-white/95 p-2 shadow-[0_16px_50px_rgba(24,34,29,0.14)] max-[560px]:max-w-[calc(100vw-24px)] max-[560px]:gap-1.5 max-[560px]:p-1.5',
   candidateCount:
-    'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-[#eef2ef] px-3 font-numeric font-bold',
+    'inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-[#d8e0da] bg-[#eef2ef] px-3 font-numeric font-bold max-[560px]:min-h-9 max-[560px]:px-2.5 max-[560px]:text-[13px]',
   randomButton:
-    'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#2f6b4f] bg-[#2f6b4f] px-[18px] font-extrabold text-white disabled:cursor-progress disabled:bg-[#1f4e39]',
-  detailPanel: 'z-[3] overflow-auto border-l border-[#d8e0da] bg-white p-5 max-[900px]:border-l-0 max-[900px]:border-t',
+    'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-[#2f6b4f] bg-[#2f6b4f] px-[18px] font-extrabold text-white disabled:cursor-progress disabled:bg-[#1f4e39] max-[560px]:min-h-9 max-[560px]:px-3 max-[560px]:text-[13px]',
+  detailPanel: 'z-[3] overflow-auto border-l border-[#d8e0da] bg-white p-5 max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-[6] max-[900px]:max-h-[min(78vh,calc(100dvh-104px))] max-[900px]:overflow-y-auto max-[900px]:rounded-t-2xl max-[900px]:border-l-0 max-[900px]:border-t max-[900px]:p-4 max-[900px]:pb-[calc(1rem+env(safe-area-inset-bottom))] max-[900px]:shadow-[0_-18px_60px_rgba(0,0,0,0.24)] max-[900px]:transition-transform max-[900px]:duration-200 max-[900px]:ease-out',
   detailHeader: 'flex items-start justify-between gap-4',
+  detailPanelClose:
+    'hidden h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg border border-[#d8e0da] bg-[#eef2ef] text-[#18221d] max-[900px]:inline-flex',
   eyebrow: 'm-0 mb-[3px] text-xs font-bold leading-4 text-[#627168]',
   completeButton:
     'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 font-extrabold',
@@ -80,6 +108,8 @@ const appClass = {
   sidebarPhotos: 'mt-5',
   sidebarPhotoGrid:
     'mt-2 grid grid-cols-3 gap-2 [&_a]:block [&_img]:aspect-square [&_img]:w-full [&_img]:rounded-md [&_img]:object-cover',
+  sidebarPhotoEmpty:
+    'mt-2 grid min-h-[94px] place-items-center rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] px-3 text-center text-sm font-bold leading-5 text-[#5d6a62]',
   randomPending: 'grid min-h-60 place-items-center content-center gap-3 text-center text-[#2f6b4f] [&_h2]:text-2xl',
   loadingDots:
     'inline-flex gap-1.5 [&_span]:h-[7px] [&_span]:w-[7px] [&_span]:rounded-full [&_span]:bg-[#d7922b] [&_span]:animate-[loading-dot_900ms_ease-in-out_infinite] [&_span:nth-child(2)]:[animation-delay:120ms] [&_span:nth-child(3)]:[animation-delay:240ms]',
@@ -88,7 +118,24 @@ const appClass = {
   toastButton:
     'inline-flex h-8 min-h-8 w-8 items-center justify-center rounded-lg border border-[#d8e0da] bg-[#eef2ef]',
   setupNote:
-    'fixed bottom-5 right-5 z-[5] max-w-[360px] rounded-lg border border-[#d8e0da] bg-white px-3.5 py-3 text-[13px] text-[#627168] shadow-[0_16px_50px_rgba(24,34,29,0.14)]',
+    'fixed bottom-[92px] right-5 z-[5] max-w-[360px] rounded-lg border border-[#d8e0da] bg-white px-3.5 py-3 text-[13px] text-[#627168] shadow-[0_16px_50px_rgba(24,34,29,0.14)] max-[560px]:left-5 max-[560px]:max-w-none',
+  feedbackButton:
+    'fixed bottom-5 right-5 z-[6] inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-4 font-extrabold text-white shadow-[0_16px_50px_rgba(24,34,29,0.2)] transition hover:bg-[#1f4e39] max-[900px]:z-[4] max-[560px]:bottom-3 max-[560px]:right-3 max-[560px]:h-12 max-[560px]:w-12 max-[560px]:rounded-full max-[560px]:px-0',
+  feedbackModal:
+    'relative grid w-[min(520px,100%)] gap-4 rounded-xl border border-[#d8e0da] bg-white p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] animate-[modal-pop_180ms_ease-out] max-[560px]:gap-3 max-[560px]:p-4',
+  feedbackClose:
+    'absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#d8e0da] bg-[#eef2ef] max-[560px]:right-3 max-[560px]:top-3 max-[560px]:h-8 max-[560px]:w-8',
+  feedbackField:
+    'grid gap-2 [&_label]:text-sm [&_label]:font-black [&_label]:text-[#18221d] max-[560px]:gap-1.5 max-[560px]:[&_label]:text-[13px] max-[560px]:[&_label]:leading-5',
+  feedbackInput:
+    'min-h-11 rounded-lg border border-[#d8e0da] bg-white px-3 text-base text-[#18221d] outline-none focus:border-[#245c46] max-[560px]:min-h-10 max-[560px]:text-sm',
+  feedbackTextarea:
+    'min-h-32 resize-y rounded-lg border border-[#d8e0da] bg-white px-3 py-2.5 text-base leading-7 text-[#18221d] outline-none focus:border-[#245c46] max-[560px]:min-h-28 max-[560px]:py-2 max-[560px]:text-sm max-[560px]:leading-6',
+  feedbackActions: 'flex justify-end gap-2 max-[560px]:grid',
+  feedbackCancel:
+    'inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-[#d8e0da] bg-white px-4 font-extrabold text-[#18221d] max-[560px]:min-h-10 max-[560px]:text-sm',
+  feedbackSubmit:
+    'inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-[#245c46] bg-[#245c46] px-4 font-extrabold text-white disabled:cursor-progress disabled:bg-[#5d6a62] max-[560px]:min-h-10 max-[560px]:text-sm',
   modalBackdrop: 'fixed inset-0 z-10 grid place-items-center bg-black/45 p-5',
   resultModal:
     'relative w-[min(520px,100%)] overflow-hidden rounded-xl border border-[#d8e0da] bg-white p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] animate-[modal-pop_180ms_ease-out] [&>p]:text-[#627168]',
@@ -113,10 +160,16 @@ export default function App() {
   const [resultModalMountain, setResultModalMountain] = useState<Mountain | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackContact, setFeedbackContact] = useState('');
+  const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
+  const [sidebarReviewPhotos, setSidebarReviewPhotos] = useState<SidebarReviewPhoto[]>([]);
+  const [sidebarPhotoState, setSidebarPhotoState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [isMobileDetailSheetOpen, setIsMobileDetailSheetOpen] = useState(false);
 
   const selectedMountain = mountains.find((mountain) => mountain.id === selectedMountainId);
   const detailMountain = mountains.find((mountain) => mountain.id === detailMountainId);
-  const selectedMountainGuide = selectedMountain ? getMountainGuide(selectedMountain) : undefined;
   const completedIds = useMemo(() => new Set(completionRecords.map((record) => record.mountainId)), [completionRecords]);
   const completionCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -129,6 +182,41 @@ export default function App() {
     () => getRandomCandidates({ mountains, completedIds, selectedIds: candidateIds, mode: randomMode }),
     [candidateIds, completedIds, randomMode]
   );
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!selectedMountain || !isSupabaseConfigured) {
+      setSidebarReviewPhotos([]);
+      setSidebarPhotoState('ready');
+      return () => {
+        isActive = false;
+      };
+    }
+
+    setSidebarPhotoState('loading');
+    fetchMountainReviews(selectedMountain.id)
+      .then((reviews) => {
+        if (!isActive) {
+          return;
+        }
+
+        setSidebarReviewPhotos(getLatestReviewPhotos(reviews));
+        setSidebarPhotoState('ready');
+      })
+      .catch(() => {
+        if (!isActive) {
+          return;
+        }
+
+        setSidebarReviewPhotos([]);
+        setSidebarPhotoState('error');
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedMountain?.id]);
 
   useEffect(() => {
     if (!supabase) {
@@ -225,6 +313,7 @@ export default function App() {
 
   const selectMountain = (mountain: Mountain) => {
     setSelectedMountainId(mountain.id);
+    setIsMobileDetailSheetOpen(true);
     setResultModalMountain(null);
     if (randomState.status === 'result') {
       setRandomState({ status: 'idle' });
@@ -255,6 +344,37 @@ export default function App() {
     setFocusedMountainId(match.id);
     setDetailMountainId(match.id);
     setResultModalMountain(null);
+  };
+
+  const submitFeedback = async () => {
+    const trimmedFeedback = feedbackText.trim();
+
+    if (!trimmedFeedback) {
+      setMessage('보내실 피드백을 입력해 주세요.');
+      return;
+    }
+
+    const pageContext = detailMountain?.name ?? selectedMountain?.name ?? '지도 화면';
+    setIsFeedbackSubmitting(true);
+
+    try {
+      await createAppFeedback({
+        body: trimmedFeedback,
+        contact: feedbackContact,
+        pageContext,
+        pageUrl: window.location.href,
+        userId: session?.user.id,
+        userEmail: session?.user.email
+      });
+      setIsFeedbackOpen(false);
+      setFeedbackText('');
+      setFeedbackContact('');
+      setMessage('피드백을 보냈습니다. 감사합니다.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '피드백 전송에 실패했습니다.');
+    } finally {
+      setIsFeedbackSubmitting(false);
+    }
   };
 
   const showMountainOnMap = (mountain: Mountain) => {
@@ -328,6 +448,7 @@ export default function App() {
 
       if (!nextMountain) {
         setSelectedMountainId(result.winner.id);
+        setIsMobileDetailSheetOpen(true);
         setFocusedMountainId(result.winner.id);
         setRandomState({ status: 'result', winner: result.winner });
         setResultModalMountain(result.winner);
@@ -364,39 +485,41 @@ export default function App() {
             <img className="h-9 w-auto object-contain brightness-0 invert" src="/logo-mountain.png" alt="" aria-hidden="true" />
             <span>대한민국 100대 명산</span>
           </button>
-          <form
-            className={appClass.search}
-            role="search"
-            onSubmit={(event) => {
-              event.preventDefault();
-              submitMountainSearch();
-            }}
-          >
-            <label className="sr-only" htmlFor="mountain-search-input">
-              산 이름 검색
-            </label>
-            <input
-              className={appClass.searchInput}
-              id="mountain-search-input"
-              list="mountain-search-options"
-              type="search"
-              placeholder="산 이름을 검색하세요"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
-            <datalist id="mountain-search-options">
-              {mountains.map((mountain) => (
-                <option key={mountain.id} value={mountain.name} />
-              ))}
-            </datalist>
-            <button className={appClass.searchButton} type="submit" aria-label="산 검색">
-              <Search size={22} />
+          <div className={appClass.topbarActions}>
+            <form
+              className={appClass.search}
+              role="search"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitMountainSearch();
+              }}
+            >
+              <label className="sr-only" htmlFor="mountain-search-input">
+                산 이름 검색
+              </label>
+              <input
+                className={appClass.searchInput}
+                id="mountain-search-input"
+                list="mountain-search-options"
+                type="search"
+                placeholder="산 이름을 검색하세요"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+              <datalist id="mountain-search-options">
+                {mountains.map((mountain) => (
+                  <option key={mountain.id} value={mountain.name} />
+                ))}
+              </datalist>
+              <button className={appClass.searchButton} type="submit" aria-label="산 검색">
+                <Search size={22} />
+              </button>
+            </form>
+            <button className={appClass.authButton} type="button" onClick={handleAuthClick}>
+              {session ? <LogOut size={17} /> : <LogIn size={17} />}
+              {session ? '로그아웃' : '로그인'}
             </button>
-          </form>
-          <button className={appClass.authButton} type="button" onClick={handleAuthClick}>
-            {session ? <LogOut size={17} /> : <LogIn size={17} />}
-            {session ? '로그아웃' : '로그인'}
-          </button>
+          </div>
         </div>
       </header>
 
@@ -404,6 +527,7 @@ export default function App() {
         <MountainDetailPage
           mountain={detailMountain}
           isCompleted={completedIds.has(detailMountain.id)}
+          session={session}
           onBack={() => setDetailMountainId(null)}
           onShowOnMap={showMountainOnMap}
           onToggleCompleted={toggleCompleted}
@@ -424,35 +548,54 @@ export default function App() {
               onCandidateToggle={toggleCandidate}
             />
 
-            <div className={appClass.filterBar} aria-label="랜덤 후보 필터">
-              {(Object.keys(randomModeLabels) as RandomMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={cn(
-                    appClass.filterButton,
-                    mode === randomMode ? appClass.filterButtonActive : appClass.filterButtonIdle
-                  )}
-                  onClick={() => changeRandomMode(mode)}
-                >
-                  {randomModeLabels[mode]}
-                </button>
-              ))}
-            </div>
-
-            <div className={appClass.randomControl}>
-              <div className={appClass.candidateCount}>
-                <MountainIcon size={16} />
-                후보 {candidates.length}개
+            <div className={appClass.mapControls}>
+              <div className={appClass.filterBar} aria-label="랜덤 후보 필터">
+                {(Object.keys(randomModeLabels) as RandomMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={cn(
+                      appClass.filterButton,
+                      mode === randomMode ? appClass.filterButtonActive : appClass.filterButtonIdle
+                    )}
+                    onClick={() => changeRandomMode(mode)}
+                  >
+                    {randomModeLabels[mode]}
+                  </button>
+                ))}
               </div>
-              <button className={appClass.randomButton} type="button" onClick={runRandomPick} disabled={randomState.status === 'running'}>
-                <Shuffle size={18} />
-                {randomState.status === 'running' ? '고르는 중' : '랜덤 뽑기'}
-              </button>
+
+              <div className={appClass.randomControl} aria-label="랜덤 뽑기 컨트롤">
+                <div className={appClass.candidateCount}>
+                  <MountainIcon size={16} />
+                  후보 {candidates.length}개
+                </div>
+                <button className={appClass.randomButton} type="button" onClick={runRandomPick} disabled={randomState.status === 'running'}>
+                  <Shuffle size={18} />
+                  {randomState.status === 'running' ? '고르는 중' : '랜덤 뽑기'}
+                </button>
+              </div>
             </div>
           </div>
 
-          <aside className={appClass.detailPanel} aria-label="선택한 산 정보">
+          {isMobileDetailSheetOpen ? (
+            <button
+              className="fixed inset-0 z-[5] hidden cursor-default border-0 bg-black/20 p-0 max-[900px]:block"
+              type="button"
+              aria-label="선택한 산 정보 닫기"
+              onClick={() => setIsMobileDetailSheetOpen(false)}
+            />
+          ) : null}
+
+          <aside
+            className={cn(
+              appClass.detailPanel,
+              isMobileDetailSheetOpen
+                ? 'max-[900px]:translate-y-0'
+                : 'max-[900px]:pointer-events-none max-[900px]:translate-y-full'
+            )}
+            aria-label="선택한 산 정보"
+          >
             {randomState.status === 'running' ? (
               <div className={appClass.randomPending} role="status" aria-live="polite">
                 <Shuffle size={22} />
@@ -476,18 +619,28 @@ export default function App() {
                       />
                     </h2>
                   </div>
-                  <button
-                    className={cn(
-                      appClass.completeButton,
-                      completedIds.has(selectedMountain.id) ? appClass.completeButtonActive : appClass.completeButtonIdle
-                    )}
-                    type="button"
-                    onClick={() => toggleCompleted(selectedMountain)}
-                    aria-label={`${selectedMountain.name} 등반 완료 표시`}
-                  >
-                    <Check size={18} />
-                    <span>등반완료</span>
-                  </button>
+                  <div className="flex flex-none items-center gap-2">
+                    <button
+                      className={cn(
+                        appClass.completeButton,
+                        completedIds.has(selectedMountain.id) ? appClass.completeButtonActive : appClass.completeButtonIdle
+                      )}
+                      type="button"
+                      onClick={() => toggleCompleted(selectedMountain)}
+                      aria-label={`${selectedMountain.name} 등반 완료 표시`}
+                    >
+                      <Check size={18} />
+                      <span>등반완료</span>
+                    </button>
+                    <button
+                      className={appClass.detailPanelClose}
+                      type="button"
+                      onClick={() => setIsMobileDetailSheetOpen(false)}
+                      aria-label="선택한 산 정보 닫기"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
                 </div>
 
                 <dl className={appClass.meta}>
@@ -505,18 +658,33 @@ export default function App() {
                   </div>
                 </dl>
                 <p className="mt-4 leading-7 text-[#627168]">{selectedMountain.shortDescription}</p>
-                {selectedMountainGuide?.photoLinks?.length ? (
-                  <section className={appClass.sidebarPhotos} aria-label="산 사진">
-                    <h3 className="text-lg font-extrabold">사진</h3>
+                <section className={appClass.sidebarPhotos} aria-label="최신 한줄평 사진">
+                  <h3 className="text-lg font-extrabold">최신 한줄평 사진</h3>
+                  {sidebarPhotoState === 'loading' ? (
+                    <div className={appClass.sidebarPhotoEmpty}>사진을 불러오는 중입니다.</div>
+                  ) : sidebarReviewPhotos.length > 0 ? (
                     <div className={appClass.sidebarPhotoGrid}>
-                      {selectedMountainGuide.photoLinks.map((link) => (
-                        <a key={link.url} href={link.url} target="_blank" rel="noreferrer" aria-label={`${link.label} 원본 보기`}>
-                          <img src={link.url} alt={link.label} loading="lazy" />
+                      {sidebarReviewPhotos.map((photo) => (
+                        <a
+                          key={`${photo.url}-${photo.index}`}
+                          href={photo.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={`${photo.routeName} 한줄평 사진 ${photo.index + 1} 원본 보기`}
+                        >
+                          <img src={photo.url} alt={`${photo.routeName} 한줄평 사진 ${photo.index + 1}`} loading="lazy" />
                         </a>
                       ))}
                     </div>
-                  </section>
-                ) : null}
+                  ) : (
+                    <div className={appClass.sidebarPhotoEmpty}>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Camera size={15} />
+                        등록된 한줄평 사진이 없습니다.
+                      </span>
+                    </div>
+                  )}
+                </section>
                 <button className={appClass.primaryAction} type="button" onClick={() => openMountainDetail(selectedMountain)}>
                   <MapPin size={18} />
                   정보 상세페이지
@@ -536,9 +704,72 @@ export default function App() {
         </div>
       ) : null}
 
+      <button
+        className={cn(appClass.feedbackButton, isMobileDetailSheetOpen && !detailMountain && 'max-[900px]:hidden')}
+        type="button"
+        onClick={() => setIsFeedbackOpen(true)}
+        aria-label="앱 피드백 보내기"
+      >
+        <MessageCircle size={19} />
+        <span className="max-[560px]:sr-only">피드백 보내기</span>
+      </button>
+
+      {isFeedbackOpen ? (
+        <div className={appClass.modalBackdrop} role="presentation" onClick={() => setIsFeedbackOpen(false)}>
+          <section
+            className={appClass.feedbackModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="feedback-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button className={appClass.feedbackClose} type="button" onClick={() => setIsFeedbackOpen(false)} aria-label="문의 창 닫기">
+              <X size={18} />
+            </button>
+            <div>
+              <p className={appClass.eyebrow}>앱 피드백</p>
+              <h2 id="feedback-modal-title" className="m-0 pr-10 text-2xl font-black max-[560px]:pr-8 max-[560px]:text-xl max-[560px]:leading-7">
+                무엇을 개선하면 좋을까요?
+              </h2>
+            </div>
+            <div className={appClass.feedbackField}>
+              <label htmlFor="feedback-message">문의 내용</label>
+              <textarea
+                className={appClass.feedbackTextarea}
+                id="feedback-message"
+                maxLength={2000}
+                placeholder="잘못된 산 정보, 코스 오류, 필요한 기능 등을 알려주세요."
+                value={feedbackText}
+                onChange={(event) => setFeedbackText(event.target.value)}
+              />
+            </div>
+            <div className={appClass.feedbackField}>
+              <label htmlFor="feedback-contact">답변 받을 연락처 (선택)</label>
+              <input
+                className={appClass.feedbackInput}
+                id="feedback-contact"
+                maxLength={200}
+                type="text"
+                placeholder="답변이 필요할 때만 이메일 또는 연락처를 남겨주세요."
+                value={feedbackContact}
+                onChange={(event) => setFeedbackContact(event.target.value)}
+              />
+            </div>
+            <div className={appClass.feedbackActions}>
+              <button className={appClass.feedbackCancel} type="button" onClick={() => setIsFeedbackOpen(false)} disabled={isFeedbackSubmitting}>
+                닫기
+              </button>
+              <button className={appClass.feedbackSubmit} type="button" onClick={submitFeedback} disabled={isFeedbackSubmitting}>
+                {isFeedbackSubmitting ? '보내는 중' : '보내기'}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       {!isSupabaseConfigured ? (
         <div className={appClass.setupNote}>
-          `.env`에 Supabase와 Kakao Maps 키를 넣으면 실제 지도와 Google 로그인이 활성화됩니다.
+          `.env`에 Supabase와 Kakao Maps 키를 넣으면 실제 지도, Google 로그인, 피드백 저장이 활성화됩니다.
         </div>
       ) : null}
 
