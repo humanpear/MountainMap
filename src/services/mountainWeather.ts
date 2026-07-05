@@ -61,14 +61,9 @@ function padIconCode(value: string | number | undefined) {
 }
 
 function buildMountainWeatherUrl(stationId: string) {
-  const directUrl = `${MTWEATHER_ENDPOINT}?stnId=${encodeURIComponent(stationId)}`;
   const proxyUrl = env.mountainWeatherProxyUrl?.trim();
-  const defaultProxyUrl = import.meta.env.DEV ? '/api/mtweather' : undefined;
+  const defaultProxyUrl = '/api/mtweather';
   const selectedProxyUrl = proxyUrl || defaultProxyUrl;
-
-  if (!selectedProxyUrl) {
-    return directUrl;
-  }
 
   if (selectedProxyUrl.includes('{stnId}')) {
     return selectedProxyUrl.replace('{stnId}', encodeURIComponent(stationId));
