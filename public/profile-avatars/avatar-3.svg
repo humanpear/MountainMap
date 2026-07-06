@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Blue valley avatar">
+  <rect width="160" height="160" rx="80" fill="#EEF3F0"/>
+  <path d="M0 110 36 64l28 35 19-31 77 67v25H0z" fill="#5D6A62"/>
+  <path d="M0 127 47 88l28 28 24-27 61 48v23H0z" fill="#06263A"/>
+  <path d="M69 160c4-31 4-51 0-61 12 3 20 14 23 31 3 14 1 24-7 30z" fill="#FFFFFF"/>
+  <path d="M77 160c9-18 11-35 6-51 13 8 21 25 23 51z" fill="#D8E0DA"/>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Night hike avatar">
+  <rect width="160" height="160" rx="80" fill="#00172B"/>
+  <circle cx="108" cy="42" r="20" fill="#F5F7F4"/>
+  <circle cx="116" cy="36" r="20" fill="#00172B"/>
+  <circle cx="45" cy="43" r="3" fill="#F5F7F4"/>
+  <circle cx="70" cy="28" r="2" fill="#F5F7F4"/>
+  <circle cx="130" cy="74" r="2" fill="#F5F7F4"/>
+  <path d="M0 118 41 77l31 31 22-30 66 57v25H0z" fill="#5D6A62"/>
+  <path d="M0 136 48 99l29 22 26-30 57 47v22H0z" fill="#245C46"/>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Sunrise mountain avatar">
+  <rect width="160" height="160" rx="80" fill="#06263A"/>
+  <circle cx="80" cy="76" r="38" fill="#D90D0D"/>
+  <circle cx="80" cy="76" r="24" fill="#F28A00"/>
+  <path d="M0 118 42 74l31 34 18-21 69 62v11H0z" fill="#F5F7F4"/>
+  <path d="M0 132 51 91l30 25 28-33 51 47v30H0z" fill="#245C46"/>
+</svg>

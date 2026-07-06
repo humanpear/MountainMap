@@ -1,13 +1,15 @@
 import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Camera, Check, LogIn, LogOut, MapPin, MessageCircle, Mountain as MountainIcon, Search, Shuffle, X } from 'lucide-react';
+import { Camera, Check, LogIn, MapPin, MessageCircle, Search, Shuffle, UserRound, X } from 'lucide-react';
 import { MountainDetailPage } from './components/MountainDetailPage';
 import { MountainMap } from './components/MountainMap';
 import { MountainNameWithHanja } from './components/MountainNameWithHanja';
+import { MyPage } from './components/MyPage';
 import { mountains } from './data/mountains';
 import { getCandidateIdsForRandomMode, getRandomCandidates, pickRandomMountain } from './game/random';
 import { cn } from './lib/classNames';
 import { createAppFeedback } from './services/appFeedback';
+import { getOAuthRedirectUrl } from './services/authRedirect';
 import { getCompletionErrorMessage } from './services/completionErrors';
 import { isSupabaseConfigured } from './services/env';
 import { fetchMountainReviews, type MountainReview } from './services/mountainReviews';
@@ -58,6 +60,31 @@ const randomModeLabels: Record<RandomMode, string> = {
   selected: '직접 선택'
 };
 
+function getMountainDetailRouteId() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const match = window.location.pathname.match(/^\/mountains\/([^/]+)\/?$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getIsMyPageRoute() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return window.location.pathname === '/my-page';
+}
+
+function setBrowserPath(path: string) {
+  if (typeof window === 'undefined' || window.location.pathname === path) {
+    return;
+  }
+
+  window.history.pushState(null, '', path);
+}
+
 const appClass = {
   shell: 'grid min-h-screen grid-rows-[auto_1fr] bg-[#f4f7f5] text-[#18221d]',
   topbar:
@@ -107,7 +134,7 @@ const appClass = {
     'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-4 font-extrabold text-[#18221d]',
   sidebarPhotos: 'mt-5',
   sidebarPhotoGrid:
-    'mt-2 grid grid-cols-3 gap-2 [&_a]:block [&_img]:aspect-square [&_img]:w-full [&_img]:rounded-md [&_img]:object-cover',
+    'mt-2 grid grid-cols-3 gap-2 [&>*]:block [&_img]:aspect-square [&_img]:w-full [&_img]:rounded-md [&_img]:object-cover',
   sidebarPhotoEmpty:
     'mt-2 grid min-h-[94px] place-items-center rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] px-3 text-center text-sm font-bold leading-5 text-[#5d6a62]',
   randomPending: 'grid min-h-60 place-items-center content-center gap-3 text-center text-[#2f6b4f] [&_h2]:text-2xl',
@@ -150,8 +177,9 @@ const appClass = {
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
-  const [selectedMountainId, setSelectedMountainId] = useState(mountains[0]?.id ?? '');
-  const [detailMountainId, setDetailMountainId] = useState<string | null>(null);
+  const [selectedMountainId, setSelectedMountainId] = useState('');
+  const [detailMountainId, setDetailMountainId] = useState<string | null>(() => getMountainDetailRouteId());
+  const [isMyPageOpen, setIsMyPageOpen] = useState(() => getIsMyPageRoute());
   const [focusedMountainId, setFocusedMountainId] = useState<string | undefined>();
   const [completionRecords, setCompletionRecords] = useState<CompletionRecord[]>([]);
   const [randomMode, setRandomMode] = useState<RandomMode>('incomplete');
@@ -182,6 +210,17 @@ export default function App() {
     () => getRandomCandidates({ mountains, completedIds, selectedIds: candidateIds, mode: randomMode }),
     [candidateIds, completedIds, randomMode]
   );
+
+  useEffect(() => {
+    const syncDetailRoute = () => {
+      setDetailMountainId(getMountainDetailRouteId());
+      setIsMyPageOpen(getIsMyPageRoute());
+      setIsMobileDetailSheetOpen(false);
+    };
+
+    window.addEventListener('popstate', syncDetailRoute);
+    return () => window.removeEventListener('popstate', syncDetailRoute);
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -239,7 +278,7 @@ export default function App() {
 
     supabase
       .from('completed_mountains')
-      .select('mountain_id, completed_at')
+      .select('id, mountain_id, completed_at')
       .eq('user_id', session.user.id)
       .then(({ data, error }) => {
         if (error) {
@@ -249,6 +288,7 @@ export default function App() {
 
         setCompletionRecords(
           (data ?? []).map((row) => ({
+            id: row.id,
             mountainId: row.mountain_id,
             completedAt: row.completed_at
           }))
@@ -321,7 +361,26 @@ export default function App() {
   };
 
   const openMountainDetail = (mountain: Mountain) => {
+    setBrowserPath(`/mountains/${encodeURIComponent(mountain.id)}`);
     setDetailMountainId(mountain.id);
+    setIsMyPageOpen(false);
+    setIsMobileDetailSheetOpen(false);
+    setResultModalMountain(null);
+  };
+
+  const closeMountainDetail = () => {
+    setBrowserPath('/');
+    setDetailMountainId(null);
+    setIsMyPageOpen(false);
+  };
+
+  const navigateHome = () => {
+    setBrowserPath('/');
+    setDetailMountainId(null);
+    setIsMyPageOpen(false);
+    setSelectedMountainId('');
+    setFocusedMountainId(undefined);
+    setIsMobileDetailSheetOpen(false);
     setResultModalMountain(null);
   };
 
@@ -342,7 +401,7 @@ export default function App() {
 
     setSelectedMountainId(match.id);
     setFocusedMountainId(match.id);
-    setDetailMountainId(match.id);
+    openMountainDetail(match);
     setResultModalMountain(null);
   };
 
@@ -378,9 +437,12 @@ export default function App() {
   };
 
   const showMountainOnMap = (mountain: Mountain) => {
+    setBrowserPath('/');
     setDetailMountainId(null);
+    setIsMyPageOpen(false);
     setSelectedMountainId(mountain.id);
     setFocusedMountainId(mountain.id);
+    setIsMobileDetailSheetOpen(true);
   };
 
   const signInWithGoogle = async () => {
@@ -392,7 +454,7 @@ export default function App() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: getOAuthRedirectUrl()
       }
     });
 
@@ -409,12 +471,21 @@ export default function App() {
     const { error } = await supabase.auth.signOut();
     if (error) {
       setMessage(error.message);
+      return;
     }
+
+    navigateHome();
   };
 
   const handleAuthClick = () => {
     if (session) {
-      void signOut();
+      setBrowserPath('/my-page');
+      setIsMyPageOpen(true);
+      setDetailMountainId(null);
+      setSelectedMountainId('');
+      setFocusedMountainId(undefined);
+      setIsMobileDetailSheetOpen(false);
+      setResultModalMountain(null);
       return;
     }
 
@@ -481,7 +552,7 @@ export default function App() {
     <main className={appClass.shell}>
       <header className={appClass.topbar}>
         <div className={appClass.topbarInner}>
-          <button className={appClass.brand} type="button" onClick={() => setDetailMountainId(null)} aria-label="지도로 이동">
+          <button className={appClass.brand} type="button" onClick={navigateHome} aria-label="지도로 이동">
             <img className="h-9 w-auto object-contain brightness-0 invert" src="/logo-mountain.png" alt="" aria-hidden="true" />
             <span>대한민국 100대 명산</span>
           </button>
@@ -516,19 +587,28 @@ export default function App() {
               </button>
             </form>
             <button className={appClass.authButton} type="button" onClick={handleAuthClick}>
-              {session ? <LogOut size={17} /> : <LogIn size={17} />}
-              {session ? '로그아웃' : '로그인'}
+              {session ? <UserRound size={17} /> : <LogIn size={17} />}
+              {session ? '마이페이지' : '로그인'}
             </button>
           </div>
         </div>
       </header>
 
-      {detailMountain ? (
+      {isMyPageOpen && session ? (
+        <MyPage
+          session={session}
+          completionRecords={completionRecords}
+          onCompletionRecordsChange={setCompletionRecords}
+          onBackToMap={navigateHome}
+          onOpenMountain={openMountainDetail}
+          onSignOut={() => void signOut()}
+        />
+      ) : detailMountain ? (
         <MountainDetailPage
           mountain={detailMountain}
           isCompleted={completedIds.has(detailMountain.id)}
           session={session}
-          onBack={() => setDetailMountainId(null)}
+          onBack={closeMountainDetail}
           onShowOnMap={showMountainOnMap}
           onToggleCompleted={toggleCompleted}
         />
@@ -566,13 +646,9 @@ export default function App() {
               </div>
 
               <div className={appClass.randomControl} aria-label="랜덤 뽑기 컨트롤">
-                <div className={appClass.candidateCount}>
-                  <MountainIcon size={16} />
-                  후보 {candidates.length}개
-                </div>
                 <button className={appClass.randomButton} type="button" onClick={runRandomPick} disabled={randomState.status === 'running'}>
                   <Shuffle size={18} />
-                  {randomState.status === 'running' ? '고르는 중' : '랜덤 뽑기'}
+                  {randomState.status === 'running' ? '고르는 중' : `후보 ${candidates.length}개 랜덤 뽑기`}
                 </button>
               </div>
             </div>
@@ -665,15 +741,11 @@ export default function App() {
                   ) : sidebarReviewPhotos.length > 0 ? (
                     <div className={appClass.sidebarPhotoGrid}>
                       {sidebarReviewPhotos.map((photo) => (
-                        <a
+                        <div
                           key={`${photo.url}-${photo.index}`}
-                          href={photo.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          aria-label={`${photo.routeName} 한줄평 사진 ${photo.index + 1} 원본 보기`}
                         >
                           <img src={photo.url} alt={`${photo.routeName} 한줄평 사진 ${photo.index + 1}`} loading="lazy" />
-                        </a>
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -705,7 +777,7 @@ export default function App() {
       ) : null}
 
       <button
-        className={cn(appClass.feedbackButton, isMobileDetailSheetOpen && !detailMountain && 'max-[900px]:hidden')}
+        className={cn(appClass.feedbackButton, isMyPageOpen && 'hidden', isMobileDetailSheetOpen && !detailMountain && 'max-[900px]:hidden')}
         type="button"
         onClick={() => setIsFeedbackOpen(true)}
         aria-label="앱 피드백 보내기"

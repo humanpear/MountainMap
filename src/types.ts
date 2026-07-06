@@ -12,6 +12,7 @@ export type Mountain = {
 };
 
 export type CompletionRecord = {
+  id?: string;
   mountainId: string;
   completedAt: string;
 };

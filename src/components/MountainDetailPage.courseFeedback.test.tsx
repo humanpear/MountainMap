@@ -119,6 +119,10 @@ function renderMountainDetail(session: Session | null = createSession()) {
   return { mountain, ...result };
 }
 
+function openPreviewReviewForm() {
+  fireEvent.click(screen.getByRole("button", { name: "한줄평 작성하기" }));
+}
+
 describe("MountainDetailPage course feedback", () => {
   beforeEach(() => {
     reviewServiceMocks.createMountainReview.mockReset();
@@ -128,20 +132,27 @@ describe("MountainDetailPage course feedback", () => {
     reviewServiceMocks.fetchMountainReviews.mockResolvedValue([]);
   });
 
-  it("renders course feedback below the mountain detail support cards", () => {
+  it("opens course feedback below the review cards from the write button", () => {
     renderMountainDetail();
 
-    expect(screen.getByRole("heading", { name: "코스 평가" })).toBeInTheDocument();
-    expect(screen.getByText("한줄평을 남겨주세요!")).toBeInTheDocument();
+    const reviewHeading = screen.getByRole("heading", { name: "실제 등산객 한줄평" });
+    expect(reviewHeading).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "코스 평가" })).not.toBeInTheDocument();
+    openPreviewReviewForm();
+    const feedbackHeading = screen.getByRole("heading", { name: "코스 평가" });
+    expect(feedbackHeading).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "실제 등산객 한줄평" }),
-    ).toBeInTheDocument();
+      reviewHeading.compareDocumentPosition(feedbackHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByText("한줄평을 남겨주세요!")).toBeInTheDocument();
     expect(screen.getByText("전체")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "추천코스" })).toBeInTheDocument();
   });
 
   it("selects the recommended course by default", () => {
     const { mountain } = renderMountainDetail();
+    openPreviewReviewForm();
     const recommendedRoute = getMountainGuide(mountain).routes.find(
       (route) => route.forestTripCourseKind === "recommended" || route.isRecommended,
     );
@@ -248,6 +259,7 @@ describe("MountainDetailPage course feedback", () => {
 
   it("shows direct course input and saves custom start and end points", async () => {
     const { mountain } = renderMountainDetail();
+    openPreviewReviewForm();
     const courseSelect = screen.getByLabelText(
       "코스를 선택해주세요",
     ) as HTMLSelectElement;
@@ -395,23 +407,36 @@ describe("MountainDetailPage course feedback", () => {
     expect(screen.getByRole("heading", { name: "추천 코스 지도" })).toBeInTheDocument();
   });
 
-  it("places weather between recommended course info and feedback and hides it on full reviews", async () => {
+  it("places weather before reviews and opens feedback below reviews", async () => {
     const { mountain } = renderMountainDetail();
 
     const courseInfoHeading = screen.getByRole("heading", {
       name: "추천 코스 정보",
     });
+    const courseMapHeading = screen.getByRole("heading", {
+      name: "추천 코스 지도",
+    });
     const weatherSection = screen.getByRole("region", {
       name: `${mountain.name} 날씨`,
     });
+    const reviewHeading = screen.getByRole("heading", { name: "실제 등산객 한줄평" });
+    openPreviewReviewForm();
     const feedbackHeading = screen.getByRole("heading", { name: "코스 평가" });
 
     expect(
-      courseInfoHeading.compareDocumentPosition(weatherSection) &
+      courseInfoHeading.compareDocumentPosition(courseMapHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      weatherSection.compareDocumentPosition(feedbackHeading) &
+      courseMapHeading.compareDocumentPosition(weatherSection) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      weatherSection.compareDocumentPosition(reviewHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      reviewHeading.compareDocumentPosition(feedbackHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
@@ -742,6 +767,7 @@ describe("MountainDetailPage course feedback", () => {
 
   it("creates a Supabase review with the selected route", async () => {
     const { mountain } = renderMountainDetail();
+    openPreviewReviewForm();
     const courseSelect = screen.getByLabelText(
       "코스를 선택해주세요",
     ) as HTMLSelectElement;
@@ -784,6 +810,7 @@ describe("MountainDetailPage course feedback", () => {
 
   it("previews selected images and removes them before upload", () => {
     const { container } = renderMountainDetail();
+    openPreviewReviewForm();
     const fileInput = container.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement;
@@ -798,6 +825,7 @@ describe("MountainDetailPage course feedback", () => {
 
   it("disables review creation for signed-out users", () => {
     renderMountainDetail(null);
+    openPreviewReviewForm();
 
     expect(
       screen.getByPlaceholderText("로그인 후 한줄평을 남길 수 있습니다."),

@@ -2019,12 +2019,6 @@ function CourseFeedbackSection({
 
   return (
     <>
-      <section
-        className="mt-6 overflow-hidden rounded-md border border-[#d8e0da] bg-white px-0 pb-5 pt-0 shadow-[0_10px_28px_rgba(24,34,29,0.045)]"
-        aria-label={`${mountain.name} 코스 평가`}
-      >
-        {reviewForm}
-      </section>
       <CourseReviewSection
         reviews={reviews}
         routes={displayRoutes}
@@ -2034,11 +2028,28 @@ function CourseFeedbackSection({
         message={listMessage}
         deletingReviewId={deletingReviewId}
         editingReviewId={editingReviewId}
+        isFormOpen={isFullReviewFormOpen}
+        onWrite={() => {
+          resetReviewForm();
+          setIsFullReviewFormOpen(true);
+        }}
+        onCancelWrite={() => {
+          resetReviewForm();
+          setIsFullReviewFormOpen(false);
+        }}
         onShowAllReviews={onShowAllReviews}
         onEdit={startEditingReview}
         onDelete={requestDeleteReview}
         onPhotoOpen={openReviewLightbox}
       />
+      <CollapsibleReviewForm isOpen={isFullReviewFormOpen} className="mt-6">
+        <section
+          className="overflow-hidden rounded-md border border-[#d8e0da] bg-white px-0 pb-5 pt-0 shadow-[0_10px_28px_rgba(24,34,29,0.045)]"
+          aria-label={`${mountain.name} 코스 평가`}
+        >
+          {reviewForm}
+        </section>
+      </CollapsibleReviewForm>
       <ReviewPhotoLightbox
         state={lightboxState}
         onClose={() => setLightboxState(null)}
@@ -2061,6 +2072,45 @@ function CourseFeedbackSection({
   );
 }
 
+function CollapsibleReviewForm({
+  isOpen,
+  className,
+  children,
+}: {
+  isOpen: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  const [shouldRender, setShouldRender] = useState(isOpen);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setShouldRender(false), 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [isOpen]);
+
+  if (!shouldRender) {
+    return null;
+  }
+
+  return (
+    <div
+      className={cn(
+        "grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out",
+        isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+        className,
+      )}
+      aria-hidden={!isOpen}
+    >
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
+  );
+}
+
 function CourseReviewSection({
   reviews,
   routes,
@@ -2070,6 +2120,9 @@ function CourseReviewSection({
   message,
   deletingReviewId,
   editingReviewId,
+  isFormOpen,
+  onWrite,
+  onCancelWrite,
   onShowAllReviews,
   onEdit,
   onDelete,
@@ -2083,6 +2136,9 @@ function CourseReviewSection({
   message: string | null;
   deletingReviewId: string | null;
   editingReviewId: string | null;
+  isFormOpen: boolean;
+  onWrite: () => void;
+  onCancelWrite: () => void;
   onShowAllReviews: () => void;
   onEdit: (review: MountainReview) => void;
   onDelete: (review: MountainReview) => void;
@@ -2124,6 +2180,14 @@ function CourseReviewSection({
               전체 {reviews.length}개
             </span>
           ) : null}
+          <button
+            className="inline-flex min-h-9 items-center gap-2 rounded-md border-0 bg-[#166b3d] px-3 text-sm font-black text-white transition hover:bg-[#125b34]"
+            type="button"
+            onClick={isFormOpen ? onCancelWrite : onWrite}
+          >
+            {isFormOpen ? <X size={16} /> : <Edit3 size={16} />}
+            {isFormOpen ? "작성 취소" : "한줄평 작성하기"}
+          </button>
           <button
             className="inline-flex min-h-9 items-center rounded-md border border-[#245c46] bg-white px-3 text-sm font-black text-[#245c46] transition hover:bg-[#f7faf8]"
             type="button"
@@ -2320,11 +2384,11 @@ function FullReviewSection({
         </div>
       </div>
 
-      {isFormOpen ? (
-        <div className="mb-5 rounded-none border border-[#d9dee2] bg-white pb-5">
+      <CollapsibleReviewForm isOpen={isFormOpen} className="mb-5">
+        <div className="rounded-none border border-[#d9dee2] bg-white pb-5">
           {reviewForm}
         </div>
-      ) : null}
+      </CollapsibleReviewForm>
 
       <div className="grid grid-cols-[240px_minmax(0,1fr)] gap-5 max-[900px]:grid-cols-1">
         <aside className="self-start rounded-md border border-[#d8e0da] bg-white p-4 shadow-[0_10px_24px_rgba(24,34,29,0.045)] max-[560px]:p-3">
@@ -3331,6 +3395,33 @@ function RecommendedCourseSection({
       <div className={cn("grid gap-5", activeTab !== "courses" && "hidden")}>
         <article className="rounded-md border border-[#d8e0da] bg-white px-6 pb-6 pt-5 shadow-[0_10px_28px_rgba(24,34,29,0.045)] max-[560px]:px-4 max-[560px]:pb-5">
           <h4 className="mb-4 mt-0 text-[22px] font-black leading-7 text-[#18221d]">
+            추천 코스 정보
+          </h4>
+          {displayRoutes.length > 0 ? (
+            <ul className="m-0 grid list-none gap-4 p-0 max-[720px]:gap-3">
+              {displayRoutes.map((route) => (
+                <ForestTripCourseInfoCard
+                  key={`${route.forestTripCourseKind}-${route.path}`}
+                  route={route}
+                  variant={courseInfoVariant}
+                  difficultyLabelOverride={routeDifficultyLabels[route.name]}
+                />
+              ))}
+            </ul>
+          ) : (
+            <div className="rounded-[5px] border border-dashed border-[#b9c6bd] bg-[#f4f8f6] px-5 py-8 text-center">
+              <strong className="block text-lg font-black text-[#18221d]">
+                추천 코스 정보 준비 중
+              </strong>
+              <p className="m-0 mt-2 text-base font-semibold leading-6 text-[#627168]">
+                숲나들e 코스 표를 확인한 뒤 표시합니다.
+              </p>
+            </div>
+          )}
+        </article>
+
+        <article className="rounded-md border border-[#d8e0da] bg-white px-6 pb-6 pt-5 shadow-[0_10px_28px_rgba(24,34,29,0.045)] max-[560px]:px-4 max-[560px]:pb-5">
+          <h4 className="mb-4 mt-0 text-[22px] font-black leading-7 text-[#18221d]">
             추천 코스 지도
           </h4>
           {hasCourseMap ? (
@@ -3371,33 +3462,6 @@ function RecommendedCourseSection({
           )}
         </article>
 
-        <article className="rounded-md border border-[#d8e0da] bg-white px-6 pb-6 pt-5 shadow-[0_10px_28px_rgba(24,34,29,0.045)] max-[560px]:px-4 max-[560px]:pb-5">
-          <h4 className="mb-4 mt-0 text-[22px] font-black leading-7 text-[#18221d]">
-            추천 코스 정보
-          </h4>
-          {displayRoutes.length > 0 ? (
-            <ul className="m-0 grid list-none gap-4 p-0 max-[720px]:gap-3">
-              {displayRoutes.map((route) => (
-                <ForestTripCourseInfoCard
-                  key={`${route.forestTripCourseKind}-${route.path}`}
-                  route={route}
-                  variant={courseInfoVariant}
-                  difficultyLabelOverride={routeDifficultyLabels[route.name]}
-                />
-              ))}
-            </ul>
-          ) : (
-            <div className="rounded-[5px] border border-dashed border-[#b9c6bd] bg-[#f4f8f6] px-5 py-8 text-center">
-              <strong className="block text-lg font-black text-[#18221d]">
-                추천 코스 정보 준비 중
-              </strong>
-              <p className="m-0 mt-2 text-base font-semibold leading-6 text-[#627168]">
-                숲나들e 코스 표를 확인한 뒤 표시합니다.
-              </p>
-            </div>
-          )}
-        </article>
-
       </div>
 
       {activeTab === "courses" ? weatherSection : null}
@@ -3424,20 +3488,26 @@ function getForestTripCourseInfoVariant(): ForestTripCourseInfoVariant {
 }
 
 function formatForestTripCourseTime(estimatedTime: string) {
-  const hourMatch = estimatedTime.match(/(\d+(?:\.\d+)?)\s*시간/);
-  const minuteMatch = estimatedTime.match(/(\d+)\s*분/);
+  const normalizedTime = estimatedTime.replace(/^약\s*/, "").split(",")[0].trim();
+  const colonMatch = normalizedTime.match(/^(\d+):(\d{1,2})$/);
+
+  if (colonMatch) {
+    return formatDurationMinutes(Number(colonMatch[1]) * 60 + Number(colonMatch[2]));
+  }
+
+  const hourMatch = normalizedTime.match(/(\d+(?:\.\d+)?)\s*시간/);
+  const minuteMatch = normalizedTime.match(/(\d+)\s*분/);
 
   if (!hourMatch && !minuteMatch) {
-    return estimatedTime.replace(/^약\s*/, "").split(",")[0].trim();
+    return normalizedTime;
   }
 
   const hours = hourMatch ? Number(hourMatch[1]) : 0;
   const minutes = minuteMatch ? Number(minuteMatch[1]) : 0;
   const wholeHours = Math.floor(hours);
   const decimalMinutes = Math.round((hours - wholeHours) * 60);
-  const totalMinutes = minutes + decimalMinutes;
 
-  return `${wholeHours}:${String(totalMinutes).padStart(2, "0")}`;
+  return formatDurationMinutes(wholeHours * 60 + minutes + decimalMinutes);
 }
 
 function getForestTripDifficultyLabel(difficulty: MountainGuideDifficulty) {

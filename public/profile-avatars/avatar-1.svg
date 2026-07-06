@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Green ridge avatar">
+  <rect width="160" height="160" rx="80" fill="#245C46"/>
+  <circle cx="116" cy="38" r="18" fill="#F28A00"/>
+  <path d="M0 111 42 64l26 29 21-24 71 68v23H0z" fill="#EEF3F0"/>
+  <path d="M0 126 40 87l33 31 27-35 60 55v22H0z" fill="#06263A"/>
+  <path d="M0 137c27-10 54-10 80 0s53 10 80 0v23H0z" fill="#237A1F"/>
+</svg>

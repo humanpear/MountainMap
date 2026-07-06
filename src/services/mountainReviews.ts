@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { fetchPublicProfiles } from "./profiles";
 
 export const mountainReviewImageBucket = "mountain-review-images";
 
@@ -119,8 +120,14 @@ export async function fetchMountainReviews(mountainId: string) {
     throw error;
   }
 
-  const rows = Array.isArray(data) ? data : [];
-  return (rows as MountainReviewRow[]).map(mapMountainReview);
+  const rows = Array.isArray(data) ? (data as MountainReviewRow[]) : [];
+  const reviews = rows.map(mapMountainReview);
+  const profileMap = await fetchPublicProfiles(reviews.map((review) => review.userId)).catch(() => new Map());
+
+  return reviews.map((review) => {
+    const profile = profileMap.get(review.userId);
+    return profile ? { ...review, authorName: profile.displayName } : review;
+  });
 }
 
 function isMissingRouteEndpointColumnError(error: unknown) {
