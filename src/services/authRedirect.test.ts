@@ -3,7 +3,7 @@ import { normalizeOAuthRedirectUrl } from './authRedirect';
 
 describe('normalizeOAuthRedirectUrl', () => {
   it('normalizes a configured production host to an HTTPS root URL', () => {
-    expect(normalizeOAuthRedirectUrl('mountian-map.vercel.app')).toBe('https://mountian-map.vercel.app/');
+    expect(normalizeOAuthRedirectUrl('mountain-map.vercel.app')).toBe('https://mountain-map.vercel.app/');
   });
 
   it('keeps localhost protocol and adds a root slash', () => {
@@ -11,9 +11,13 @@ describe('normalizeOAuthRedirectUrl', () => {
   });
 
   it('drops paths so Supabase redirects back to the app root', () => {
-    expect(normalizeOAuthRedirectUrl('https://mountian-map.vercel.app/some/path')).toBe(
-      'https://mountian-map.vercel.app/'
+    expect(normalizeOAuthRedirectUrl('https://mountain-map.vercel.app/some/path')).toBe(
+      'https://mountain-map.vercel.app/'
     );
+  });
+
+  it('rejects Supabase project URLs as user-facing app redirects', () => {
+    expect(normalizeOAuthRedirectUrl('https://example.supabase.co/auth/v1/callback')).toBeUndefined();
   });
 
   it('ignores invalid values', () => {

@@ -90,6 +90,7 @@ describe("my page service", () => {
     expect(reviews[0]).toEqual(
       expect.objectContaining({
         authorName: "최신 닉네임",
+        authorAvatarUrl: "/profile-avatars/avatar-1.svg",
         mountainName: expect.any(String),
         routeStartPoint: "해인사",
         routeEndPoint: "상왕봉",

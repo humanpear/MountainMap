@@ -2830,13 +2830,22 @@ function ReviewCard({
     >
       <div className={cn("min-w-0", isList ? "grid content-start gap-3" : "grid gap-3")}>
         <div className="flex min-w-0 items-start gap-2.5">
-          <span
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#d8e0da] bg-[#eef3f0] text-[#245c46]"
-            role="img"
-            aria-label="기본 프로필"
-          >
-            <UserRound size={19} aria-hidden="true" />
-          </span>
+          {review.authorAvatarUrl ? (
+            <img
+              className="h-11 w-11 shrink-0 rounded-full border border-[#d8e0da] bg-[#eef3f0] object-cover"
+              src={review.authorAvatarUrl}
+              alt=""
+              aria-hidden="true"
+            />
+          ) : (
+            <span
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#d8e0da] bg-[#eef3f0] text-[#245c46]"
+              role="img"
+              aria-label="기본 프로필"
+            >
+              <UserRound size={19} aria-hidden="true" />
+            </span>
+          )}
           <div className="grid min-w-0 flex-1 gap-1">
             <div
               className={cn(

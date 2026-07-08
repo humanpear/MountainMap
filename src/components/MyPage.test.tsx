@@ -67,7 +67,7 @@ function createSession() {
   } as Session;
 }
 
-function renderMyPage(options: { activeTab?: "overview" | "profile" | "completed" | "reviews"; onTabChange?: (tab: "overview" | "profile" | "completed" | "reviews") => void } = {}) {
+function renderMyPage(options: { activeTab?: "profile" | "completed" | "reviews"; onTabChange?: (tab: "profile" | "completed" | "reviews") => void } = {}) {
   return render(
     <MyPage
       session={createSession()}
@@ -143,13 +143,12 @@ describe("MyPage", () => {
       },
     ]);
 
-    renderMyPage();
+    renderMyPage({ activeTab: "completed" });
 
-    expect(await screen.findAllByRole("heading", { name: "가리산" })).toHaveLength(2);
+    expect(await screen.findByRole("heading", { name: "가리산" })).toBeInTheDocument();
     expect(screen.getByText("100대 명산 중 1%")).toBeInTheDocument();
     expect(screen.getByText("등산 완료")).toBeInTheDocument();
     expect(screen.getByText(/완료 날짜/)).toBeInTheDocument();
-    expect(screen.getByText("두촌면 → 정상")).toBeInTheDocument();
     expect(screen.queryByText("1회")).not.toBeInTheDocument();
 
     await waitFor(() => {
@@ -159,7 +158,7 @@ describe("MyPage", () => {
     });
   });
 
-  it("shows an activity overview by default instead of opening profile editing first", async () => {
+  it("shows only profile, completed, and reviews tabs", async () => {
     profileMocks.fetchOrCreateUserProfile.mockResolvedValue({
       id: "user-1",
       email: "user-1@example.com",
@@ -174,13 +173,12 @@ describe("MyPage", () => {
 
     renderMyPage({ onTabChange });
 
-    expect(await screen.findByRole("heading", { name: "완료 기록 관리" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "내가 남긴 한줄평" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "닉네임과 사진" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "닉네임과 사진" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "요약" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "프로필 편집" }));
+    fireEvent.click(screen.getByRole("button", { name: "완료한 산" }));
 
-    expect(onTabChange).toHaveBeenCalledWith("profile");
+    expect(onTabChange).toHaveBeenCalledWith("completed");
   });
 
   it("opens the profile editor when the profile tab is active", async () => {
@@ -198,7 +196,7 @@ describe("MyPage", () => {
     renderMyPage({ activeTab: "profile" });
 
     expect(await screen.findByRole("heading", { name: "닉네임과 사진" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "내 산행 현황" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "내 산행 현황" })).not.toBeInTheDocument();
   });
 
   it("edits and deletes a user review from MyPage", async () => {
@@ -241,9 +239,10 @@ describe("MyPage", () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
     try {
-      renderMyPage();
+      renderMyPage({ activeTab: "reviews" });
 
       expect(await screen.findByText("original review body")).toBeInTheDocument();
+      expect(screen.getByText("Trailhead → Summit")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /한줄평 수정/ }));
       fireEvent.change(screen.getByDisplayValue("original review body"), {
         target: { value: "updated review body" },

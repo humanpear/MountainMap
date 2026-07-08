@@ -56,12 +56,11 @@ type MyPageProps = {
 };
 
 type LoadState = "loading" | "ready" | "error";
-type MyPageTab = "overview" | "profile" | "completed" | "reviews";
+type MyPageTab = "profile" | "completed" | "reviews";
 
 const manualCourseRouteName = "코스 직접 입력";
 const difficultyEvaluationOptions = ["쉬움", "보통", "약간 어려움", "어려움", "매우 어려움"];
 const myPageTabs: Array<{ id: MyPageTab; label: string }> = [
-  { id: "overview", label: "요약" },
   { id: "profile", label: "프로필 편집" },
   { id: "completed", label: "완료한 산" },
   { id: "reviews", label: "내 한줄평" },
@@ -103,7 +102,6 @@ const pageClass = {
   tabButtonActive: "border-[#245c46] bg-[#245c46] text-white",
   tabButtonIdle: "border-transparent bg-transparent text-[#5d6a62] hover:bg-[#eef3f0] hover:text-[#18221d]",
   contentGrid: "grid grid-cols-[minmax(0,420px)_minmax(0,1fr)] gap-6 max-[980px]:grid-cols-1",
-  overviewGrid: "grid grid-cols-2 gap-6 max-[980px]:grid-cols-1",
   section: "rounded-lg border border-[#d8e0da] bg-white p-5 shadow-[0_16px_50px_rgba(24,34,29,0.06)] max-[760px]:p-4",
   sectionHeader: "mb-4 flex items-start justify-between gap-3",
   sectionTitle: "m-0 text-[22px] font-black leading-tight text-[#18221d]",
@@ -134,7 +132,7 @@ const pageClass = {
 
 export function MyPage({
   session,
-  activeTab = "overview",
+  activeTab = "profile",
   completionRecords,
   onCompletionRecordsChange,
   onTabChange,
@@ -229,7 +227,11 @@ export function MyPage({
       setAvatarUrl(nextProfile.avatarUrl);
       setAvatarKind(nextProfile.avatarKind);
       setReviews((currentReviews) =>
-        currentReviews.map((review) => ({ ...review, authorName: nextProfile.displayName })),
+        currentReviews.map((review) => ({
+          ...review,
+          authorName: nextProfile.displayName,
+          authorAvatarUrl: nextProfile.avatarUrl,
+        })),
       );
       if (shouldDeletePreviousAvatar(previousProfile, nextProfile.avatarUrl)) {
         try {
@@ -410,36 +412,11 @@ export function MyPage({
         ) : (
           <>
             {activeTab === "profile" ? (
-              <div className={pageClass.contentGrid}>
-                {profileEditor}
-                <section className={pageClass.section} aria-labelledby="profile-summary-title">
-                  <div className={pageClass.sectionHeader}>
-                    <div>
-                      <p className={pageClass.eyebrow}>활동 요약</p>
-                      <h2 id="profile-summary-title" className={pageClass.sectionTitle}>
-                        내 산행 현황
-                      </h2>
-                    </div>
-                  </div>
-                  <div className="grid gap-3">
-                    <p className={pageClass.muted}>
-                      완료한 산 {completedMountainCount}개, 작성한 한줄평 {reviews.length}개입니다.
-                    </p>
-                    <button className={pageClass.secondaryButton} type="button" onClick={() => openTab("overview")}>
-                      요약으로 돌아가기
-                    </button>
-                  </div>
-                </section>
-              </div>
+              profileEditor
             ) : activeTab === "completed" ? (
               completedPanel
-            ) : activeTab === "reviews" ? (
-              reviewsPanel
             ) : (
-              <div className={pageClass.overviewGrid}>
-                {completedPanel}
-                {reviewsPanel}
-              </div>
+              reviewsPanel
             )}
           </>
         )}
@@ -652,7 +629,17 @@ function UserReviewsPanel({
               <article key={review.id} className={pageClass.listItem}>
                 <div className={pageClass.itemTop}>
                   <div className="min-w-0">
-                    <h3 className={pageClass.itemTitle}>{review.mountainName}</h3>
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      {review.authorAvatarUrl ? (
+                        <img
+                          className="h-10 w-10 shrink-0 rounded-full border border-[#d8e0da] bg-[#eef3f0] object-cover"
+                          src={review.authorAvatarUrl}
+                          alt=""
+                          aria-hidden="true"
+                        />
+                      ) : null}
+                      <h3 className={pageClass.itemTitle}>{review.mountainName}</h3>
+                    </div>
                     <p className={pageClass.muted}>
                       {review.routeName} · {formatDate(review.createdAt)}
                     </p>
@@ -881,7 +868,17 @@ function EditableUserReviewsPanel({
               >
                 <div className={pageClass.itemTop}>
                   <div className="min-w-0">
-                    <h3 className={pageClass.itemTitle}>{review.mountainName}</h3>
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      {review.authorAvatarUrl ? (
+                        <img
+                          className="h-10 w-10 shrink-0 rounded-full border border-[#d8e0da] bg-[#eef3f0] object-cover"
+                          src={review.authorAvatarUrl}
+                          alt=""
+                          aria-hidden="true"
+                        />
+                      ) : null}
+                      <h3 className={pageClass.itemTitle}>{review.mountainName}</h3>
+                    </div>
                     <p className={pageClass.muted}>
                       {review.routeName} · {formatDate(review.createdAt)}
                     </p>
@@ -1278,6 +1275,7 @@ function toMountainReview(review: UserReviewSummary): MountainReview {
     routeStartPoint: review.routeStartPoint,
     routeEndPoint: review.routeEndPoint,
     authorName: review.authorName,
+    authorAvatarUrl: review.authorAvatarUrl,
     difficulty: review.difficulty,
     durationMinutes: review.durationMinutes,
     durationLabel: review.durationLabel,
@@ -1298,6 +1296,7 @@ function toUserReviewSummary(review: MountainReview, previousReview: UserReviewS
     routeStartPoint: review.routeStartPoint ?? previousReview.routeStartPoint,
     routeEndPoint: review.routeEndPoint ?? previousReview.routeEndPoint,
     authorName: review.authorName,
+    authorAvatarUrl: review.authorAvatarUrl ?? previousReview.authorAvatarUrl,
     difficulty: review.difficulty,
     durationMinutes: review.durationMinutes,
     durationLabel: review.durationLabel,

@@ -16,6 +16,7 @@ export type UserReviewSummary = {
   routeStartPoint: string | null;
   routeEndPoint: string | null;
   authorName: string;
+  authorAvatarUrl: string | null;
   difficulty: string;
   durationMinutes: number;
   durationLabel: string;
@@ -120,6 +121,7 @@ export async function fetchUserReviews(userId: string): Promise<UserReviewSummar
       routeStartPoint: row.route_start_point ?? null,
       routeEndPoint: row.route_end_point ?? null,
       authorName: profile?.displayName || row.author_name?.trim() || "등산객",
+      authorAvatarUrl: profile?.avatarUrl ?? null,
       difficulty: row.difficulty,
       durationMinutes: row.duration_minutes,
       durationLabel: row.duration_label,

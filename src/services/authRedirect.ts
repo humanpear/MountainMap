@@ -13,6 +13,9 @@ export const normalizeOAuthRedirectUrl = (url: string | undefined) => {
 
   try {
     const parsedUrl = new URL(urlWithProtocol);
+    if (parsedUrl.hostname === 'supabase.co' || parsedUrl.hostname.endsWith('.supabase.co')) {
+      return undefined;
+    }
     return `${parsedUrl.origin}/`;
   } catch {
     return undefined;

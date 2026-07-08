@@ -45,7 +45,7 @@ type SidebarReviewPhoto = {
   index: number;
 };
 
-type MyPageTab = 'overview' | 'profile' | 'completed' | 'reviews';
+type MyPageTab = 'profile' | 'completed' | 'reviews';
 
 type AccountSummaryState =
   | { status: 'idle'; profile: null; reviewCount: number }
@@ -103,11 +103,11 @@ function getIsMyPageRoute() {
 
 function getMyPageTabRoute(): MyPageTab {
   if (typeof window === 'undefined' || window.location.pathname !== '/my-page') {
-    return 'overview';
+    return 'profile';
   }
 
   const tab = new URLSearchParams(window.location.search).get('tab');
-  return tab === 'profile' || tab === 'completed' || tab === 'reviews' ? tab : 'overview';
+  return tab === 'completed' || tab === 'reviews' ? tab : 'profile';
 }
 
 function setBrowserPath(path: string) {
@@ -280,8 +280,8 @@ export default function App() {
 
   useEffect(() => {
     const syncDetailRoute = () => {
-      setDetailMountainId(getMountainDetailRouteId());
-      setIsMyPageOpen(getIsMyPageRoute());
+    setDetailMountainId(getMountainDetailRouteId());
+    setIsMyPageOpen(getIsMyPageRoute());
       setMyPageTab(getMyPageTabRoute());
       setIsAccountMenuOpen(false);
       setIsMobileDetailSheetOpen(false);
@@ -488,7 +488,7 @@ export default function App() {
     setBrowserPath(`/mountains/${encodeURIComponent(mountain.id)}`);
     setDetailMountainId(mountain.id);
     setIsMyPageOpen(false);
-    setMyPageTab('overview');
+    setMyPageTab('profile');
     setIsAccountMenuOpen(false);
     setIsMobileDetailSheetOpen(false);
     setResultModalMountain(null);
@@ -498,7 +498,7 @@ export default function App() {
     setBrowserPath('/');
     setDetailMountainId(null);
     setIsMyPageOpen(false);
-    setMyPageTab('overview');
+    setMyPageTab('profile');
     setIsAccountMenuOpen(false);
   };
 
@@ -506,7 +506,7 @@ export default function App() {
     setBrowserPath('/');
     setDetailMountainId(null);
     setIsMyPageOpen(false);
-    setMyPageTab('overview');
+    setMyPageTab('profile');
     setIsAccountMenuOpen(false);
     setSelectedMountainId('');
     setFocusedMountainId(undefined);
@@ -571,7 +571,7 @@ export default function App() {
     setBrowserPath('/');
     setDetailMountainId(null);
     setIsMyPageOpen(false);
-    setMyPageTab('overview');
+    setMyPageTab('profile');
     setIsAccountMenuOpen(false);
     setSelectedMountainId(mountain.id);
     setFocusedMountainId(mountain.id);
@@ -621,7 +621,7 @@ export default function App() {
   };
 
   const openMyPageTab = (tab: MyPageTab) => {
-    const path = tab === 'overview' ? '/my-page' : `/my-page?tab=${tab}`;
+    const path = tab === 'profile' ? '/my-page?tab=profile' : `/my-page?tab=${tab}`;
     setBrowserPath(path);
     setIsMyPageOpen(true);
     setMyPageTab(tab);

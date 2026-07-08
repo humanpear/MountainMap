@@ -11,6 +11,7 @@ export type MountainReview = {
   routeStartPoint?: string | null;
   routeEndPoint?: string | null;
   authorName: string;
+  authorAvatarUrl?: string | null;
   difficulty: string;
   durationMinutes: number;
   durationLabel: string;
@@ -126,7 +127,9 @@ export async function fetchMountainReviews(mountainId: string) {
 
   return reviews.map((review) => {
     const profile = profileMap.get(review.userId);
-    return profile ? { ...review, authorName: profile.displayName } : review;
+    return profile
+      ? { ...review, authorName: profile.displayName, authorAvatarUrl: profile.avatarUrl }
+      : review;
   });
 }
 
