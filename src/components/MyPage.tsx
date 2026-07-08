@@ -75,60 +75,81 @@ const difficultyDefaultIndex: Record<MountainGuideDifficulty, number> = {
 };
 
 const pageClass = {
-  shell: "min-h-[calc(100vh-68px)] bg-[#f5f7f4]",
-  inner: "mx-auto grid w-[1180px] max-w-[calc(100%-40px)] gap-6 py-8 max-[760px]:w-full max-[760px]:max-w-none max-[760px]:px-4 max-[760px]:py-5",
+  shell:
+    "min-h-[calc(100vh-68px)] bg-[radial-gradient(circle_at_top_right,rgba(218,231,224,0.72),transparent_34%),linear-gradient(180deg,#fbfcfb_0%,#f5f7f4_42%,#f7faf7_100%)]",
+  inner:
+    "mx-auto grid w-[1180px] max-w-[calc(100%-40px)] gap-6 pb-10 pt-9 max-[1023px]:w-full max-[1023px]:max-w-none max-[1023px]:px-6 max-[767px]:gap-4 max-[767px]:px-4 max-[767px]:py-5",
+  pageIntro: "relative isolate min-h-[118px] overflow-hidden max-[767px]:min-h-0",
+  pageHeading: "relative z-10 flex items-end justify-between gap-5 pt-2 max-[767px]:grid",
+  pageTitle: "m-0 text-[34px] font-black leading-tight text-[#18221d] max-[767px]:text-[28px]",
+  pageDescription: "m-0 mt-2 text-base font-bold leading-7 text-[#5d6a62]",
+  mountainBackdrop: "pointer-events-none absolute inset-x-[34%] bottom-0 top-0 -z-10 max-[767px]:hidden",
+  mountainLayer:
+    "absolute bottom-0 h-24 w-56 bg-[#dceae3] opacity-80 [clip-path:polygon(0_100%,22%_50%,35%_68%,54%_20%,69%_62%,82%_36%,100%_100%)]",
+  treeLayer:
+    "absolute bottom-0 h-10 w-72 bg-[#b8d0c3] opacity-75 [clip-path:polygon(0_100%,4%_70%,8%_100%,12%_55%,16%_100%,21%_68%,25%_100%,30%_58%,34%_100%,39%_72%,43%_100%,48%_60%,52%_100%,58%_70%,62%_100%,68%_52%,72%_100%,78%_66%,82%_100%,88%_60%,92%_100%,100%_76%,100%_100%)]",
   hero:
-    "grid gap-5 rounded-lg border border-[#d8e0da] bg-white p-6 shadow-[0_16px_50px_rgba(24,34,29,0.08)] max-[760px]:p-4",
-  heroTop: "flex items-start justify-between gap-4 max-[760px]:grid",
-  profileSummary: "flex min-w-0 items-center gap-4",
+    "relative isolate grid gap-7 overflow-hidden rounded-2xl border border-[#dfe7df] bg-white p-8 shadow-[0_18px_55px_rgba(20,40,30,0.07)] max-[767px]:gap-5 max-[767px]:p-5",
+  heroDecoration:
+    "pointer-events-none absolute -right-8 -top-8 -z-10 h-44 w-72 rounded-full bg-[#eef3f0] opacity-60 blur-2xl max-[767px]:hidden",
+  heroTop: "flex items-start justify-between gap-8 max-[767px]:grid",
+  profileSummary: "flex min-w-0 items-center gap-8 max-[767px]:gap-4 max-[420px]:grid max-[420px]:justify-items-start",
   avatar:
-    "h-20 w-20 flex-none rounded-full border-4 border-[#eef3f0] object-cover shadow-[0_10px_28px_rgba(24,34,29,0.16)]",
+    "h-28 w-28 flex-none rounded-full border-4 border-white bg-[#eef3f0] object-cover shadow-[0_12px_30px_rgba(24,34,29,0.14)] max-[767px]:h-20 max-[767px]:w-20",
   eyebrow: "m-0 text-sm font-black text-[#5d6a62]",
-  title: "m-0 text-[30px] font-black leading-tight text-[#18221d] max-[760px]:text-2xl",
+  title: "m-0 text-[30px] font-black leading-tight text-[#18221d] max-[767px]:text-2xl",
   muted: "m-0 leading-7 text-[#5d6a62]",
-  heroActions: "flex flex-wrap justify-end gap-2 max-[760px]:justify-start",
+  heroActions:
+    "flex flex-wrap justify-end gap-2 max-[767px]:grid max-[767px]:grid-cols-2 max-[767px]:justify-stretch max-[420px]:grid-cols-1",
   secondaryButton:
-    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-4 font-extrabold text-[#18221d] transition hover:bg-[#eef3f0]",
+    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#d8e0da] bg-white px-4 font-extrabold text-[#18221d] transition hover:bg-[#eef3f0] max-[767px]:min-h-12",
   dangerButton:
-    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#b14a3d] bg-white px-4 font-extrabold text-[#b14a3d] transition hover:bg-[#fff1ee]",
-  metrics: "grid grid-cols-3 gap-3 max-[760px]:grid-cols-1",
+    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#b14a3d] bg-white px-4 font-extrabold text-[#b14a3d] transition hover:bg-[#fff1ee] max-[767px]:min-h-12",
+  metrics: "grid grid-cols-3 gap-0 border-t border-[#d8e0da] pt-5 max-[767px]:pt-4",
   metric:
-    "rounded-lg border border-[#d8e0da] bg-[#f7faf8] p-4 [&_dd]:m-0 [&_dd]:font-numeric [&_dd]:text-2xl [&_dd]:font-black [&_dt]:text-sm [&_dt]:font-black [&_dt]:text-[#5d6a62]",
-  progressTrack: "h-3 overflow-hidden rounded-full bg-[#d8e0da]",
+    "grid min-w-0 grid-cols-[74px_minmax(0,1fr)] content-center gap-x-4 gap-y-1 border-r border-[#d8e0da] px-5 py-2 last:border-r-0 max-[767px]:grid-cols-1 max-[767px]:justify-items-start max-[767px]:gap-1 max-[767px]:px-2 [&_dd]:m-0 [&_dd]:font-numeric [&_dd]:text-[28px] [&_dd]:font-black [&_dd]:leading-tight max-[767px]:[&_dd]:text-xl [&_dt]:text-sm [&_dt]:font-black [&_dt]:text-[#245c46]",
+  metricIcon:
+    "row-span-4 grid h-16 w-16 place-items-center rounded-full bg-[#eef5f1] text-[#245c46] max-[767px]:h-9 max-[767px]:w-9",
+  progressTrack: "h-2.5 overflow-hidden rounded-full bg-[#d8e0da]",
   progressValue: "h-full rounded-full bg-[#245c46] transition-[width]",
+  sidePanel:
+    "grid gap-6 rounded-2xl border border-[#dfe7df] bg-white p-5 shadow-[0_16px_44px_rgba(20,40,30,0.06)] max-[1023px]:block max-[1023px]:border-0 max-[1023px]:bg-transparent max-[1023px]:p-0 max-[1023px]:shadow-none",
+  sideTitle: "m-0 text-lg font-black text-[#18221d] max-[1023px]:hidden",
   tabs:
-    "flex flex-wrap gap-2 rounded-lg border border-[#d8e0da] bg-white p-2 shadow-[0_10px_28px_rgba(24,34,29,0.05)]",
+    "grid gap-2 max-[1023px]:grid-cols-3 max-[1023px]:rounded-2xl max-[1023px]:border max-[1023px]:border-[#dfe7df] max-[1023px]:bg-white max-[1023px]:p-1.5 max-[1023px]:shadow-[0_12px_32px_rgba(20,40,30,0.05)]",
   tabButton:
-    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 font-extrabold transition max-[560px]:flex-1 max-[560px]:px-3",
-  tabButtonActive: "border-[#245c46] bg-[#245c46] text-white",
-  tabButtonIdle: "border-transparent bg-transparent text-[#5d6a62] hover:bg-[#eef3f0] hover:text-[#18221d]",
-  contentGrid: "grid grid-cols-[minmax(0,420px)_minmax(0,1fr)] gap-6 max-[980px]:grid-cols-1",
-  section: "rounded-lg border border-[#d8e0da] bg-white p-5 shadow-[0_16px_50px_rgba(24,34,29,0.06)] max-[760px]:p-4",
-  sectionHeader: "mb-4 flex items-start justify-between gap-3",
+    "inline-flex min-h-14 cursor-pointer items-center justify-start gap-3 rounded-xl border px-4 text-left font-extrabold transition max-[1023px]:min-h-11 max-[1023px]:justify-center max-[767px]:gap-1.5 max-[767px]:px-2 max-[767px]:text-sm",
+  tabButtonActive:
+    "border-[#dce9e2] border-l-4 border-l-[#245c46] bg-[#eef5f1] text-[#245c46] shadow-none ring-0 max-[1023px]:border-l max-[1023px]:border-[#245c46] max-[1023px]:bg-[#245c46] max-[1023px]:text-white",
+  tabButtonIdle: "border-transparent bg-transparent text-[#18221d] hover:bg-[#eef3f0] hover:text-[#245c46]",
+  bodyGrid: "grid grid-cols-[280px_minmax(0,1fr)] items-start gap-6 max-[1023px]:grid-cols-1 max-[767px]:gap-4",
+  section:
+    "rounded-2xl border border-[#dfe7df] bg-white p-7 shadow-[0_16px_44px_rgba(20,40,30,0.06)] max-[767px]:p-5",
+  sectionHeader: "mb-5 flex items-start justify-between gap-3",
   sectionTitle: "m-0 text-[22px] font-black leading-tight text-[#18221d]",
   field: "grid gap-2 [&_label]:text-sm [&_label]:font-black [&_label]:text-[#18221d]",
   input:
-    "min-h-11 rounded-lg border border-[#d8e0da] bg-white px-3 text-base text-[#18221d] outline-none focus:border-[#245c46]",
+    "min-h-12 rounded-xl border border-[#d8e0da] bg-white px-4 text-base text-[#18221d] outline-none focus:border-[#245c46]",
   primaryButton:
-    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-4 font-extrabold text-white transition hover:bg-[#1f4e39] disabled:cursor-not-allowed disabled:border-[#8aa699] disabled:bg-[#8aa699]",
-  avatarGrid: "grid grid-cols-5 gap-2",
+    "inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#245c46] bg-[#245c46] px-4 font-extrabold text-white transition hover:bg-[#1f4e39] disabled:cursor-not-allowed disabled:border-[#8aa699] disabled:bg-[#8aa699]",
+  avatarGrid: "grid grid-cols-5 gap-3 max-[767px]:grid-cols-3",
   avatarChoice:
-    "relative h-14 w-14 cursor-pointer overflow-hidden rounded-full border-2 bg-[#eef3f0] p-0 transition focus:outline-none focus:ring-2 focus:ring-[#245c46]",
+    "relative aspect-square min-h-16 cursor-pointer overflow-hidden rounded-2xl border-2 bg-[#eef3f0] p-0 transition focus:outline-none focus:ring-2 focus:ring-[#245c46]",
   list: "grid gap-3",
   listItem:
-    "grid gap-3 rounded-lg border border-[#d8e0da] bg-[#fbfdfb] p-4 transition hover:border-[#9fb2a7] max-[560px]:p-3",
+    "grid gap-3 rounded-2xl border border-[#d8e0da] bg-[#fbfdfb] p-4 transition hover:border-[#9fb2a7] max-[560px]:p-3",
   itemTop: "flex items-start justify-between gap-3",
   itemTitle: "m-0 text-lg font-black leading-6 text-[#18221d]",
   completedItem: "grid grid-cols-[132px_minmax(0,1fr)] gap-4 max-[560px]:grid-cols-1",
   completedImage:
-    "h-full min-h-28 w-full rounded-md object-cover shadow-[0_10px_24px_rgba(24,34,29,0.12)] max-[560px]:aspect-[16/9] max-[560px]:min-h-0",
+    "h-full min-h-28 w-full rounded-xl object-cover shadow-[0_10px_24px_rgba(24,34,29,0.12)] max-[560px]:aspect-[16/9] max-[560px]:min-h-0",
   tag: "inline-flex min-h-8 items-center rounded-full bg-[#eef3f0] px-3 text-sm font-black text-[#245c46]",
   iconButton:
-    "inline-flex h-11 min-h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg border border-[#d8e0da] bg-white text-[#18221d] transition hover:bg-[#eef3f0]",
+    "inline-flex h-11 min-h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-xl border border-[#d8e0da] bg-white text-[#18221d] transition hover:bg-[#eef3f0]",
   empty:
-    "grid min-h-36 place-items-center rounded-lg border border-dashed border-[#d8e0da] bg-[#f7faf8] px-4 text-center font-bold leading-7 text-[#5d6a62]",
+    "grid min-h-36 place-items-center rounded-2xl border border-dashed border-[#d8e0da] bg-[#f7faf8] px-4 text-center font-bold leading-7 text-[#5d6a62]",
   status:
-    "rounded-lg border border-[#d8e0da] bg-[#f7faf8] px-4 py-3 text-sm font-bold leading-6 text-[#5d6a62]",
+    "rounded-2xl border border-[#d8e0da] bg-[#f7faf8] px-4 py-3 text-sm font-bold leading-6 text-[#5d6a62]",
 };
 
 export function MyPage({
@@ -200,6 +221,12 @@ export function MyPage({
   const completedMountainCount = completedSummary.length;
   const completionProgressPercent = Math.min(100, Math.round((completedMountainCount / mountains.length) * 100));
   const primaryAvatarUrl = avatarUrl || profile?.avatarUrl || getDefaultAvatarUrl(avatarKind);
+  const displayNameLabel = profile?.displayName || "내 산행 기록";
+  const recentMountainName = completedSummary[0]?.mountain?.name ?? "기록 없음";
+  const recentMountainDescription = completedSummary[0]?.completedAt
+    ? `${formatDate(completedSummary[0].completedAt)} 산행 완료`
+    : "기록이 쌓이면 표시됩니다.";
+  const levelLabel = `Lv.${getProfileLevel(completedMountainCount)}`;
   const openTab = (tab: MyPageTab) => {
     onTabChange?.(tab);
   };
@@ -339,14 +366,30 @@ export function MyPage({
   return (
     <section className={pageClass.shell} aria-label="마이페이지">
       <div className={pageClass.inner}>
+        <div className={pageClass.pageIntro}>
+          <div className={pageClass.pageHeading}>
+            <div>
+              <h1 className={pageClass.pageTitle}>마이페이지</h1>
+              <p className={pageClass.pageDescription}>나의 산행 기록과 활동을 관리해보세요.</p>
+            </div>
+            <MountainPanorama />
+          </div>
+        </div>
+
         <header className={pageClass.hero}>
+          <div className={pageClass.heroDecoration} aria-hidden="true" />
           <div className={pageClass.heroTop}>
             <div className={pageClass.profileSummary}>
               <img className={pageClass.avatar} src={primaryAvatarUrl} alt="" aria-hidden="true" />
-              <div className="min-w-0">
-                <p className={pageClass.eyebrow}>마이페이지</p>
-                <h1 className={pageClass.title}>{profile?.displayName || "내 산행 기록"}</h1>
+              <div className="grid min-w-0 gap-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <h2 className={pageClass.title}>{displayNameLabel}</h2>
+                  <span className="inline-flex min-h-8 items-center rounded-full bg-[#e7f3e4] px-3 font-numeric text-sm font-black text-[#245c46]">
+                    {levelLabel}
+                  </span>
+                </div>
                 <p className={pageClass.muted}>{session.user.email}</p>
+                <p className="m-0 text-sm font-black text-[#245c46]">대한민국 100대 명산 도전 중</p>
               </div>
             </div>
             <div className={pageClass.heroActions}>
@@ -363,20 +406,31 @@ export function MyPage({
 
           <dl className={pageClass.metrics}>
             <div className={pageClass.metric}>
+              <div className={pageClass.metricIcon} aria-hidden="true">
+                <MountainIcon size={18} />
+              </div>
               <dt>완료한 산</dt>
-              <dd>{completedMountainCount}</dd>
-              <p className={cn(pageClass.muted, "mt-2 text-sm")}>100대 명산 중 {completionProgressPercent}%</p>
+              <dd>{completedMountainCount} / {mountains.length}</dd>
+              <p className={cn(pageClass.muted, "text-sm max-[767px]:text-xs")}>100대 명산 중 {completionProgressPercent}% 완료</p>
               <div className={pageClass.progressTrack} aria-hidden="true">
                 <div className={pageClass.progressValue} style={{ width: `${completionProgressPercent}%` }} />
               </div>
             </div>
             <div className={pageClass.metric}>
+              <div className={pageClass.metricIcon} aria-hidden="true">
+                <MessageCircle size={18} />
+              </div>
               <dt>작성 리뷰</dt>
-              <dd>{reviews.length}</dd>
+              <dd>{reviews.length}개</dd>
+              <p className={cn(pageClass.muted, "text-sm max-[767px]:text-xs")}>내가 남긴 한줄평</p>
             </div>
             <div className={pageClass.metric}>
+              <div className={pageClass.metricIcon} aria-hidden="true">
+                <Clock size={18} />
+              </div>
               <dt>최근 산행</dt>
-              <dd className="truncate text-[20px]">{completedSummary[0]?.mountain?.name ?? "없음"}</dd>
+              <dd className="truncate text-[20px]">{recentMountainName}</dd>
+              <p className={cn(pageClass.muted, "text-sm max-[767px]:text-xs")}>{recentMountainDescription}</p>
             </div>
           </dl>
         </header>
@@ -387,42 +441,77 @@ export function MyPage({
           </div>
         ) : null}
 
-        <nav className={pageClass.tabs} aria-label="마이페이지 섹션">
-          {myPageTabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={cn(
-                pageClass.tabButton,
-                activeTab === tab.id ? pageClass.tabButtonActive : pageClass.tabButtonIdle,
-              )}
-              type="button"
-              aria-current={activeTab === tab.id ? "page" : undefined}
-              onClick={() => openTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+        <div className={pageClass.bodyGrid}>
+          <aside className={pageClass.sidePanel}>
+            <h2 className={pageClass.sideTitle}>마이페이지 메뉴</h2>
+            <nav className={pageClass.tabs} aria-label="마이페이지 섹션">
+              {myPageTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={cn(
+                    pageClass.tabButton,
+                    activeTab === tab.id ? pageClass.tabButtonActive : pageClass.tabButtonIdle,
+                  )}
+                  type="button"
+                  aria-current={activeTab === tab.id ? "page" : undefined}
+                  onClick={() => openTab(tab.id)}
+                >
+                  {getMyPageTabIcon(tab.id)}
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </nav>
+          </aside>
 
-        {loadState === "loading" ? (
-          <div className={pageClass.empty}>마이페이지 정보를 불러오는 중입니다.</div>
-        ) : loadState === "error" ? (
-          <div className={pageClass.empty}>
-            <span>정보를 불러오지 못했습니다.</span>
-          </div>
-        ) : (
-          <>
-            {activeTab === "profile" ? (
-              profileEditor
-            ) : activeTab === "completed" ? (
-              completedPanel
+          <div className="min-w-0">
+            {loadState === "loading" ? (
+              <div className={pageClass.empty}>마이페이지 정보를 불러오는 중입니다.</div>
+            ) : loadState === "error" ? (
+              <div className={pageClass.empty}>
+                <span>정보를 불러오지 못했습니다.</span>
+              </div>
             ) : (
-              reviewsPanel
+              <>
+                {activeTab === "profile" ? (
+                  profileEditor
+                ) : activeTab === "completed" ? (
+                  completedPanel
+                ) : (
+                  reviewsPanel
+                )}
+              </>
             )}
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </section>
+  );
+}
+
+function getMyPageTabIcon(tab: MyPageTab) {
+  if (tab === "profile") {
+    return <UserRound size={18} aria-hidden="true" />;
+  }
+
+  if (tab === "completed") {
+    return <MountainIcon size={18} aria-hidden="true" />;
+  }
+
+  return <MessageCircle size={18} aria-hidden="true" />;
+}
+
+function getProfileLevel(completedMountainCount: number) {
+  return Math.min(10, Math.floor(completedMountainCount / 3) + 1);
+}
+
+function MountainPanorama() {
+  return (
+    <div className={pageClass.mountainBackdrop} aria-hidden="true">
+      <span className={cn(pageClass.mountainLayer, "right-32 bottom-1 scale-110 bg-[#e5eee9]")} />
+      <span className={cn(pageClass.mountainLayer, "right-8 bottom-0 h-28 w-72 bg-[#d6e6dd]")} />
+      <span className={cn(pageClass.mountainLayer, "right-0 bottom-0 h-24 w-52 bg-[#c7dccf] opacity-70")} />
+      <span className={cn(pageClass.treeLayer, "right-0")} />
+    </div>
   );
 }
 
@@ -457,72 +546,113 @@ function ProfileEditor({
         <div>
           <p className={pageClass.eyebrow}>프로필</p>
           <h2 id="profile-editor-title" className={pageClass.sectionTitle}>
-            닉네임과 사진
+            프로필 편집
           </h2>
+          <p className={cn(pageClass.muted, "mt-1 text-sm")}>프로필 정보를 관리하고 변경할 수 있습니다.</p>
         </div>
         <UserRound size={24} className="text-[#245c46]" aria-hidden="true" />
       </div>
 
-      <div className="grid gap-5">
-        <div className="flex items-center gap-4">
-          <img className={pageClass.avatar} src={avatarUrl} alt="" aria-hidden="true" />
-          <button className={pageClass.secondaryButton} type="button" onClick={onUploadClick} disabled={isUploadingAvatar}>
-            <ImagePlus size={18} />
-            {isUploadingAvatar ? "업로드 중" : "사진 추가"}
-          </button>
-          <input
-            ref={fileInputRef}
-            className="sr-only"
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) {
-                onFileChange(file);
-              }
-            }}
-          />
-        </div>
+      <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] gap-7 border-t border-[#d8e0da] pt-6 max-[767px]:grid-cols-1 max-[767px]:gap-6">
+        <div className="grid gap-5">
+          <div className="grid justify-items-center gap-3 rounded-2xl bg-[#f7faf8] p-5">
+            <img className="h-32 w-32 rounded-full border-4 border-white object-cover shadow-[0_14px_34px_rgba(24,34,29,0.14)]" src={avatarUrl} alt="" aria-hidden="true" />
+            <div className="text-center">
+              <h3 className="m-0 text-lg font-black text-[#18221d]">프로필 사진</h3>
+              <p className={cn(pageClass.muted, "text-sm")}>권장 이미지: 정사각형, 2MB 이하</p>
+            </div>
+          </div>
 
-        <div className={pageClass.avatarGrid} aria-label="기본 프로필 이미지 선택">
-          {defaultProfileAvatars.map((avatar) => (
+          <div className={pageClass.avatarGrid} aria-label="기본 프로필 이미지 선택">
+            {defaultProfileAvatars.map((avatar) => (
+              <button
+                key={avatar.id}
+                className={cn(
+                  pageClass.avatarChoice,
+                  avatarKind === avatar.id
+                    ? "border-[#245c46] bg-[#e7f3e4] shadow-[0_8px_18px_rgba(36,92,70,0.16)]"
+                    : "border-[#d8e0da]",
+                )}
+                type="button"
+                title={avatar.label}
+                aria-label={`${avatar.label} 선택`}
+                onClick={() => onAvatarSelect(avatar.id, avatar.url)}
+              >
+                <img className="h-full w-full object-cover" src={avatar.url} alt="" aria-hidden="true" />
+                {avatarKind === avatar.id ? (
+                  <span className="absolute bottom-1 right-1 grid h-6 w-6 place-items-center rounded-full bg-[#245c46] text-white shadow">
+                    <Check size={14} />
+                  </span>
+                ) : null}
+              </button>
+            ))}
             <button
-              key={avatar.id}
               className={cn(
                 pageClass.avatarChoice,
-                avatarKind === avatar.id ? "border-[#245c46]" : "border-[#d8e0da]",
+                "col-span-2 flex aspect-auto min-h-14 items-center justify-center gap-2 rounded-xl border-dashed text-[#245c46] max-[767px]:col-span-3",
+                avatarKind === "custom"
+                  ? "border-[#245c46] bg-[#e7f3e4] shadow-[0_8px_18px_rgba(36,92,70,0.16)]"
+                  : "border-[#9fb2a7] bg-white",
               )}
               type="button"
-              title={avatar.label}
-              aria-label={`${avatar.label} 선택`}
-              onClick={() => onAvatarSelect(avatar.id, avatar.url)}
+              aria-label="사진 추가"
+              onClick={onUploadClick}
+              disabled={isUploadingAvatar}
             >
-              <img className="h-full w-full object-cover" src={avatar.url} alt="" aria-hidden="true" />
-              {avatarKind === avatar.id ? (
-                <span className="absolute bottom-0 right-0 grid h-5 w-5 place-items-center rounded-full bg-[#245c46] text-white">
-                  <Check size={13} />
+              <ImagePlus size={22} />
+              <span className="text-sm font-black">사진 추가</span>
+              {avatarKind === "custom" ? (
+                <span className="absolute bottom-1 right-1 grid h-6 w-6 place-items-center rounded-full bg-[#245c46] text-white shadow">
+                  <Check size={14} />
                 </span>
               ) : null}
             </button>
-          ))}
+            <input
+              ref={fileInputRef}
+              className="sr-only"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  onFileChange(file);
+                }
+              }}
+            />
+          </div>
         </div>
 
-        <div className={pageClass.field}>
-          <label htmlFor="profile-display-name">닉네임</label>
-          <input
-            className={pageClass.input}
-            id="profile-display-name"
-            value={displayName}
-            maxLength={20}
-            onChange={(event) => onDisplayNameChange(event.target.value)}
-          />
-          <p className={cn(pageClass.muted, "text-sm")}>닉네임은 2~20자로 저장할 수 있습니다.</p>
-        </div>
+        <div className="grid content-between gap-6 border-l border-[#d8e0da] pl-7 max-[767px]:border-l-0 max-[767px]:border-t max-[767px]:pl-0 max-[767px]:pt-6">
+          <div className="grid gap-4">
+            <div>
+              <h3 className="m-0 text-lg font-black text-[#18221d]">닉네임 변경</h3>
+              <p className={cn(pageClass.muted, "mt-1 text-sm")}>닉네임은 중복 여부와 관계없이 저장할 수 있습니다.</p>
+            </div>
 
-        <button className={pageClass.primaryButton} type="button" onClick={onSave} disabled={isSaving}>
-          <Save size={18} />
-          {isSaving ? "저장 중" : "프로필 저장"}
-        </button>
+            <div className={pageClass.field}>
+              <label htmlFor="profile-display-name">닉네임</label>
+              <input
+                className={pageClass.input}
+                id="profile-display-name"
+                value={displayName}
+                maxLength={20}
+                onChange={(event) => onDisplayNameChange(event.target.value)}
+              />
+              <p className="m-0 text-sm font-black text-[#237a1f]">저장 가능한 닉네임입니다.</p>
+            </div>
+
+            <ul className="m-0 grid gap-2 pl-5 text-sm font-bold leading-6 text-[#5d6a62]">
+              <li>2자 이상, 20자 이하로 입력해주세요.</li>
+              <li>공백은 한 칸으로 정리되어 저장됩니다.</li>
+              <li>닉네임은 언제든지 변경할 수 있습니다.</li>
+            </ul>
+          </div>
+
+          <button className={pageClass.primaryButton} type="button" onClick={onSave} disabled={isSaving}>
+            <Save size={18} />
+            {isSaving ? "저장 중" : "프로필 저장"}
+          </button>
+        </div>
       </div>
     </section>
   );

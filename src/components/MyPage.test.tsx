@@ -146,7 +146,7 @@ describe("MyPage", () => {
     renderMyPage({ activeTab: "completed" });
 
     expect(await screen.findByRole("heading", { name: "가리산" })).toBeInTheDocument();
-    expect(screen.getByText("100대 명산 중 1%")).toBeInTheDocument();
+    expect(screen.getByText("100대 명산 중 1% 완료")).toBeInTheDocument();
     expect(screen.getByText("등산 완료")).toBeInTheDocument();
     expect(screen.getByText(/완료 날짜/)).toBeInTheDocument();
     expect(screen.queryByText("1회")).not.toBeInTheDocument();
@@ -173,7 +173,7 @@ describe("MyPage", () => {
 
     renderMyPage({ onTabChange });
 
-    expect(await screen.findByRole("heading", { name: "닉네임과 사진" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "프로필 편집" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "요약" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "완료한 산" }));
@@ -195,7 +195,7 @@ describe("MyPage", () => {
 
     renderMyPage({ activeTab: "profile" });
 
-    expect(await screen.findByRole("heading", { name: "닉네임과 사진" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "프로필 편집" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "내 산행 현황" })).not.toBeInTheDocument();
   });
 
