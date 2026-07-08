@@ -8,6 +8,8 @@ type MountainMapProps = {
   mountains: Mountain[];
   selectedMountainId?: string;
   focusedMountainId?: string;
+  layoutKey?: string;
+  refreshKey?: number;
   completedIds: Set<string>;
   completionCounts: Map<string, number>;
   candidateIds: Set<string>;
@@ -76,9 +78,11 @@ export function MountainMap(props: MountainMapProps) {
       return;
     }
 
+    let isActive = true;
+
     loadKakaoMaps()
       .then((maps) => {
-        if (!containerRef.current) {
+        if (!isActive || !containerRef.current) {
           return;
         }
 
@@ -91,7 +95,17 @@ export function MountainMap(props: MountainMapProps) {
         mapRef.current.addControl(new maps.ZoomControl(), maps.ControlPosition.RIGHT);
         setMapReady(true);
       })
-      .catch(() => setMapError('Kakao Maps를 불러오지 못했습니다.'));
+      .catch(() => {
+        if (isActive) {
+          setMapError('Kakao Maps를 불러오지 못했습니다.');
+        }
+      });
+    return () => {
+      isActive = false;
+      overlaysRef.current.forEach((overlay) => overlay.setMap(null));
+      overlaysRef.current = [];
+      mapRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -100,7 +114,7 @@ export function MountainMap(props: MountainMapProps) {
     }
 
     overlaysRef.current.forEach((overlay) => overlay.setMap(null));
-    overlaysRef.current = props.mountains.map((mountain) => {
+    const nextOverlays = props.mountains.map((mountain) => {
       const element = document.createElement('button');
       element.type = 'button';
       element.className = getMarkerClass(mountain, props, true);
@@ -124,6 +138,14 @@ export function MountainMap(props: MountainMapProps) {
       overlay.setMap(mapRef.current);
       return overlay;
     });
+    overlaysRef.current = nextOverlays;
+
+    return () => {
+      nextOverlays.forEach((overlay) => overlay.setMap(null));
+      if (overlaysRef.current === nextOverlays) {
+        overlaysRef.current = [];
+      }
+    };
   }, [
     mapReady,
     props.mountains,
@@ -132,8 +154,72 @@ export function MountainMap(props: MountainMapProps) {
     props.completionCounts,
     props.candidateIds,
     props.highlightedId,
+    props.refreshKey,
     props.selectionMode
   ]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !containerRef.current) {
+      return;
+    }
+
+    let frameId: number | null = null;
+    const refreshMapLayout = () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        mapRef.current?.relayout();
+      });
+    };
+
+    refreshMapLayout();
+
+    if (typeof ResizeObserver === 'undefined') {
+      return () => {
+        if (frameId !== null) {
+          window.cancelAnimationFrame(frameId);
+        }
+      };
+    }
+
+    const resizeObserver = new ResizeObserver(refreshMapLayout);
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !window.kakao?.maps) {
+      return;
+    }
+
+    const refreshMapLayout = () => {
+      mapRef.current?.relayout();
+      if (!focusedMountain || !mapRef.current) {
+        return;
+      }
+
+      const currentLevel = mapRef.current.getLevel();
+      mapRef.current.setCenter(new window.kakao.maps.LatLng(focusedMountain.latitude, focusedMountain.longitude));
+      mapRef.current.setLevel(currentLevel, { animate: false });
+    };
+
+    const frameId = window.requestAnimationFrame(refreshMapLayout);
+    const timeoutId = window.setTimeout(refreshMapLayout, 240);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [focusedMountain, mapReady, props.layoutKey, props.refreshKey]);
 
   useEffect(() => {
     if (!mapReady || !focusedMountain || !mapRef.current || !window.kakao?.maps) {

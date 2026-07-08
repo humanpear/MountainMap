@@ -1,16 +1,34 @@
 import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Camera, Check, LogIn, LogOut, MapPin, MessageCircle, Mountain as MountainIcon, Search, Shuffle, X } from 'lucide-react';
+import {
+  Camera,
+  Check,
+  ChevronRight,
+  Edit3,
+  LogIn,
+  LogOut,
+  MapPin,
+  MessageCircle,
+  Mountain as MountainIcon,
+  Search,
+  Shuffle,
+  UserRound,
+  X
+} from 'lucide-react';
 import { MountainDetailPage } from './components/MountainDetailPage';
 import { MountainMap } from './components/MountainMap';
 import { MountainNameWithHanja } from './components/MountainNameWithHanja';
+import { MyPage } from './components/MyPage';
 import { mountains } from './data/mountains';
 import { getCandidateIdsForRandomMode, getRandomCandidates, pickRandomMountain } from './game/random';
 import { cn } from './lib/classNames';
 import { createAppFeedback } from './services/appFeedback';
+import { getOAuthRedirectUrl } from './services/authRedirect';
 import { getCompletionErrorMessage } from './services/completionErrors';
 import { isSupabaseConfigured } from './services/env';
 import { fetchMountainReviews, type MountainReview } from './services/mountainReviews';
+import { fetchUserReviews } from './services/myPage';
+import { fetchOrCreateUserProfile, getDefaultAvatarUrl, type UserProfile } from './services/profiles';
 import { playFanfare, playRouletteTick } from './services/randomSounds';
 import { supabase } from './services/supabase';
 import type { CompletionRecord, Mountain, RandomMode } from './types';
@@ -26,6 +44,14 @@ type SidebarReviewPhoto = {
   createdAt: string;
   index: number;
 };
+
+type MyPageTab = 'profile' | 'completed' | 'reviews';
+
+type AccountSummaryState =
+  | { status: 'idle'; profile: null; reviewCount: number }
+  | { status: 'loading'; profile: UserProfile | null; reviewCount: number }
+  | { status: 'ready'; profile: UserProfile; reviewCount: number }
+  | { status: 'error'; profile: null; reviewCount: number };
 
 const confettiPieces = Array.from({ length: 34 }, (_, index) => index);
 
@@ -58,6 +84,45 @@ const randomModeLabels: Record<RandomMode, string> = {
   selected: '직접 선택'
 };
 
+function getMountainDetailRouteId() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const match = window.location.pathname.match(/^\/mountains\/([^/]+)\/?$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getIsMyPageRoute() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return window.location.pathname === '/my-page';
+}
+
+function getMyPageTabRoute(): MyPageTab {
+  if (typeof window === 'undefined' || window.location.pathname !== '/my-page') {
+    return 'profile';
+  }
+
+  const tab = new URLSearchParams(window.location.search).get('tab');
+  return tab === 'completed' || tab === 'reviews' ? tab : 'profile';
+}
+
+function setBrowserPath(path: string) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const currentPath = `${window.location.pathname}${window.location.search}`;
+  if (currentPath === path) {
+    return;
+  }
+
+  window.history.pushState(null, '', path);
+}
+
 const appClass = {
   shell: 'grid min-h-screen grid-rows-[auto_1fr] bg-[#f4f7f5] text-[#18221d]',
   topbar:
@@ -74,7 +139,22 @@ const appClass = {
   searchButton: 'inline-flex cursor-pointer items-center justify-center border-0 bg-white text-[#00172b]',
   authButton:
     'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3.5 text-sm font-extrabold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-55 max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:min-h-9 max-[900px]:px-3 max-[900px]:text-[13px]',
-  workspace: 'relative grid min-h-[calc(100vh-68px)] grid-cols-[minmax(0,1fr)_360px] max-[900px]:grid-cols-1',
+  accountMenuWrap: 'relative max-[900px]:col-start-2 max-[900px]:row-start-1',
+  accountMenu:
+    'absolute right-0 top-[calc(100%+10px)] z-20 grid w-[320px] max-w-[calc(100vw-24px)] gap-3 rounded-lg border border-[#d8e0da] bg-white p-4 text-[#18221d] shadow-[0_22px_70px_rgba(0,0,0,0.22)] max-[560px]:right-[-4px] max-[560px]:w-[calc(100vw-24px)]',
+  accountMenuProfile: 'flex min-w-0 items-center gap-3 border-b border-[#d8e0da] pb-3',
+  accountMenuAvatar: 'h-12 w-12 flex-none rounded-full border-2 border-[#eef3f0] object-cover',
+  accountMenuName: 'm-0 truncate text-base font-black text-[#18221d]',
+  accountMenuMeta: 'm-0 truncate text-sm font-bold text-[#5d6a62]',
+  accountMenuStats: 'grid grid-cols-2 gap-2',
+  accountMenuStat:
+    'rounded-lg border border-[#d8e0da] bg-[#f7faf8] px-3 py-2 [&_dt]:text-xs [&_dt]:font-black [&_dt]:text-[#5d6a62] [&_dd]:m-0 [&_dd]:font-numeric [&_dd]:text-lg [&_dd]:font-black [&_dd]:text-[#18221d]',
+  accountMenuAction:
+    'inline-flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#d8e0da] bg-white px-3 text-left font-extrabold text-[#18221d] transition hover:bg-[#eef3f0]',
+  accountMenuDanger:
+    'inline-flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#b14a3d] bg-white px-3 text-left font-extrabold text-[#b14a3d] transition hover:bg-[#fff1ee]',
+  workspace:
+    'relative grid min-h-[calc(100vh-68px)] overflow-hidden transition-[grid-template-columns] duration-200 ease-out max-[900px]:grid-cols-1',
   mapStage: 'relative min-h-[calc(100vh-68px)] overflow-visible',
   mapControls:
     'absolute left-5 top-5 z-[2] grid justify-items-start gap-3 max-[560px]:left-3 max-[560px]:right-auto max-[560px]:gap-2',
@@ -90,7 +170,8 @@ const appClass = {
     'inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-[#d8e0da] bg-[#eef2ef] px-3 font-numeric font-bold max-[560px]:min-h-9 max-[560px]:px-2.5 max-[560px]:text-[13px]',
   randomButton:
     'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-[#2f6b4f] bg-[#2f6b4f] px-[18px] font-extrabold text-white disabled:cursor-progress disabled:bg-[#1f4e39] max-[560px]:min-h-9 max-[560px]:px-3 max-[560px]:text-[13px]',
-  detailPanel: 'z-[3] overflow-auto border-l border-[#d8e0da] bg-white p-5 max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-[6] max-[900px]:max-h-[min(78vh,calc(100dvh-104px))] max-[900px]:overflow-y-auto max-[900px]:rounded-t-2xl max-[900px]:border-l-0 max-[900px]:border-t max-[900px]:p-4 max-[900px]:pb-[calc(1rem+env(safe-area-inset-bottom))] max-[900px]:shadow-[0_-18px_60px_rgba(0,0,0,0.24)] max-[900px]:transition-transform max-[900px]:duration-200 max-[900px]:ease-out',
+  detailPanel:
+    'z-[3] overflow-auto border-l border-[#d8e0da] bg-white p-5 transition-[transform,opacity] duration-200 ease-out max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-[6] max-[900px]:max-h-[min(78vh,calc(100dvh-104px))] max-[900px]:overflow-y-auto max-[900px]:rounded-t-2xl max-[900px]:border-l-0 max-[900px]:border-t max-[900px]:p-4 max-[900px]:pb-[calc(1rem+env(safe-area-inset-bottom))] max-[900px]:shadow-[0_-18px_60px_rgba(0,0,0,0.24)] max-[900px]:transition-transform max-[900px]:duration-200 max-[900px]:ease-out',
   detailHeader: 'flex items-start justify-between gap-4',
   detailPanelClose:
     'hidden h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg border border-[#d8e0da] bg-[#eef2ef] text-[#18221d] max-[900px]:inline-flex',
@@ -107,7 +188,7 @@ const appClass = {
     'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-4 font-extrabold text-[#18221d]',
   sidebarPhotos: 'mt-5',
   sidebarPhotoGrid:
-    'mt-2 grid grid-cols-3 gap-2 [&_a]:block [&_img]:aspect-square [&_img]:w-full [&_img]:rounded-md [&_img]:object-cover',
+    'mt-2 grid grid-cols-3 gap-2 [&>*]:block [&_img]:aspect-square [&_img]:w-full [&_img]:rounded-md [&_img]:object-cover',
   sidebarPhotoEmpty:
     'mt-2 grid min-h-[94px] place-items-center rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] px-3 text-center text-sm font-bold leading-5 text-[#5d6a62]',
   randomPending: 'grid min-h-60 place-items-center content-center gap-3 text-center text-[#2f6b4f] [&_h2]:text-2xl',
@@ -150,8 +231,10 @@ const appClass = {
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
-  const [selectedMountainId, setSelectedMountainId] = useState(mountains[0]?.id ?? '');
-  const [detailMountainId, setDetailMountainId] = useState<string | null>(null);
+  const [selectedMountainId, setSelectedMountainId] = useState('');
+  const [detailMountainId, setDetailMountainId] = useState<string | null>(() => getMountainDetailRouteId());
+  const [isMyPageOpen, setIsMyPageOpen] = useState(() => getIsMyPageRoute());
+  const [myPageTab, setMyPageTab] = useState<MyPageTab>(() => getMyPageTabRoute());
   const [focusedMountainId, setFocusedMountainId] = useState<string | undefined>();
   const [completionRecords, setCompletionRecords] = useState<CompletionRecord[]>([]);
   const [randomMode, setRandomMode] = useState<RandomMode>('incomplete');
@@ -167,6 +250,13 @@ export default function App() {
   const [sidebarReviewPhotos, setSidebarReviewPhotos] = useState<SidebarReviewPhoto[]>([]);
   const [sidebarPhotoState, setSidebarPhotoState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [isMobileDetailSheetOpen, setIsMobileDetailSheetOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [accountSummary, setAccountSummary] = useState<AccountSummaryState>({
+    status: 'idle',
+    profile: null,
+    reviewCount: 0
+  });
+  const [mapRefreshKey, setMapRefreshKey] = useState(0);
 
   const selectedMountain = mountains.find((mountain) => mountain.id === selectedMountainId);
   const detailMountain = mountains.find((mountain) => mountain.id === detailMountainId);
@@ -182,6 +272,24 @@ export default function App() {
     () => getRandomCandidates({ mountains, completedIds, selectedIds: candidateIds, mode: randomMode }),
     [candidateIds, completedIds, randomMode]
   );
+  const isDetailPanelOpen = randomState.status === 'running' || Boolean(selectedMountain);
+  const accountProfile = accountSummary.profile;
+  const accountDisplayName =
+    accountProfile?.displayName || session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || '내 계정';
+  const accountAvatarUrl = accountProfile?.avatarUrl || getDefaultAvatarUrl(accountProfile?.avatarKind);
+
+  useEffect(() => {
+    const syncDetailRoute = () => {
+    setDetailMountainId(getMountainDetailRouteId());
+    setIsMyPageOpen(getIsMyPageRoute());
+      setMyPageTab(getMyPageTabRoute());
+      setIsAccountMenuOpen(false);
+      setIsMobileDetailSheetOpen(false);
+    };
+
+    window.addEventListener('popstate', syncDetailRoute);
+    return () => window.removeEventListener('popstate', syncDetailRoute);
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -232,6 +340,61 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!session?.user) {
+      setIsAccountMenuOpen(false);
+      setAccountSummary({ status: 'idle', profile: null, reviewCount: 0 });
+      return;
+    }
+
+    let isActive = true;
+    setAccountSummary((current) => ({
+      status: 'loading',
+      profile: current.status === 'ready' ? current.profile : null,
+      reviewCount: current.reviewCount
+    }));
+
+    Promise.all([fetchOrCreateUserProfile(session.user), fetchUserReviews(session.user.id)])
+      .then(([profile, reviews]) => {
+        if (!isActive) {
+          return;
+        }
+
+        setAccountSummary({ status: 'ready', profile, reviewCount: reviews.length });
+      })
+      .catch(() => {
+        if (!isActive) {
+          return;
+        }
+
+        setAccountSummary({ status: 'error', profile: null, reviewCount: 0 });
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [session?.user]);
+
+  useEffect(() => {
+    if (!isAccountMenuOpen) {
+      return;
+    }
+
+    const closeAccountMenu = () => setIsAccountMenuOpen(false);
+    const closeAccountMenuOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeAccountMenu();
+      }
+    };
+
+    window.addEventListener('click', closeAccountMenu);
+    window.addEventListener('keydown', closeAccountMenuOnEscape);
+    return () => {
+      window.removeEventListener('click', closeAccountMenu);
+      window.removeEventListener('keydown', closeAccountMenuOnEscape);
+    };
+  }, [isAccountMenuOpen]);
+
+  useEffect(() => {
     if (!supabase || !session?.user.id) {
       setCompletionRecords([]);
       return;
@@ -239,7 +402,7 @@ export default function App() {
 
     supabase
       .from('completed_mountains')
-      .select('mountain_id, completed_at')
+      .select('id, mountain_id, completed_at')
       .eq('user_id', session.user.id)
       .then(({ data, error }) => {
         if (error) {
@@ -249,6 +412,7 @@ export default function App() {
 
         setCompletionRecords(
           (data ?? []).map((row) => ({
+            id: row.id,
             mountainId: row.mountain_id,
             completedAt: row.completed_at
           }))
@@ -321,8 +485,34 @@ export default function App() {
   };
 
   const openMountainDetail = (mountain: Mountain) => {
+    setBrowserPath(`/mountains/${encodeURIComponent(mountain.id)}`);
     setDetailMountainId(mountain.id);
+    setIsMyPageOpen(false);
+    setMyPageTab('profile');
+    setIsAccountMenuOpen(false);
+    setIsMobileDetailSheetOpen(false);
     setResultModalMountain(null);
+  };
+
+  const closeMountainDetail = () => {
+    setBrowserPath('/');
+    setDetailMountainId(null);
+    setIsMyPageOpen(false);
+    setMyPageTab('profile');
+    setIsAccountMenuOpen(false);
+  };
+
+  const navigateHome = () => {
+    setBrowserPath('/');
+    setDetailMountainId(null);
+    setIsMyPageOpen(false);
+    setMyPageTab('profile');
+    setIsAccountMenuOpen(false);
+    setSelectedMountainId('');
+    setFocusedMountainId(undefined);
+    setIsMobileDetailSheetOpen(false);
+    setResultModalMountain(null);
+    setMapRefreshKey((key) => key + 1);
   };
 
   const submitMountainSearch = () => {
@@ -342,7 +532,7 @@ export default function App() {
 
     setSelectedMountainId(match.id);
     setFocusedMountainId(match.id);
-    setDetailMountainId(match.id);
+    openMountainDetail(match);
     setResultModalMountain(null);
   };
 
@@ -378,9 +568,14 @@ export default function App() {
   };
 
   const showMountainOnMap = (mountain: Mountain) => {
+    setBrowserPath('/');
     setDetailMountainId(null);
+    setIsMyPageOpen(false);
+    setMyPageTab('profile');
+    setIsAccountMenuOpen(false);
     setSelectedMountainId(mountain.id);
     setFocusedMountainId(mountain.id);
+    setIsMobileDetailSheetOpen(true);
   };
 
   const signInWithGoogle = async () => {
@@ -392,7 +587,7 @@ export default function App() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: getOAuthRedirectUrl()
       }
     });
 
@@ -406,19 +601,36 @@ export default function App() {
       return;
     }
 
+    setIsAccountMenuOpen(false);
     const { error } = await supabase.auth.signOut();
     if (error) {
       setMessage(error.message);
+      return;
     }
+
+    navigateHome();
   };
 
   const handleAuthClick = () => {
     if (session) {
-      void signOut();
+      setIsAccountMenuOpen((isOpen) => !isOpen);
       return;
     }
 
     void signInWithGoogle();
+  };
+
+  const openMyPageTab = (tab: MyPageTab) => {
+    const path = tab === 'profile' ? '/my-page?tab=profile' : `/my-page?tab=${tab}`;
+    setBrowserPath(path);
+    setIsMyPageOpen(true);
+    setMyPageTab(tab);
+    setDetailMountainId(null);
+    setSelectedMountainId('');
+    setFocusedMountainId(undefined);
+    setIsMobileDetailSheetOpen(false);
+    setResultModalMountain(null);
+    setIsAccountMenuOpen(false);
   };
 
   const runRandomPick = () => {
@@ -481,7 +693,7 @@ export default function App() {
     <main className={appClass.shell}>
       <header className={appClass.topbar}>
         <div className={appClass.topbarInner}>
-          <button className={appClass.brand} type="button" onClick={() => setDetailMountainId(null)} aria-label="지도로 이동">
+          <button className={appClass.brand} type="button" onClick={navigateHome} aria-label="지도로 이동">
             <img className="h-9 w-auto object-contain brightness-0 invert" src="/logo-mountain.png" alt="" aria-hidden="true" />
             <span>대한민국 100대 명산</span>
           </button>
@@ -515,30 +727,112 @@ export default function App() {
                 <Search size={22} />
               </button>
             </form>
-            <button className={appClass.authButton} type="button" onClick={handleAuthClick}>
-              {session ? <LogOut size={17} /> : <LogIn size={17} />}
-              {session ? '로그아웃' : '로그인'}
-            </button>
+            <div className={appClass.accountMenuWrap} onClick={(event) => event.stopPropagation()}>
+              <button
+                className={appClass.authButton}
+                type="button"
+                onClick={handleAuthClick}
+                aria-expanded={session ? isAccountMenuOpen : undefined}
+                aria-haspopup={session ? 'menu' : undefined}
+              >
+                {session ? <UserRound size={17} /> : <LogIn size={17} />}
+                {session ? '마이페이지' : '로그인'}
+              </button>
+              {session && isAccountMenuOpen ? (
+                <div className={appClass.accountMenu} role="menu" aria-label="마이페이지 메뉴">
+                  <div className={appClass.accountMenuProfile}>
+                    <img className={appClass.accountMenuAvatar} src={accountAvatarUrl} alt="" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className={appClass.accountMenuName}>{accountDisplayName}</p>
+                      <p className={appClass.accountMenuMeta}>{session.user.email}</p>
+                    </div>
+                  </div>
+                  <dl className={appClass.accountMenuStats}>
+                    <div className={appClass.accountMenuStat}>
+                      <dt>완료한 산</dt>
+                      <dd>{completedIds.size} / 100</dd>
+                    </div>
+                    <div className={appClass.accountMenuStat}>
+                      <dt>한줄평</dt>
+                      <dd>{accountSummary.status === 'loading' ? '-' : accountSummary.reviewCount}개</dd>
+                    </div>
+                  </dl>
+                  {accountSummary.status === 'error' ? (
+                    <p className="m-0 rounded-md bg-[#fff2f0] px-3 py-2 text-sm font-bold leading-5 text-[#b14a3d]">
+                      계정 요약을 불러오지 못했습니다.
+                    </p>
+                  ) : null}
+                  <div className="grid gap-2">
+                    <button className={appClass.accountMenuAction} type="button" role="menuitem" onClick={() => openMyPageTab('profile')}>
+                      <span className="inline-flex items-center gap-2">
+                        <Edit3 size={17} />
+                        프로필 편집
+                      </span>
+                      <ChevronRight size={17} />
+                    </button>
+                    <button className={appClass.accountMenuAction} type="button" role="menuitem" onClick={() => openMyPageTab('completed')}>
+                      <span className="inline-flex items-center gap-2">
+                        <MountainIcon size={17} />
+                        완료한 산
+                      </span>
+                      <ChevronRight size={17} />
+                    </button>
+                    <button className={appClass.accountMenuAction} type="button" role="menuitem" onClick={() => openMyPageTab('reviews')}>
+                      <span className="inline-flex items-center gap-2">
+                        <MessageCircle size={17} />
+                        내 한줄평
+                      </span>
+                      <ChevronRight size={17} />
+                    </button>
+                    <button className={appClass.accountMenuDanger} type="button" role="menuitem" onClick={() => void signOut()}>
+                      <span className="inline-flex items-center gap-2">
+                        <LogOut size={17} />
+                        로그아웃
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </header>
 
-      {detailMountain ? (
+      {isMyPageOpen && session ? (
+        <MyPage
+          session={session}
+          activeTab={myPageTab}
+          completionRecords={completionRecords}
+          onCompletionRecordsChange={setCompletionRecords}
+          onTabChange={openMyPageTab}
+          onBackToMap={navigateHome}
+          onOpenMountain={openMountainDetail}
+          onSignOut={() => void signOut()}
+        />
+      ) : detailMountain ? (
         <MountainDetailPage
           mountain={detailMountain}
           isCompleted={completedIds.has(detailMountain.id)}
           session={session}
-          onBack={() => setDetailMountainId(null)}
+          onBack={closeMountainDetail}
           onShowOnMap={showMountainOnMap}
           onToggleCompleted={toggleCompleted}
         />
       ) : (
-        <section className={appClass.workspace} aria-label="100대 명산 지도">
+        <section
+          className={cn(
+            appClass.workspace,
+            isDetailPanelOpen ? 'grid-cols-[minmax(0,1fr)_360px]' : 'grid-cols-[minmax(0,1fr)_0px]'
+          )}
+          aria-label="100대 명산 지도"
+        >
           <div className={appClass.mapStage}>
             <MountainMap
               mountains={mountains}
               selectedMountainId={selectedMountain?.id}
               focusedMountainId={focusedMountainId}
+              layoutKey={isDetailPanelOpen ? 'with-detail-panel' : 'full-map'}
+              refreshKey={mapRefreshKey}
               completedIds={completedIds}
               completionCounts={completionCounts}
               candidateIds={candidateIds}
@@ -566,13 +860,9 @@ export default function App() {
               </div>
 
               <div className={appClass.randomControl} aria-label="랜덤 뽑기 컨트롤">
-                <div className={appClass.candidateCount}>
-                  <MountainIcon size={16} />
-                  후보 {candidates.length}개
-                </div>
                 <button className={appClass.randomButton} type="button" onClick={runRandomPick} disabled={randomState.status === 'running'}>
                   <Shuffle size={18} />
-                  {randomState.status === 'running' ? '고르는 중' : '랜덤 뽑기'}
+                  {randomState.status === 'running' ? '고르는 중' : `후보 ${candidates.length}개 랜덤 뽑기`}
                 </button>
               </div>
             </div>
@@ -590,11 +880,15 @@ export default function App() {
           <aside
             className={cn(
               appClass.detailPanel,
+              isDetailPanelOpen
+                ? 'opacity-100 min-[901px]:translate-x-0'
+                : 'pointer-events-none opacity-0 min-[901px]:translate-x-full',
               isMobileDetailSheetOpen
                 ? 'max-[900px]:translate-y-0'
                 : 'max-[900px]:pointer-events-none max-[900px]:translate-y-full'
             )}
             aria-label="선택한 산 정보"
+            aria-hidden={!isDetailPanelOpen}
           >
             {randomState.status === 'running' ? (
               <div className={appClass.randomPending} role="status" aria-live="polite">
@@ -665,15 +959,11 @@ export default function App() {
                   ) : sidebarReviewPhotos.length > 0 ? (
                     <div className={appClass.sidebarPhotoGrid}>
                       {sidebarReviewPhotos.map((photo) => (
-                        <a
+                        <div
                           key={`${photo.url}-${photo.index}`}
-                          href={photo.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          aria-label={`${photo.routeName} 한줄평 사진 ${photo.index + 1} 원본 보기`}
                         >
                           <img src={photo.url} alt={`${photo.routeName} 한줄평 사진 ${photo.index + 1}`} loading="lazy" />
-                        </a>
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -705,7 +995,11 @@ export default function App() {
       ) : null}
 
       <button
-        className={cn(appClass.feedbackButton, isMobileDetailSheetOpen && !detailMountain && 'max-[900px]:hidden')}
+        className={cn(
+          appClass.feedbackButton,
+          (isMyPageOpen || detailMountain) && 'hidden',
+          isMobileDetailSheetOpen && !detailMountain && 'max-[900px]:hidden',
+        )}
         type="button"
         onClick={() => setIsFeedbackOpen(true)}
         aria-label="앱 피드백 보내기"

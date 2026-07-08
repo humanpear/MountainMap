@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { Session } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -119,6 +119,26 @@ function renderMountainDetail(session: Session | null = createSession()) {
   return { mountain, ...result };
 }
 
+function openPreviewReviewForm() {
+  fireEvent.click(screen.getByRole("button", { name: "한줄평 작성하기" }));
+}
+
+function stubMobileReviewSheetMatchMedia() {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: query === "(max-width: 560px)",
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  );
+}
+
 describe("MountainDetailPage course feedback", () => {
   beforeEach(() => {
     reviewServiceMocks.createMountainReview.mockReset();
@@ -128,20 +148,50 @@ describe("MountainDetailPage course feedback", () => {
     reviewServiceMocks.fetchMountainReviews.mockResolvedValue([]);
   });
 
-  it("renders course feedback below the mountain detail support cards", () => {
+  it("opens course feedback below the review cards from the write button", () => {
     renderMountainDetail();
 
-    expect(screen.getByRole("heading", { name: "코스 평가" })).toBeInTheDocument();
-    expect(screen.getByText("한줄평을 남겨주세요!")).toBeInTheDocument();
+    const reviewHeading = screen.getByRole("heading", { name: "실제 등산객 한줄평" });
+    expect(reviewHeading).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "코스 평가" })).not.toBeInTheDocument();
+    openPreviewReviewForm();
+    const feedbackHeading = screen.getByRole("heading", { name: "코스 평가" });
+    expect(feedbackHeading).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "실제 등산객 한줄평" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("전체")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "추천코스" })).toBeInTheDocument();
+      reviewHeading.compareDocumentPosition(feedbackHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByText("한줄평을 남겨주세요!")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "전체 0" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "추천코스 0" })).toBeInTheDocument();
+  });
+
+  it("slides the mobile review sheet up after it mounts", async () => {
+    stubMobileReviewSheetMatchMedia();
+    renderMountainDetail();
+    vi.useFakeTimers();
+
+    try {
+      openPreviewReviewForm();
+      await act(async () => undefined);
+
+      const dialog = screen.getByRole("dialog", { name: "코스 평가" });
+      expect(dialog).toHaveClass("translate-y-full");
+
+      act(() => {
+        vi.advanceTimersByTime(24);
+      });
+
+      expect(dialog).toHaveClass("translate-y-0");
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
   });
 
   it("selects the recommended course by default", () => {
     const { mountain } = renderMountainDetail();
+    openPreviewReviewForm();
     const recommendedRoute = getMountainGuide(mountain).routes.find(
       (route) => route.forestTripCourseKind === "recommended" || route.isRecommended,
     );
@@ -194,7 +244,9 @@ describe("MountainDetailPage course feedback", () => {
 
     renderMountainDetail();
 
-    expect(await screen.findByText(/약간 어려움 두 표/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(reviewServiceMocks.fetchMountainReviews).toHaveBeenCalledWith(mountain.id);
+    });
 
     const courseInfoHeading = screen.getByRole("heading", {
       name: "추천 코스 정보",
@@ -248,6 +300,7 @@ describe("MountainDetailPage course feedback", () => {
 
   it("shows direct course input and saves custom start and end points", async () => {
     const { mountain } = renderMountainDetail();
+    openPreviewReviewForm();
     const courseSelect = screen.getByLabelText(
       "코스를 선택해주세요",
     ) as HTMLSelectElement;
@@ -374,10 +427,63 @@ describe("MountainDetailPage course feedback", () => {
     expect(await screen.findByText(/추천 코스 후기입니다/)).toBeInTheDocument();
     expect(screen.getByText(/기타 코스 후기입니다/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "추천코스" }));
+    fireEvent.click(screen.getByRole("button", { name: "추천코스 1" }));
 
     expect(screen.getByText(/추천 코스 후기입니다/)).toBeInTheDocument();
     expect(screen.queryByText(/기타 코스 후기입니다/)).not.toBeInTheDocument();
+  });
+
+  it("limits preview reviews to three and keeps filter buttons in one scrollable row", async () => {
+    const mountain = getMountainWithMultipleOfficialRoutes();
+    const [route] = getMountainGuide(mountain).routes.filter(
+      (candidate) => candidate.forestTripCourseKind,
+    );
+
+    reviewServiceMocks.fetchMountainReviews.mockResolvedValue([
+      createReview({
+        id: "preview-1",
+        mountainId: mountain.id,
+        routeName: route.name,
+        body: "preview review 1",
+        createdAt: "2026-06-04T00:00:00.000Z",
+        updatedAt: "2026-06-04T00:00:00.000Z",
+      }),
+      createReview({
+        id: "preview-2",
+        mountainId: mountain.id,
+        routeName: route.name,
+        body: "preview review 2",
+        createdAt: "2026-06-03T00:00:00.000Z",
+        updatedAt: "2026-06-03T00:00:00.000Z",
+      }),
+      createReview({
+        id: "preview-3",
+        mountainId: mountain.id,
+        routeName: route.name,
+        body: "preview review 3",
+        createdAt: "2026-06-02T00:00:00.000Z",
+        updatedAt: "2026-06-02T00:00:00.000Z",
+      }),
+      createReview({
+        id: "preview-4",
+        mountainId: mountain.id,
+        routeName: route.name,
+        body: "preview review 4",
+        createdAt: "2026-06-01T00:00:00.000Z",
+        updatedAt: "2026-06-01T00:00:00.000Z",
+      }),
+    ]);
+
+    renderMountainDetail();
+
+    expect(await screen.findByText(/preview review 1/)).toBeInTheDocument();
+    expect(screen.getByText(/preview review 2/)).toBeInTheDocument();
+    expect(screen.getByText(/preview review 3/)).toBeInTheDocument();
+    expect(screen.queryByText(/preview review 4/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "전체 4" })).toBeInTheDocument();
+
+    const filterRow = screen.getByLabelText("한줄평 코스 필터");
+    expect(filterRow).toHaveClass("flex-nowrap", "overflow-x-auto");
   });
 
   it("switches the main section between recommended courses and full reviews", async () => {
@@ -395,23 +501,36 @@ describe("MountainDetailPage course feedback", () => {
     expect(screen.getByRole("heading", { name: "추천 코스 지도" })).toBeInTheDocument();
   });
 
-  it("places weather between recommended course info and feedback and hides it on full reviews", async () => {
+  it("places weather before reviews and opens feedback below reviews", async () => {
     const { mountain } = renderMountainDetail();
 
     const courseInfoHeading = screen.getByRole("heading", {
       name: "추천 코스 정보",
     });
+    const courseMapHeading = screen.getByRole("heading", {
+      name: "추천 코스 지도",
+    });
     const weatherSection = screen.getByRole("region", {
       name: `${mountain.name} 날씨`,
     });
+    const reviewHeading = screen.getByRole("heading", { name: "실제 등산객 한줄평" });
+    openPreviewReviewForm();
     const feedbackHeading = screen.getByRole("heading", { name: "코스 평가" });
 
     expect(
-      courseInfoHeading.compareDocumentPosition(weatherSection) &
+      courseInfoHeading.compareDocumentPosition(courseMapHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      weatherSection.compareDocumentPosition(feedbackHeading) &
+      courseMapHeading.compareDocumentPosition(weatherSection) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      weatherSection.compareDocumentPosition(reviewHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      reviewHeading.compareDocumentPosition(feedbackHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
@@ -494,7 +613,7 @@ describe("MountainDetailPage course feedback", () => {
     expect(screen.queryByAltText("cancel-reset.png")).not.toBeInTheDocument();
   });
 
-  it("filters full reviews to my reviews and sorts oldest first", async () => {
+  it("filters full reviews with counts and sorts oldest first", async () => {
     const mountain = getMountainWithMultipleOfficialRoutes();
     const [recommendedRoute, otherRoute] = getMountainGuide(mountain).routes.filter(
       (route) => route.forestTripCourseKind,
@@ -543,11 +662,48 @@ describe("MountainDetailPage course feedback", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "내 리뷰" }));
+    expect(screen.getByRole("button", { name: "전체 3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "추천코스 2" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "추천코스 2" }));
 
     expect(screen.getByText(/최신 리뷰/)).toBeInTheDocument();
     expect(screen.getByText(/오래된 리뷰/)).toBeInTheDocument();
     expect(screen.queryByText(/다른 사람 리뷰/)).not.toBeInTheDocument();
+  });
+
+  it("filters directly entered course reviews and preserves review line breaks", async () => {
+    const mountain = getMountainWithMultipleOfficialRoutes();
+    const [recommendedRoute] = getMountainGuide(mountain).routes.filter(
+      (route) => route.forestTripCourseKind,
+    );
+    reviewServiceMocks.fetchMountainReviews.mockResolvedValue([
+      createReview({
+        id: "manual-line-break-review",
+        mountainId: mountain.id,
+        routeName: "코스 직접 입력",
+        routeStartPoint: "임도 입구",
+        routeEndPoint: "정상",
+        body: "첫 줄 후기\n둘째 줄 후기",
+      }),
+      createReview({
+        id: "recommended-review",
+        mountainId: mountain.id,
+        routeName: recommendedRoute.name,
+        body: "추천 코스 후기",
+      }),
+    ]);
+
+    renderMountainDetail();
+    fireEvent.click(screen.getByRole("tab", { name: "한줄평" }));
+
+    expect(await screen.findByRole("button", { name: "전체 2" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "직접 입력 코스 1" }));
+
+    const manualReview = screen.getByText(/첫 줄 후기/);
+    expect(manualReview).toHaveClass("whitespace-pre-line");
+    expect(manualReview.textContent).toContain("첫 줄 후기\n둘째 줄 후기");
+    expect(screen.queryByText(/추천 코스 후기/)).not.toBeInTheDocument();
   });
 
   it("shows review actions only from the more menu for the current user's reviews", async () => {
@@ -742,6 +898,7 @@ describe("MountainDetailPage course feedback", () => {
 
   it("creates a Supabase review with the selected route", async () => {
     const { mountain } = renderMountainDetail();
+    openPreviewReviewForm();
     const courseSelect = screen.getByLabelText(
       "코스를 선택해주세요",
     ) as HTMLSelectElement;
@@ -784,6 +941,7 @@ describe("MountainDetailPage course feedback", () => {
 
   it("previews selected images and removes them before upload", () => {
     const { container } = renderMountainDetail();
+    openPreviewReviewForm();
     const fileInput = container.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement;
@@ -798,6 +956,7 @@ describe("MountainDetailPage course feedback", () => {
 
   it("disables review creation for signed-out users", () => {
     renderMountainDetail(null);
+    openPreviewReviewForm();
 
     expect(
       screen.getByPlaceholderText("로그인 후 한줄평을 남길 수 있습니다."),
@@ -819,6 +978,9 @@ describe("MountainDetailPage course feedback", () => {
     fireEvent.click(screen.getByRole("tab", { name: "한줄평" }));
     fireEvent.click(await screen.findByRole("button", { name: "테스트 등산객 한줄평 더보기" }));
     fireEvent.click(screen.getByRole("button", { name: "수정" }));
+    expect(screen.getByLabelText("코스를 선택해주세요")).toBeDisabled();
+    expect(screen.getByLabelText("출발지")).toBeDisabled();
+    expect(screen.getByLabelText("도착지")).toBeDisabled();
     fireEvent.change(
       screen.getByPlaceholderText("코스에 대한 느낌을 자유롭게 남겨주세요."),
       { target: { value: "수정 후 한줄평" } },
