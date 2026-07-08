@@ -24,16 +24,16 @@ describe("profile helpers", () => {
     expect(getDefaultDisplayName({ email: "fallback@example.com", user_metadata: {} })).toBe("fallback");
   });
 
-  it("recognizes unique nickname conflicts from Supabase errors", async () => {
-    const { isDisplayNameConflictError } = await import("./profiles");
+  it("detects only the current user's custom profile avatar storage paths", async () => {
+    const { getProfileAvatarStoragePath, isCustomProfileAvatarUrl } = await import("./profiles");
+    const ownUrl =
+      "https://example.supabase.co/storage/v1/object/public/profile-images/user-1/avatar-123.jpg";
+    const otherUserUrl =
+      "https://example.supabase.co/storage/v1/object/public/profile-images/user-2/avatar-123.jpg";
 
-    expect(isDisplayNameConflictError({ code: "23505", message: "duplicate key value" })).toBe(true);
-    expect(
-      isDisplayNameConflictError({
-        code: "400",
-        message: 'duplicate key violates "profiles_display_name_normalized_key"',
-      }),
-    ).toBe(true);
-    expect(isDisplayNameConflictError({ code: "42703", message: "missing column" })).toBe(false);
+    expect(getProfileAvatarStoragePath("user-1", ownUrl)).toBe("user-1/avatar-123.jpg");
+    expect(isCustomProfileAvatarUrl("user-1", ownUrl)).toBe(true);
+    expect(getProfileAvatarStoragePath("user-1", otherUserUrl)).toBeNull();
+    expect(isCustomProfileAvatarUrl("user-1", "/profile-avatars/avatar-1.svg")).toBe(false);
   });
 });

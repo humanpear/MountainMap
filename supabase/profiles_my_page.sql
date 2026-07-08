@@ -9,10 +9,7 @@ where display_name is not null
   and trim(display_name) <> ''
   and display_name_normalized is null;
 
-create unique index if not exists profiles_display_name_normalized_key
-  on public.profiles (display_name_normalized)
-  where display_name_normalized is not null
-    and display_name_normalized <> '';
+drop index if exists public.profiles_display_name_normalized_key;
 
 create or replace function public.set_profiles_updated_at()
 returns trigger

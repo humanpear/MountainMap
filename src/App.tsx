@@ -101,7 +101,8 @@ const appClass = {
   searchButton: 'inline-flex cursor-pointer items-center justify-center border-0 bg-white text-[#00172b]',
   authButton:
     'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3.5 text-sm font-extrabold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-55 max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:min-h-9 max-[900px]:px-3 max-[900px]:text-[13px]',
-  workspace: 'relative grid min-h-[calc(100vh-68px)] grid-cols-[minmax(0,1fr)_360px] max-[900px]:grid-cols-1',
+  workspace:
+    'relative grid min-h-[calc(100vh-68px)] overflow-hidden transition-[grid-template-columns] duration-200 ease-out max-[900px]:grid-cols-1',
   mapStage: 'relative min-h-[calc(100vh-68px)] overflow-visible',
   mapControls:
     'absolute left-5 top-5 z-[2] grid justify-items-start gap-3 max-[560px]:left-3 max-[560px]:right-auto max-[560px]:gap-2',
@@ -117,7 +118,8 @@ const appClass = {
     'inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-[#d8e0da] bg-[#eef2ef] px-3 font-numeric font-bold max-[560px]:min-h-9 max-[560px]:px-2.5 max-[560px]:text-[13px]',
   randomButton:
     'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-[#2f6b4f] bg-[#2f6b4f] px-[18px] font-extrabold text-white disabled:cursor-progress disabled:bg-[#1f4e39] max-[560px]:min-h-9 max-[560px]:px-3 max-[560px]:text-[13px]',
-  detailPanel: 'z-[3] overflow-auto border-l border-[#d8e0da] bg-white p-5 max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-[6] max-[900px]:max-h-[min(78vh,calc(100dvh-104px))] max-[900px]:overflow-y-auto max-[900px]:rounded-t-2xl max-[900px]:border-l-0 max-[900px]:border-t max-[900px]:p-4 max-[900px]:pb-[calc(1rem+env(safe-area-inset-bottom))] max-[900px]:shadow-[0_-18px_60px_rgba(0,0,0,0.24)] max-[900px]:transition-transform max-[900px]:duration-200 max-[900px]:ease-out',
+  detailPanel:
+    'z-[3] overflow-auto border-l border-[#d8e0da] bg-white p-5 transition-[transform,opacity] duration-200 ease-out max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-[6] max-[900px]:max-h-[min(78vh,calc(100dvh-104px))] max-[900px]:overflow-y-auto max-[900px]:rounded-t-2xl max-[900px]:border-l-0 max-[900px]:border-t max-[900px]:p-4 max-[900px]:pb-[calc(1rem+env(safe-area-inset-bottom))] max-[900px]:shadow-[0_-18px_60px_rgba(0,0,0,0.24)] max-[900px]:transition-transform max-[900px]:duration-200 max-[900px]:ease-out',
   detailHeader: 'flex items-start justify-between gap-4',
   detailPanelClose:
     'hidden h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg border border-[#d8e0da] bg-[#eef2ef] text-[#18221d] max-[900px]:inline-flex',
@@ -195,6 +197,7 @@ export default function App() {
   const [sidebarReviewPhotos, setSidebarReviewPhotos] = useState<SidebarReviewPhoto[]>([]);
   const [sidebarPhotoState, setSidebarPhotoState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [isMobileDetailSheetOpen, setIsMobileDetailSheetOpen] = useState(false);
+  const [mapRefreshKey, setMapRefreshKey] = useState(0);
 
   const selectedMountain = mountains.find((mountain) => mountain.id === selectedMountainId);
   const detailMountain = mountains.find((mountain) => mountain.id === detailMountainId);
@@ -210,6 +213,7 @@ export default function App() {
     () => getRandomCandidates({ mountains, completedIds, selectedIds: candidateIds, mode: randomMode }),
     [candidateIds, completedIds, randomMode]
   );
+  const isDetailPanelOpen = randomState.status === 'running' || Boolean(selectedMountain);
 
   useEffect(() => {
     const syncDetailRoute = () => {
@@ -382,6 +386,7 @@ export default function App() {
     setFocusedMountainId(undefined);
     setIsMobileDetailSheetOpen(false);
     setResultModalMountain(null);
+    setMapRefreshKey((key) => key + 1);
   };
 
   const submitMountainSearch = () => {
@@ -613,12 +618,20 @@ export default function App() {
           onToggleCompleted={toggleCompleted}
         />
       ) : (
-        <section className={appClass.workspace} aria-label="100대 명산 지도">
+        <section
+          className={cn(
+            appClass.workspace,
+            isDetailPanelOpen ? 'grid-cols-[minmax(0,1fr)_360px]' : 'grid-cols-[minmax(0,1fr)_0px]'
+          )}
+          aria-label="100대 명산 지도"
+        >
           <div className={appClass.mapStage}>
             <MountainMap
               mountains={mountains}
               selectedMountainId={selectedMountain?.id}
               focusedMountainId={focusedMountainId}
+              layoutKey={isDetailPanelOpen ? 'with-detail-panel' : 'full-map'}
+              refreshKey={mapRefreshKey}
               completedIds={completedIds}
               completionCounts={completionCounts}
               candidateIds={candidateIds}
@@ -666,11 +679,15 @@ export default function App() {
           <aside
             className={cn(
               appClass.detailPanel,
+              isDetailPanelOpen
+                ? 'opacity-100 min-[901px]:translate-x-0'
+                : 'pointer-events-none opacity-0 min-[901px]:translate-x-full',
               isMobileDetailSheetOpen
                 ? 'max-[900px]:translate-y-0'
                 : 'max-[900px]:pointer-events-none max-[900px]:translate-y-full'
             )}
             aria-label="선택한 산 정보"
+            aria-hidden={!isDetailPanelOpen}
           >
             {randomState.status === 'running' ? (
               <div className={appClass.randomPending} role="status" aria-live="polite">
@@ -777,7 +794,11 @@ export default function App() {
       ) : null}
 
       <button
-        className={cn(appClass.feedbackButton, isMyPageOpen && 'hidden', isMobileDetailSheetOpen && !detailMountain && 'max-[900px]:hidden')}
+        className={cn(
+          appClass.feedbackButton,
+          (isMyPageOpen || detailMountain) && 'hidden',
+          isMobileDetailSheetOpen && !detailMountain && 'max-[900px]:hidden',
+        )}
         type="button"
         onClick={() => setIsFeedbackOpen(true)}
         aria-label="앱 피드백 보내기"

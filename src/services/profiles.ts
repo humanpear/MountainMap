@@ -125,28 +125,6 @@ export async function fetchOrCreateUserProfile(user: User) {
   return mapProfile(inserted as ProfileRow, user);
 }
 
-export async function isDisplayNameAvailable(displayName: string, userId: string) {
-  const normalized = normalizeDisplayName(displayName);
-
-  if (!normalized) {
-    return false;
-  }
-
-  const client = requireSupabase();
-  const { data, error } = await client
-    .from("profiles")
-    .select("id")
-    .eq("display_name_normalized", normalized)
-    .neq("id", userId)
-    .limit(1);
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []).length === 0;
-}
-
 export async function saveUserProfile(profile: Pick<UserProfile, "id" | "email" | "displayName" | "avatarUrl" | "avatarKind">) {
   const displayName = sanitizeDisplayName(profile.displayName);
 
@@ -169,9 +147,6 @@ export async function saveUserProfile(profile: Pick<UserProfile, "id" | "email" 
     .single();
 
   if (error) {
-    if (isDisplayNameConflictError(error)) {
-      throw new Error("이미 사용 중인 닉네임입니다.");
-    }
     throw error;
   }
 
@@ -226,13 +201,54 @@ export async function uploadProfileAvatar(userId: string, file: File) {
   return data.publicUrl;
 }
 
-export function isDisplayNameConflictError(error: unknown) {
-  if (!error || typeof error !== "object") {
+export async function deleteProfileAvatar(userId: string, avatarUrl: string) {
+  const path = getProfileAvatarStoragePath(userId, avatarUrl);
+
+  if (!path) {
     return false;
   }
 
-  const supabaseError = error as { code?: string; message?: string };
-  return supabaseError.code === "23505" || Boolean(supabaseError.message?.includes("profiles_display_name_normalized_key"));
+  const client = requireSupabase();
+  const { error } = await client.storage.from(profileImageBucket).remove([path]);
+
+  if (error) {
+    throw error;
+  }
+
+  return true;
+}
+
+export function isCustomProfileAvatarUrl(userId: string, avatarUrl: string) {
+  return getProfileAvatarStoragePath(userId, avatarUrl) !== null;
+}
+
+export function getProfileAvatarStoragePath(userId: string, avatarUrl: string) {
+  if (!userId || !avatarUrl || avatarUrl.startsWith("/profile-avatars/")) {
+    return null;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(avatarUrl, "http://localhost");
+  } catch {
+    return null;
+  }
+
+  const marker = `/storage/v1/object/public/${profileImageBucket}/`;
+  const markerIndex = url.pathname.indexOf(marker);
+
+  if (markerIndex === -1) {
+    return null;
+  }
+
+  let path: string;
+  try {
+    path = decodeURIComponent(url.pathname.slice(markerIndex + marker.length));
+  } catch {
+    return null;
+  }
+
+  return path.startsWith(`${userId}/`) ? path : null;
 }
 
 async function resizeImageForUpload(file: File) {

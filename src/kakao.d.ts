@@ -32,6 +32,7 @@ declare global {
   };
 
   type KakaoMap = {
+    relayout(): void;
     setCenter(position: KakaoLatLng): void;
     setLevel(level: number, options?: KakaoMapSetLevelOptions): void;
     setBounds(bounds: KakaoLatLngBounds): void;

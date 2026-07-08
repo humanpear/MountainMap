@@ -55,6 +55,8 @@ describe("my page service", () => {
           user_id: "user-1",
           mountain_id: "0000000001",
           route_name: "추천 코스",
+          route_start_point: "해인사",
+          route_end_point: "상왕봉",
           author_name: "예전 닉네임",
           difficulty: "보통",
           duration_minutes: 180,
@@ -89,8 +91,12 @@ describe("my page service", () => {
       expect.objectContaining({
         authorName: "최신 닉네임",
         mountainName: expect.any(String),
+        routeStartPoint: "해인사",
+        routeEndPoint: "상왕봉",
       }),
     );
+    expect(query.select).toHaveBeenCalledWith(expect.stringContaining("route_start_point"));
+    expect(query.select).toHaveBeenCalledWith(expect.stringContaining("route_end_point"));
   });
 });
 

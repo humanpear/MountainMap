@@ -13,6 +13,8 @@ export type UserReviewSummary = {
   mountainId: string;
   mountainName: string;
   routeName: string;
+  routeStartPoint: string | null;
+  routeEndPoint: string | null;
   authorName: string;
   difficulty: string;
   durationMinutes: number;
@@ -34,6 +36,8 @@ type ReviewRow = {
   user_id: string;
   mountain_id: string;
   route_name: string;
+  route_start_point?: string | null;
+  route_end_point?: string | null;
   author_name: string | null;
   difficulty: string;
   duration_minutes: number;
@@ -92,7 +96,9 @@ export async function fetchUserReviews(userId: string): Promise<UserReviewSummar
   const client = requireSupabase();
   const { data, error } = await client
     .from("mountain_reviews")
-    .select("id,user_id,mountain_id,route_name,author_name,difficulty,duration_minutes,duration_label,body,image_urls,created_at,updated_at")
+    .select(
+      "id,user_id,mountain_id,route_name,route_start_point,route_end_point,author_name,difficulty,duration_minutes,duration_label,body,image_urls,created_at,updated_at",
+    )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
@@ -111,6 +117,8 @@ export async function fetchUserReviews(userId: string): Promise<UserReviewSummar
       mountainId: row.mountain_id,
       mountainName: mountain?.name ?? row.mountain_id,
       routeName: row.route_name,
+      routeStartPoint: row.route_start_point ?? null,
+      routeEndPoint: row.route_end_point ?? null,
       authorName: profile?.displayName || row.author_name?.trim() || "등산객",
       difficulty: row.difficulty,
       durationMinutes: row.duration_minutes,
