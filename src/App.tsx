@@ -1,6 +1,20 @@
 import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Camera, Check, LogIn, MapPin, MessageCircle, Search, Shuffle, UserRound, X } from 'lucide-react';
+import {
+  Camera,
+  Check,
+  ChevronRight,
+  Edit3,
+  LogIn,
+  LogOut,
+  MapPin,
+  MessageCircle,
+  Mountain as MountainIcon,
+  Search,
+  Shuffle,
+  UserRound,
+  X
+} from 'lucide-react';
 import { MountainDetailPage } from './components/MountainDetailPage';
 import { MountainMap } from './components/MountainMap';
 import { MountainNameWithHanja } from './components/MountainNameWithHanja';
@@ -13,6 +27,8 @@ import { getOAuthRedirectUrl } from './services/authRedirect';
 import { getCompletionErrorMessage } from './services/completionErrors';
 import { isSupabaseConfigured } from './services/env';
 import { fetchMountainReviews, type MountainReview } from './services/mountainReviews';
+import { fetchUserReviews } from './services/myPage';
+import { fetchOrCreateUserProfile, getDefaultAvatarUrl, type UserProfile } from './services/profiles';
 import { playFanfare, playRouletteTick } from './services/randomSounds';
 import { supabase } from './services/supabase';
 import type { CompletionRecord, Mountain, RandomMode } from './types';
@@ -28,6 +44,14 @@ type SidebarReviewPhoto = {
   createdAt: string;
   index: number;
 };
+
+type MyPageTab = 'overview' | 'profile' | 'completed' | 'reviews';
+
+type AccountSummaryState =
+  | { status: 'idle'; profile: null; reviewCount: number }
+  | { status: 'loading'; profile: UserProfile | null; reviewCount: number }
+  | { status: 'ready'; profile: UserProfile; reviewCount: number }
+  | { status: 'error'; profile: null; reviewCount: number };
 
 const confettiPieces = Array.from({ length: 34 }, (_, index) => index);
 
@@ -77,8 +101,22 @@ function getIsMyPageRoute() {
   return window.location.pathname === '/my-page';
 }
 
+function getMyPageTabRoute(): MyPageTab {
+  if (typeof window === 'undefined' || window.location.pathname !== '/my-page') {
+    return 'overview';
+  }
+
+  const tab = new URLSearchParams(window.location.search).get('tab');
+  return tab === 'profile' || tab === 'completed' || tab === 'reviews' ? tab : 'overview';
+}
+
 function setBrowserPath(path: string) {
-  if (typeof window === 'undefined' || window.location.pathname === path) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const currentPath = `${window.location.pathname}${window.location.search}`;
+  if (currentPath === path) {
     return;
   }
 
@@ -101,6 +139,20 @@ const appClass = {
   searchButton: 'inline-flex cursor-pointer items-center justify-center border-0 bg-white text-[#00172b]',
   authButton:
     'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3.5 text-sm font-extrabold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-55 max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:min-h-9 max-[900px]:px-3 max-[900px]:text-[13px]',
+  accountMenuWrap: 'relative max-[900px]:col-start-2 max-[900px]:row-start-1',
+  accountMenu:
+    'absolute right-0 top-[calc(100%+10px)] z-20 grid w-[320px] max-w-[calc(100vw-24px)] gap-3 rounded-lg border border-[#d8e0da] bg-white p-4 text-[#18221d] shadow-[0_22px_70px_rgba(0,0,0,0.22)] max-[560px]:right-[-4px] max-[560px]:w-[calc(100vw-24px)]',
+  accountMenuProfile: 'flex min-w-0 items-center gap-3 border-b border-[#d8e0da] pb-3',
+  accountMenuAvatar: 'h-12 w-12 flex-none rounded-full border-2 border-[#eef3f0] object-cover',
+  accountMenuName: 'm-0 truncate text-base font-black text-[#18221d]',
+  accountMenuMeta: 'm-0 truncate text-sm font-bold text-[#5d6a62]',
+  accountMenuStats: 'grid grid-cols-2 gap-2',
+  accountMenuStat:
+    'rounded-lg border border-[#d8e0da] bg-[#f7faf8] px-3 py-2 [&_dt]:text-xs [&_dt]:font-black [&_dt]:text-[#5d6a62] [&_dd]:m-0 [&_dd]:font-numeric [&_dd]:text-lg [&_dd]:font-black [&_dd]:text-[#18221d]',
+  accountMenuAction:
+    'inline-flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#d8e0da] bg-white px-3 text-left font-extrabold text-[#18221d] transition hover:bg-[#eef3f0]',
+  accountMenuDanger:
+    'inline-flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#b14a3d] bg-white px-3 text-left font-extrabold text-[#b14a3d] transition hover:bg-[#fff1ee]',
   workspace:
     'relative grid min-h-[calc(100vh-68px)] overflow-hidden transition-[grid-template-columns] duration-200 ease-out max-[900px]:grid-cols-1',
   mapStage: 'relative min-h-[calc(100vh-68px)] overflow-visible',
@@ -182,6 +234,7 @@ export default function App() {
   const [selectedMountainId, setSelectedMountainId] = useState('');
   const [detailMountainId, setDetailMountainId] = useState<string | null>(() => getMountainDetailRouteId());
   const [isMyPageOpen, setIsMyPageOpen] = useState(() => getIsMyPageRoute());
+  const [myPageTab, setMyPageTab] = useState<MyPageTab>(() => getMyPageTabRoute());
   const [focusedMountainId, setFocusedMountainId] = useState<string | undefined>();
   const [completionRecords, setCompletionRecords] = useState<CompletionRecord[]>([]);
   const [randomMode, setRandomMode] = useState<RandomMode>('incomplete');
@@ -197,6 +250,12 @@ export default function App() {
   const [sidebarReviewPhotos, setSidebarReviewPhotos] = useState<SidebarReviewPhoto[]>([]);
   const [sidebarPhotoState, setSidebarPhotoState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [isMobileDetailSheetOpen, setIsMobileDetailSheetOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [accountSummary, setAccountSummary] = useState<AccountSummaryState>({
+    status: 'idle',
+    profile: null,
+    reviewCount: 0
+  });
   const [mapRefreshKey, setMapRefreshKey] = useState(0);
 
   const selectedMountain = mountains.find((mountain) => mountain.id === selectedMountainId);
@@ -214,11 +273,17 @@ export default function App() {
     [candidateIds, completedIds, randomMode]
   );
   const isDetailPanelOpen = randomState.status === 'running' || Boolean(selectedMountain);
+  const accountProfile = accountSummary.profile;
+  const accountDisplayName =
+    accountProfile?.displayName || session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || '내 계정';
+  const accountAvatarUrl = accountProfile?.avatarUrl || getDefaultAvatarUrl(accountProfile?.avatarKind);
 
   useEffect(() => {
     const syncDetailRoute = () => {
       setDetailMountainId(getMountainDetailRouteId());
       setIsMyPageOpen(getIsMyPageRoute());
+      setMyPageTab(getMyPageTabRoute());
+      setIsAccountMenuOpen(false);
       setIsMobileDetailSheetOpen(false);
     };
 
@@ -273,6 +338,61 @@ export default function App() {
 
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!session?.user) {
+      setIsAccountMenuOpen(false);
+      setAccountSummary({ status: 'idle', profile: null, reviewCount: 0 });
+      return;
+    }
+
+    let isActive = true;
+    setAccountSummary((current) => ({
+      status: 'loading',
+      profile: current.status === 'ready' ? current.profile : null,
+      reviewCount: current.reviewCount
+    }));
+
+    Promise.all([fetchOrCreateUserProfile(session.user), fetchUserReviews(session.user.id)])
+      .then(([profile, reviews]) => {
+        if (!isActive) {
+          return;
+        }
+
+        setAccountSummary({ status: 'ready', profile, reviewCount: reviews.length });
+      })
+      .catch(() => {
+        if (!isActive) {
+          return;
+        }
+
+        setAccountSummary({ status: 'error', profile: null, reviewCount: 0 });
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [session?.user]);
+
+  useEffect(() => {
+    if (!isAccountMenuOpen) {
+      return;
+    }
+
+    const closeAccountMenu = () => setIsAccountMenuOpen(false);
+    const closeAccountMenuOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeAccountMenu();
+      }
+    };
+
+    window.addEventListener('click', closeAccountMenu);
+    window.addEventListener('keydown', closeAccountMenuOnEscape);
+    return () => {
+      window.removeEventListener('click', closeAccountMenu);
+      window.removeEventListener('keydown', closeAccountMenuOnEscape);
+    };
+  }, [isAccountMenuOpen]);
 
   useEffect(() => {
     if (!supabase || !session?.user.id) {
@@ -368,6 +488,8 @@ export default function App() {
     setBrowserPath(`/mountains/${encodeURIComponent(mountain.id)}`);
     setDetailMountainId(mountain.id);
     setIsMyPageOpen(false);
+    setMyPageTab('overview');
+    setIsAccountMenuOpen(false);
     setIsMobileDetailSheetOpen(false);
     setResultModalMountain(null);
   };
@@ -376,12 +498,16 @@ export default function App() {
     setBrowserPath('/');
     setDetailMountainId(null);
     setIsMyPageOpen(false);
+    setMyPageTab('overview');
+    setIsAccountMenuOpen(false);
   };
 
   const navigateHome = () => {
     setBrowserPath('/');
     setDetailMountainId(null);
     setIsMyPageOpen(false);
+    setMyPageTab('overview');
+    setIsAccountMenuOpen(false);
     setSelectedMountainId('');
     setFocusedMountainId(undefined);
     setIsMobileDetailSheetOpen(false);
@@ -445,6 +571,8 @@ export default function App() {
     setBrowserPath('/');
     setDetailMountainId(null);
     setIsMyPageOpen(false);
+    setMyPageTab('overview');
+    setIsAccountMenuOpen(false);
     setSelectedMountainId(mountain.id);
     setFocusedMountainId(mountain.id);
     setIsMobileDetailSheetOpen(true);
@@ -473,6 +601,7 @@ export default function App() {
       return;
     }
 
+    setIsAccountMenuOpen(false);
     const { error } = await supabase.auth.signOut();
     if (error) {
       setMessage(error.message);
@@ -484,17 +613,24 @@ export default function App() {
 
   const handleAuthClick = () => {
     if (session) {
-      setBrowserPath('/my-page');
-      setIsMyPageOpen(true);
-      setDetailMountainId(null);
-      setSelectedMountainId('');
-      setFocusedMountainId(undefined);
-      setIsMobileDetailSheetOpen(false);
-      setResultModalMountain(null);
+      setIsAccountMenuOpen((isOpen) => !isOpen);
       return;
     }
 
     void signInWithGoogle();
+  };
+
+  const openMyPageTab = (tab: MyPageTab) => {
+    const path = tab === 'overview' ? '/my-page' : `/my-page?tab=${tab}`;
+    setBrowserPath(path);
+    setIsMyPageOpen(true);
+    setMyPageTab(tab);
+    setDetailMountainId(null);
+    setSelectedMountainId('');
+    setFocusedMountainId(undefined);
+    setIsMobileDetailSheetOpen(false);
+    setResultModalMountain(null);
+    setIsAccountMenuOpen(false);
   };
 
   const runRandomPick = () => {
@@ -591,10 +727,73 @@ export default function App() {
                 <Search size={22} />
               </button>
             </form>
-            <button className={appClass.authButton} type="button" onClick={handleAuthClick}>
-              {session ? <UserRound size={17} /> : <LogIn size={17} />}
-              {session ? '마이페이지' : '로그인'}
-            </button>
+            <div className={appClass.accountMenuWrap} onClick={(event) => event.stopPropagation()}>
+              <button
+                className={appClass.authButton}
+                type="button"
+                onClick={handleAuthClick}
+                aria-expanded={session ? isAccountMenuOpen : undefined}
+                aria-haspopup={session ? 'menu' : undefined}
+              >
+                {session ? <UserRound size={17} /> : <LogIn size={17} />}
+                {session ? '마이페이지' : '로그인'}
+              </button>
+              {session && isAccountMenuOpen ? (
+                <div className={appClass.accountMenu} role="menu" aria-label="마이페이지 메뉴">
+                  <div className={appClass.accountMenuProfile}>
+                    <img className={appClass.accountMenuAvatar} src={accountAvatarUrl} alt="" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className={appClass.accountMenuName}>{accountDisplayName}</p>
+                      <p className={appClass.accountMenuMeta}>{session.user.email}</p>
+                    </div>
+                  </div>
+                  <dl className={appClass.accountMenuStats}>
+                    <div className={appClass.accountMenuStat}>
+                      <dt>완료한 산</dt>
+                      <dd>{completedIds.size} / 100</dd>
+                    </div>
+                    <div className={appClass.accountMenuStat}>
+                      <dt>한줄평</dt>
+                      <dd>{accountSummary.status === 'loading' ? '-' : accountSummary.reviewCount}개</dd>
+                    </div>
+                  </dl>
+                  {accountSummary.status === 'error' ? (
+                    <p className="m-0 rounded-md bg-[#fff2f0] px-3 py-2 text-sm font-bold leading-5 text-[#b14a3d]">
+                      계정 요약을 불러오지 못했습니다.
+                    </p>
+                  ) : null}
+                  <div className="grid gap-2">
+                    <button className={appClass.accountMenuAction} type="button" role="menuitem" onClick={() => openMyPageTab('profile')}>
+                      <span className="inline-flex items-center gap-2">
+                        <Edit3 size={17} />
+                        프로필 편집
+                      </span>
+                      <ChevronRight size={17} />
+                    </button>
+                    <button className={appClass.accountMenuAction} type="button" role="menuitem" onClick={() => openMyPageTab('completed')}>
+                      <span className="inline-flex items-center gap-2">
+                        <MountainIcon size={17} />
+                        완료한 산
+                      </span>
+                      <ChevronRight size={17} />
+                    </button>
+                    <button className={appClass.accountMenuAction} type="button" role="menuitem" onClick={() => openMyPageTab('reviews')}>
+                      <span className="inline-flex items-center gap-2">
+                        <MessageCircle size={17} />
+                        내 한줄평
+                      </span>
+                      <ChevronRight size={17} />
+                    </button>
+                    <button className={appClass.accountMenuDanger} type="button" role="menuitem" onClick={() => void signOut()}>
+                      <span className="inline-flex items-center gap-2">
+                        <LogOut size={17} />
+                        로그아웃
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </header>
@@ -602,8 +801,10 @@ export default function App() {
       {isMyPageOpen && session ? (
         <MyPage
           session={session}
+          activeTab={myPageTab}
           completionRecords={completionRecords}
           onCompletionRecordsChange={setCompletionRecords}
+          onTabChange={openMyPageTab}
           onBackToMap={navigateHome}
           onOpenMountain={openMountainDetail}
           onSignOut={() => void signOut()}

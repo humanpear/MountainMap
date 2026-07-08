@@ -67,13 +67,15 @@ function createSession() {
   } as Session;
 }
 
-function renderMyPage() {
+function renderMyPage(options: { activeTab?: "overview" | "profile" | "completed" | "reviews"; onTabChange?: (tab: "overview" | "profile" | "completed" | "reviews") => void } = {}) {
   return render(
     <MyPage
       session={createSession()}
+      activeTab={options.activeTab}
       completionRecords={[]}
       onBackToMap={() => undefined}
       onCompletionRecordsChange={() => undefined}
+      onTabChange={options.onTabChange}
       onOpenMountain={() => undefined}
       onSignOut={() => undefined}
     />,
@@ -155,6 +157,48 @@ describe("MyPage", () => {
         "/mountain-images/0000000002/hero.png",
       );
     });
+  });
+
+  it("shows an activity overview by default instead of opening profile editing first", async () => {
+    profileMocks.fetchOrCreateUserProfile.mockResolvedValue({
+      id: "user-1",
+      email: "user-1@example.com",
+      displayName: "테스트 등산객",
+      displayNameNormalized: "테스트 등산객",
+      avatarUrl: "/profile-avatars/avatar-1.svg",
+      avatarKind: "default-1",
+    });
+    myPageMocks.fetchUserCompletedMountains.mockResolvedValue([]);
+    myPageMocks.fetchUserReviews.mockResolvedValue([]);
+    const onTabChange = vi.fn();
+
+    renderMyPage({ onTabChange });
+
+    expect(await screen.findByRole("heading", { name: "완료 기록 관리" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "내가 남긴 한줄평" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "닉네임과 사진" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "프로필 편집" }));
+
+    expect(onTabChange).toHaveBeenCalledWith("profile");
+  });
+
+  it("opens the profile editor when the profile tab is active", async () => {
+    profileMocks.fetchOrCreateUserProfile.mockResolvedValue({
+      id: "user-1",
+      email: "user-1@example.com",
+      displayName: "테스트 등산객",
+      displayNameNormalized: "테스트 등산객",
+      avatarUrl: "/profile-avatars/avatar-1.svg",
+      avatarKind: "default-1",
+    });
+    myPageMocks.fetchUserCompletedMountains.mockResolvedValue([]);
+    myPageMocks.fetchUserReviews.mockResolvedValue([]);
+
+    renderMyPage({ activeTab: "profile" });
+
+    expect(await screen.findByRole("heading", { name: "닉네임과 사진" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "내 산행 현황" })).toBeInTheDocument();
   });
 
   it("edits and deletes a user review from MyPage", async () => {

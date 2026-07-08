@@ -46,17 +46,26 @@ import type { CompletionRecord, Mountain, MountainGuideDifficulty, MountainGuide
 
 type MyPageProps = {
   session: Session;
+  activeTab?: MyPageTab;
   completionRecords: CompletionRecord[];
   onCompletionRecordsChange: (records: CompletionRecord[]) => void;
+  onTabChange?: (tab: MyPageTab) => void;
   onBackToMap: () => void;
   onOpenMountain: (mountain: Mountain) => void;
   onSignOut: () => void;
 };
 
 type LoadState = "loading" | "ready" | "error";
+type MyPageTab = "overview" | "profile" | "completed" | "reviews";
 
 const manualCourseRouteName = "코스 직접 입력";
 const difficultyEvaluationOptions = ["쉬움", "보통", "약간 어려움", "어려움", "매우 어려움"];
+const myPageTabs: Array<{ id: MyPageTab; label: string }> = [
+  { id: "overview", label: "요약" },
+  { id: "profile", label: "프로필 편집" },
+  { id: "completed", label: "완료한 산" },
+  { id: "reviews", label: "내 한줄평" },
+];
 const difficultyDefaultIndex: Record<MountainGuideDifficulty, number> = {
   easy: 0,
   normal: 1,
@@ -87,7 +96,14 @@ const pageClass = {
     "rounded-lg border border-[#d8e0da] bg-[#f7faf8] p-4 [&_dd]:m-0 [&_dd]:font-numeric [&_dd]:text-2xl [&_dd]:font-black [&_dt]:text-sm [&_dt]:font-black [&_dt]:text-[#5d6a62]",
   progressTrack: "h-3 overflow-hidden rounded-full bg-[#d8e0da]",
   progressValue: "h-full rounded-full bg-[#245c46] transition-[width]",
+  tabs:
+    "flex flex-wrap gap-2 rounded-lg border border-[#d8e0da] bg-white p-2 shadow-[0_10px_28px_rgba(24,34,29,0.05)]",
+  tabButton:
+    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 font-extrabold transition max-[560px]:flex-1 max-[560px]:px-3",
+  tabButtonActive: "border-[#245c46] bg-[#245c46] text-white",
+  tabButtonIdle: "border-transparent bg-transparent text-[#5d6a62] hover:bg-[#eef3f0] hover:text-[#18221d]",
   contentGrid: "grid grid-cols-[minmax(0,420px)_minmax(0,1fr)] gap-6 max-[980px]:grid-cols-1",
+  overviewGrid: "grid grid-cols-2 gap-6 max-[980px]:grid-cols-1",
   section: "rounded-lg border border-[#d8e0da] bg-white p-5 shadow-[0_16px_50px_rgba(24,34,29,0.06)] max-[760px]:p-4",
   sectionHeader: "mb-4 flex items-start justify-between gap-3",
   sectionTitle: "m-0 text-[22px] font-black leading-tight text-[#18221d]",
@@ -118,8 +134,10 @@ const pageClass = {
 
 export function MyPage({
   session,
+  activeTab = "overview",
   completionRecords,
   onCompletionRecordsChange,
+  onTabChange,
   onBackToMap,
   onOpenMountain,
   onSignOut,
@@ -183,6 +201,9 @@ export function MyPage({
   const completedMountainCount = completedSummary.length;
   const completionProgressPercent = Math.min(100, Math.round((completedMountainCount / mountains.length) * 100));
   const primaryAvatarUrl = avatarUrl || profile?.avatarUrl || getDefaultAvatarUrl(avatarKind);
+  const openTab = (tab: MyPageTab) => {
+    onTabChange?.(tab);
+  };
 
   const saveProfile = async () => {
     if (!profile) {
@@ -274,6 +295,44 @@ export function MyPage({
     }
   };
 
+  const profileEditor = (
+    <ProfileEditor
+      displayName={displayName}
+      avatarUrl={primaryAvatarUrl}
+      avatarKind={avatarKind}
+      isSaving={isSaving}
+      isUploadingAvatar={isUploadingAvatar}
+      fileInputRef={fileInputRef}
+      onDisplayNameChange={setDisplayName}
+      onAvatarSelect={(nextAvatarKind, nextAvatarUrl) => {
+        setAvatarKind(nextAvatarKind);
+        setAvatarUrl(nextAvatarUrl);
+      }}
+      onUploadClick={() => fileInputRef.current?.click()}
+      onFileChange={(file) => void uploadAvatar(file)}
+      onSave={() => void saveProfile()}
+    />
+  );
+
+  const completedPanel = (
+    <CompletedMountainsPanel
+      completedMountains={completedSummary}
+      removingMountainId={removingMountainId}
+      onOpenMountain={onOpenMountain}
+      onRemoveCompleted={(mountainId) => void removeCompleted(mountainId)}
+    />
+  );
+
+  const reviewsPanel = (
+    <EditableUserReviewsPanel
+      reviews={reviews}
+      currentUserId={session.user.id}
+      onReviewsChange={setReviews}
+      onOpenMountain={onOpenMountain}
+      onStatusMessage={setMessage}
+    />
+  );
+
   return (
     <section className={pageClass.shell} aria-label="마이페이지">
       <div className={pageClass.inner}>
@@ -325,6 +384,23 @@ export function MyPage({
           </div>
         ) : null}
 
+        <nav className={pageClass.tabs} aria-label="마이페이지 섹션">
+          {myPageTabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={cn(
+                pageClass.tabButton,
+                activeTab === tab.id ? pageClass.tabButtonActive : pageClass.tabButtonIdle,
+              )}
+              type="button"
+              aria-current={activeTab === tab.id ? "page" : undefined}
+              onClick={() => openTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
         {loadState === "loading" ? (
           <div className={pageClass.empty}>마이페이지 정보를 불러오는 중입니다.</div>
         ) : loadState === "error" ? (
@@ -332,40 +408,40 @@ export function MyPage({
             <span>정보를 불러오지 못했습니다.</span>
           </div>
         ) : (
-          <div className={pageClass.contentGrid}>
-            <ProfileEditor
-              displayName={displayName}
-              avatarUrl={primaryAvatarUrl}
-              avatarKind={avatarKind}
-              isSaving={isSaving}
-              isUploadingAvatar={isUploadingAvatar}
-              fileInputRef={fileInputRef}
-              onDisplayNameChange={setDisplayName}
-              onAvatarSelect={(nextAvatarKind, nextAvatarUrl) => {
-                setAvatarKind(nextAvatarKind);
-                setAvatarUrl(nextAvatarUrl);
-              }}
-              onUploadClick={() => fileInputRef.current?.click()}
-              onFileChange={(file) => void uploadAvatar(file)}
-              onSave={() => void saveProfile()}
-            />
-
-            <div className="grid gap-6">
-              <CompletedMountainsPanel
-                completedMountains={completedSummary}
-                removingMountainId={removingMountainId}
-                onOpenMountain={onOpenMountain}
-                onRemoveCompleted={(mountainId) => void removeCompleted(mountainId)}
-              />
-              <EditableUserReviewsPanel
-                reviews={reviews}
-                currentUserId={session.user.id}
-                onReviewsChange={setReviews}
-                onOpenMountain={onOpenMountain}
-                onStatusMessage={setMessage}
-              />
-            </div>
-          </div>
+          <>
+            {activeTab === "profile" ? (
+              <div className={pageClass.contentGrid}>
+                {profileEditor}
+                <section className={pageClass.section} aria-labelledby="profile-summary-title">
+                  <div className={pageClass.sectionHeader}>
+                    <div>
+                      <p className={pageClass.eyebrow}>활동 요약</p>
+                      <h2 id="profile-summary-title" className={pageClass.sectionTitle}>
+                        내 산행 현황
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="grid gap-3">
+                    <p className={pageClass.muted}>
+                      완료한 산 {completedMountainCount}개, 작성한 한줄평 {reviews.length}개입니다.
+                    </p>
+                    <button className={pageClass.secondaryButton} type="button" onClick={() => openTab("overview")}>
+                      요약으로 돌아가기
+                    </button>
+                  </div>
+                </section>
+              </div>
+            ) : activeTab === "completed" ? (
+              completedPanel
+            ) : activeTab === "reviews" ? (
+              reviewsPanel
+            ) : (
+              <div className={pageClass.overviewGrid}>
+                {completedPanel}
+                {reviewsPanel}
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>
