@@ -4,6 +4,7 @@ import {
   Camera,
   Check,
   ChevronRight,
+  Clock,
   Edit3,
   ImagePlus,
   LogOut,
@@ -664,7 +665,7 @@ function UserReviewsPanel({
                 </div>
                 {mountain ? (
                   <button className={pageClass.secondaryButton} type="button" onClick={() => onOpenMountain(mountain)}>
-                    산 상세 보기
+                    {review.mountainName} 상세페이지
                     <ChevronRight size={17} />
                   </button>
                 ) : null}
@@ -862,49 +863,73 @@ function EditableUserReviewsPanel({
               <article
                 key={review.id}
                 className={cn(
-                  pageClass.listItem,
+                  "relative grid rounded-md border border-[#d8e0da] bg-white p-4 shadow-[0_10px_24px_rgba(24,34,29,0.045)]",
+                  "grid-cols-[minmax(0,0.92fr)_minmax(280px,1fr)] gap-x-12 gap-y-4 max-[840px]:grid-cols-1 max-[840px]:gap-x-0",
                   isEditing && "border-[#245c46] ring-2 ring-[#245c46]/15",
                 )}
               >
-                <div className={pageClass.itemTop}>
-                  <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      {review.authorAvatarUrl ? (
-                        <img
-                          className="h-10 w-10 shrink-0 rounded-full border border-[#d8e0da] bg-[#eef3f0] object-cover"
-                          src={review.authorAvatarUrl}
-                          alt=""
-                          aria-hidden="true"
-                        />
+                <div className="grid min-w-0 content-start gap-3">
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    {review.authorAvatarUrl ? (
+                      <img
+                        className="h-11 w-11 shrink-0 rounded-full border border-[#d8e0da] bg-[#eef3f0] object-cover"
+                        src={review.authorAvatarUrl}
+                        alt=""
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <span
+                        className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#d8e0da] bg-[#eef3f0] text-[#245c46]"
+                        role="img"
+                        aria-label="기본 프로필"
+                      >
+                        <UserRound size={19} aria-hidden="true" />
+                      </span>
+                    )}
+                    <div className="grid min-w-0 flex-1 gap-1">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pr-8">
+                        <strong className="block max-w-full truncate text-[15px] font-black leading-5 text-[#18221d]">
+                          {review.authorName}
+                        </strong>
+                        <span className="inline-flex min-w-0 max-w-full items-center rounded-full bg-[#e7f3e4] px-2 py-0.5 text-xs font-medium text-[#237a1f]">
+                          <span className="truncate">{review.mountainName}</span>
+                        </span>
+                        <span className="inline-flex min-w-0 max-w-full items-center rounded-full bg-[#eef3f0] px-2 py-0.5 text-xs font-medium text-[#245c46]">
+                          <span className="truncate">{review.routeName}</span>
+                        </span>
+                        <time className="ml-auto block shrink-0 text-right font-numeric text-xs font-bold leading-5 text-[#5d6a62]">
+                          {formatDate(review.createdAt)}
+                        </time>
+                      </div>
+                      {review.routeStartPoint || review.routeEndPoint ? (
+                        <span className="block min-w-0 truncate whitespace-nowrap text-xs font-medium leading-5 text-[#49524d]">
+                          {formatRouteEndpoints(review.routeStartPoint, review.routeEndPoint)}
+                        </span>
                       ) : null}
-                      <h3 className={pageClass.itemTitle}>{review.mountainName}</h3>
                     </div>
-                    <p className={pageClass.muted}>
-                      {review.routeName} · {formatDate(review.createdAt)}
-                    </p>
-                    {review.routeStartPoint || review.routeEndPoint ? (
-                      <p className={cn(pageClass.muted, "text-sm font-bold")}>
-                        {formatRouteEndpoints(review.routeStartPoint, review.routeEndPoint)}
-                      </p>
-                    ) : null}
                   </div>
-                  <span className={pageClass.tag}>{review.difficulty}</span>
-                </div>
-                <p className="m-0 whitespace-pre-line leading-7 text-[#18221d]">{review.body}</p>
-                <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-[#5d6a62]">
-                  <span>{review.durationLabel}</span>
-                  <span>{review.authorName}</span>
-                  {review.imageUrls.length > 0 ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Camera size={15} />
-                      사진 {review.imageUrls.length}장
+
+                  <p className="m-0 min-w-0 whitespace-pre-line break-words text-base font-extrabold leading-7 text-[#18221d] [overflow-wrap:anywhere]">
+                    “{review.body}”
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex min-h-8 items-center rounded-full border border-[#d7e4ba] bg-[#f0f7e4] px-3.5 text-sm font-black text-[#237a1f]">
+                      난이도 {review.difficulty}
                     </span>
-                  ) : null}
+                    <span className="inline-flex min-h-8 items-center gap-1 rounded-full border border-[#d8e0da] bg-[#f1f5f7] px-3.5 font-numeric text-sm font-black text-[#49524d]">
+                      <Clock size={14} />
+                      {review.durationLabel}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+
+                <MyPageReviewPhotoStrip review={review} />
+
+                <div className="col-span-2 flex flex-wrap gap-2 max-[840px]:col-span-1">
                   {mountain ? (
                     <button className={pageClass.secondaryButton} type="button" onClick={() => onOpenMountain(mountain)}>
-                      산 상세 보기
+                      {review.mountainName} 상세페이지
                       <ChevronRight size={17} />
                     </button>
                   ) : null}
@@ -1145,6 +1170,47 @@ function MyPageReviewEditForm({
           {isSubmitting ? "수정 중" : "수정 저장"}
         </button>
       </div>
+    </div>
+  );
+}
+
+function MyPageReviewPhotoStrip({ review }: { review: UserReviewSummary }) {
+  if (review.imageUrls.length === 0) {
+    return (
+      <div className="grid min-h-[112px] place-items-center self-stretch rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] text-sm font-bold text-[#5d6a62]">
+        <span className="inline-flex items-center gap-1.5">
+          <Camera size={15} />
+          사진 없음
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid min-w-0 grid-cols-3 gap-2 self-stretch">
+      {review.imageUrls.slice(0, 3).map((imageUrl, index) => {
+        const remainingImageCount = review.imageUrls.length - 3;
+        const showImageCountOverlay = index === 2 && remainingImageCount > 0;
+
+        return (
+          <div
+            key={`${imageUrl}-${index}`}
+            className="relative h-[112px] overflow-hidden rounded-md border-0 bg-[#eef3f0]"
+          >
+            <img
+              className="h-full w-full object-cover"
+              src={imageUrl}
+              alt={`${review.routeName} 한줄평 사진 ${index + 1}`}
+              loading="lazy"
+            />
+            {showImageCountOverlay ? (
+              <span className="absolute inset-0 grid place-items-center bg-black/55 font-numeric text-lg font-black text-white">
+                +{remainingImageCount}
+              </span>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }

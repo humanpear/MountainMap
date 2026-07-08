@@ -241,8 +241,9 @@ describe("MyPage", () => {
     try {
       renderMyPage({ activeTab: "reviews" });
 
-      expect(await screen.findByText("original review body")).toBeInTheDocument();
+      expect(await screen.findByText(/original review body/)).toBeInTheDocument();
       expect(screen.getByText("Trailhead → Summit")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Test Mountain 상세페이지/ })).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /한줄평 수정/ }));
       fireEvent.change(screen.getByDisplayValue("original review body"), {
         target: { value: "updated review body" },
@@ -261,8 +262,8 @@ describe("MyPage", () => {
           }),
         );
       });
-      expect(await screen.findByText("updated review body")).toBeInTheDocument();
-      expect(screen.queryByText("original review body")).not.toBeInTheDocument();
+      expect(await screen.findByText(/updated review body/)).toBeInTheDocument();
+      expect(screen.queryByText(/original review body/)).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: /한줄평 삭제/ }));
 
@@ -274,7 +275,7 @@ describe("MyPage", () => {
           }),
         );
       });
-      expect(screen.queryByText("updated review body")).not.toBeInTheDocument();
+      expect(screen.queryByText(/updated review body/)).not.toBeInTheDocument();
     } finally {
       confirmSpy.mockRestore();
     }
