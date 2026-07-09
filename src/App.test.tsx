@@ -98,7 +98,8 @@ function mockCompletedMountainsQuery() {
         Promise.resolve({
           data: [
             { id: 'completion-1', mountain_id: '0000000001', completed_at: '2026-06-01T00:00:00.000Z' },
-            { id: 'completion-2', mountain_id: '0000000002', completed_at: '2026-06-02T00:00:00.000Z' }
+            { id: 'completion-2', mountain_id: '0000000002', completed_at: '2026-06-02T00:00:00.000Z' },
+            { id: 'completion-3', mountain_id: '0000000001', completed_at: '2026-05-20T00:00:00.000Z' }
           ],
           error: null
         })
@@ -143,8 +144,17 @@ describe('App account menu', () => {
 
     expect(await screen.findByRole('menu', { name: '마이페이지 메뉴' })).toBeInTheDocument();
     expect(screen.getByText('테스트 등산객')).toBeInTheDocument();
+    expect(screen.queryByText('100대 명산 도전 중')).not.toBeInTheDocument();
     expect(screen.getByText('2 / 100')).toBeInTheDocument();
-    expect(screen.getByText('2개')).toBeInTheDocument();
+    expect(screen.getByText('2%')).toBeInTheDocument();
+    expect(screen.getByText('전체 산 중 2% 완료')).toBeInTheDocument();
+    expect(screen.getByText('가리산')).toBeInTheDocument();
+    expect(screen.getByText('2026.06.02 산행 완료')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '가리산 대표 이미지' })).toHaveAttribute(
+      'src',
+      expect.stringContaining('/mountain-images/0000000002/hero.png')
+    );
+    expect(screen.getByText('2')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('menuitem', { name: /프로필 편집/ }));
 
@@ -153,6 +163,33 @@ describe('App account menu', () => {
       expect(window.location.search).toBe('?tab=profile');
     });
     expect(screen.getByText('마이페이지 탭 profile')).toBeInTheDocument();
+  });
+
+  it('navigates to completed and reviews tabs from account menu actions', async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '마이페이지' }));
+    expect(await screen.findByRole('menu', { name: '마이페이지 메뉴' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: /완료한 산/ }));
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/my-page');
+      expect(window.location.search).toBe('?tab=completed');
+    });
+    expect(screen.getByText('마이페이지 탭 completed')).toBeInTheDocument();
+
+    window.history.replaceState(null, '', '/');
+    fireEvent.click(await screen.findByRole('button', { name: '마이페이지' }));
+    expect(await screen.findByRole('menu', { name: '마이페이지 메뉴' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: /내 한줄평/ }));
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/my-page');
+      expect(window.location.search).toBe('?tab=reviews');
+    });
+    expect(screen.getByText('마이페이지 탭 reviews')).toBeInTheDocument();
   });
 
   it('closes the account menu with Escape', async () => {

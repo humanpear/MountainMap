@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type MutableRefObject, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
+  ArrowLeft,
   Camera,
   Check,
+  ChevronDown,
   ChevronRight,
   Clock,
   Edit3,
@@ -59,8 +61,20 @@ type MyPageProps = {
 type LoadState = "loading" | "ready" | "error";
 type MyPageTab = "profile" | "completed" | "reviews";
 
+type MyPageReviewLightboxState = {
+  review: UserReviewSummary;
+  imageIndex: number;
+};
+
 const manualCourseRouteName = "코스 직접 입력";
 const difficultyEvaluationOptions = ["쉬움", "보통", "약간 어려움", "어려움", "매우 어려움"];
+const difficultyEvaluationIconSrcs = [
+  "/course-feedback-icons/difficulty/easy.png",
+  "/course-feedback-icons/difficulty/normal.png",
+  "/course-feedback-icons/difficulty/slightly-hard.png",
+  "/course-feedback-icons/difficulty/hard.png",
+  "/course-feedback-icons/difficulty/extreme.png",
+];
 const myPageTabs: Array<{ id: MyPageTab; label: string }> = [
   { id: "profile", label: "프로필 편집" },
   { id: "completed", label: "완료한 산" },
@@ -78,78 +92,73 @@ const pageClass = {
   shell:
     "min-h-[calc(100vh-68px)] bg-[radial-gradient(circle_at_top_right,rgba(218,231,224,0.72),transparent_34%),linear-gradient(180deg,#fbfcfb_0%,#f5f7f4_42%,#f7faf7_100%)]",
   inner:
-    "mx-auto grid w-[1180px] max-w-[calc(100%-40px)] gap-6 pb-10 pt-9 max-[1023px]:w-full max-[1023px]:max-w-none max-[1023px]:px-6 max-[767px]:gap-4 max-[767px]:px-4 max-[767px]:py-5",
-  pageIntro: "relative isolate min-h-[118px] overflow-hidden max-[767px]:min-h-0",
-  pageHeading: "relative z-10 flex items-end justify-between gap-5 pt-2 max-[767px]:grid",
-  pageTitle: "m-0 text-[34px] font-black leading-tight text-[#18221d] max-[767px]:text-[28px]",
-  pageDescription: "m-0 mt-2 text-base font-bold leading-7 text-[#5d6a62]",
-  mountainBackdrop: "pointer-events-none absolute inset-x-[34%] bottom-0 top-0 -z-10 max-[767px]:hidden",
-  mountainLayer:
-    "absolute bottom-0 h-24 w-56 bg-[#dceae3] opacity-80 [clip-path:polygon(0_100%,22%_50%,35%_68%,54%_20%,69%_62%,82%_36%,100%_100%)]",
-  treeLayer:
-    "absolute bottom-0 h-10 w-72 bg-[#b8d0c3] opacity-75 [clip-path:polygon(0_100%,4%_70%,8%_100%,12%_55%,16%_100%,21%_68%,25%_100%,30%_58%,34%_100%,39%_72%,43%_100%,48%_60%,52%_100%,58%_70%,62%_100%,68%_52%,72%_100%,78%_66%,82%_100%,88%_60%,92%_100%,100%_76%,100%_100%)]",
+    "mx-auto grid w-[1040px] max-w-[calc(100%-40px)] gap-4 pb-8 pt-6 max-[1023px]:w-full max-[1023px]:max-w-none max-[1023px]:px-5 max-[767px]:gap-3 max-[767px]:px-4 max-[767px]:py-4",
+  pageIntro: "relative isolate min-h-[92px] overflow-hidden rounded-xl border border-[#dfe7df] bg-white max-[767px]:min-h-[86px]",
+  pageHeading: "relative flex min-h-[92px] items-end justify-between gap-4 p-4 max-[767px]:min-h-[86px] max-[767px]:p-3.5",
+  pageTitle: "relative z-20 m-0 text-[24px] font-black leading-[30px] text-[#18221d] max-[767px]:text-[21px]",
+  pageDescription: "relative z-20 m-0 mt-1 text-[13px] font-bold leading-[18px] text-[#5d6a62]",
+  mountainBackdrop:
+    "pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(135deg,#ffffff_0%,#f8fbf9_56%,#eef5f1_100%)] before:absolute before:inset-0 before:bg-[url('/my-page/completed-progress-bg-desktop.png')] before:bg-cover before:bg-center before:bg-no-repeat before:opacity-30 max-[767px]:before:bg-[url('/my-page/completed-progress-bg-mobile.png')]",
   hero:
-    "relative isolate grid gap-7 overflow-hidden rounded-2xl border border-[#dfe7df] bg-white p-8 shadow-[0_18px_55px_rgba(20,40,30,0.07)] max-[767px]:gap-5 max-[767px]:p-5",
-  heroDecoration:
-    "pointer-events-none absolute -right-8 -top-8 -z-10 h-44 w-72 rounded-full bg-[#eef3f0] opacity-60 blur-2xl max-[767px]:hidden",
-  heroTop: "flex items-start justify-between gap-8 max-[767px]:grid",
-  profileSummary: "flex min-w-0 items-center gap-8 max-[767px]:gap-4 max-[420px]:grid max-[420px]:justify-items-start",
+    "relative isolate grid gap-4 overflow-hidden rounded-xl border border-[#dfe7df] bg-white p-5 shadow-[0_12px_36px_rgba(20,40,30,0.06)] max-[767px]:gap-4 max-[767px]:p-4",
+  heroTop: "grid gap-4",
+  profileSummary: "flex min-w-0 items-center gap-4 max-[767px]:gap-3 max-[420px]:grid max-[420px]:justify-items-start",
   avatar:
-    "h-28 w-28 flex-none rounded-full border-4 border-white bg-[#eef3f0] object-cover shadow-[0_12px_30px_rgba(24,34,29,0.14)] max-[767px]:h-20 max-[767px]:w-20",
-  eyebrow: "m-0 text-sm font-black text-[#5d6a62]",
-  title: "m-0 text-[30px] font-black leading-tight text-[#18221d] max-[767px]:text-2xl",
-  muted: "m-0 leading-7 text-[#5d6a62]",
+    "h-16 w-16 flex-none rounded-full border-[3px] border-white bg-[#eef3f0] object-cover shadow-[0_8px_20px_rgba(24,34,29,0.12)] max-[767px]:h-14 max-[767px]:w-14",
+  eyebrow: "m-0 text-[12px] font-black leading-4 text-[#5d6a62]",
+  title: "m-0 text-[19px] font-black leading-[24px] text-[#18221d] max-[767px]:text-[17px]",
+  muted: "m-0 text-[13px] leading-[18px] text-[#5d6a62]",
   heroActions:
-    "flex flex-wrap justify-end gap-2 max-[767px]:grid max-[767px]:grid-cols-2 max-[767px]:justify-stretch max-[420px]:grid-cols-1",
+    "grid w-full grid-cols-2 gap-3 max-[420px]:grid-cols-1",
   secondaryButton:
-    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#d8e0da] bg-white px-4 font-extrabold text-[#18221d] transition hover:bg-[#eef3f0] max-[767px]:min-h-12",
+    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-[13px] font-extrabold leading-[18px] text-[#18221d] transition hover:bg-[#eef3f0]",
   dangerButton:
-    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#b14a3d] bg-white px-4 font-extrabold text-[#b14a3d] transition hover:bg-[#fff1ee] max-[767px]:min-h-12",
-  metrics: "grid grid-cols-3 gap-0 border-t border-[#d8e0da] pt-5 max-[767px]:pt-4",
+    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#b14a3d] bg-white px-3 text-[13px] font-extrabold leading-[18px] text-[#b14a3d] transition hover:bg-[#fff1ee]",
+  metrics: "grid grid-cols-3 gap-0 border-t border-[#d8e0da] pt-3 max-[767px]:grid-cols-1 max-[767px]:gap-0 max-[767px]:divide-y max-[767px]:divide-[#d8e0da] max-[767px]:pt-2",
   metric:
-    "grid min-w-0 grid-cols-[74px_minmax(0,1fr)] content-center gap-x-4 gap-y-1 border-r border-[#d8e0da] px-5 py-2 last:border-r-0 max-[767px]:grid-cols-1 max-[767px]:justify-items-start max-[767px]:gap-1 max-[767px]:px-2 [&_dd]:m-0 [&_dd]:font-numeric [&_dd]:text-[28px] [&_dd]:font-black [&_dd]:leading-tight max-[767px]:[&_dd]:text-xl [&_dt]:text-sm [&_dt]:font-black [&_dt]:text-[#245c46]",
+    "grid min-w-0 grid-cols-[52px_minmax(0,1fr)] content-center gap-x-3 gap-y-0.5 border-r border-[#d8e0da] px-3 py-1.5 last:border-r-0 max-[767px]:min-h-[44px] max-[767px]:grid-cols-[34px_auto_auto_minmax(0,1fr)] max-[767px]:items-center max-[767px]:gap-x-2 max-[767px]:gap-y-0 max-[767px]:border-r-0 max-[767px]:px-1 max-[767px]:py-2 [&_dd]:m-0 [&_dd]:font-numeric [&_dd]:text-[19px] [&_dd]:font-black [&_dd]:leading-[24px] max-[767px]:[&_dd]:self-center max-[767px]:[&_dd]:justify-self-start max-[767px]:[&_dd]:text-[17px] max-[767px]:[&_dd]:leading-5 [&_dt]:text-[12px] [&_dt]:font-black [&_dt]:leading-4 [&_dt]:text-[#245c46] max-[767px]:[&_dt]:self-center max-[767px]:[&_dt]:whitespace-nowrap max-[767px]:[&_p]:self-center",
   metricIcon:
-    "row-span-4 grid h-16 w-16 place-items-center rounded-full bg-[#eef5f1] text-[#245c46] max-[767px]:h-9 max-[767px]:w-9",
-  progressTrack: "h-2.5 overflow-hidden rounded-full bg-[#d8e0da]",
+    "row-span-4 grid h-11 w-11 place-items-center rounded-full bg-[#eef5f1] text-[#245c46] max-[767px]:row-span-1 max-[767px]:h-7 max-[767px]:w-7",
+  progressTrack: "h-2 w-full min-w-[72px] justify-self-stretch overflow-hidden rounded-full bg-[#d8e0da] max-[767px]:col-span-2 max-[767px]:col-start-2 max-[767px]:row-start-2 max-[767px]:h-1.5 max-[767px]:min-w-0",
   progressValue: "h-full rounded-full bg-[#245c46] transition-[width]",
   sidePanel:
-    "grid gap-6 rounded-2xl border border-[#dfe7df] bg-white p-5 shadow-[0_16px_44px_rgba(20,40,30,0.06)] max-[1023px]:block max-[1023px]:border-0 max-[1023px]:bg-transparent max-[1023px]:p-0 max-[1023px]:shadow-none",
-  sideTitle: "m-0 text-lg font-black text-[#18221d] max-[1023px]:hidden",
+    "grid gap-4 rounded-xl border border-[#dfe7df] bg-white p-3.5 shadow-[0_10px_28px_rgba(20,40,30,0.05)] max-[1023px]:block max-[1023px]:border-0 max-[1023px]:bg-transparent max-[1023px]:p-0 max-[1023px]:shadow-none",
+  sideTitle: "m-0 text-[14px] font-black leading-5 text-[#18221d] max-[1023px]:hidden",
   tabs:
-    "grid gap-2 max-[1023px]:grid-cols-3 max-[1023px]:rounded-2xl max-[1023px]:border max-[1023px]:border-[#dfe7df] max-[1023px]:bg-white max-[1023px]:p-1.5 max-[1023px]:shadow-[0_12px_32px_rgba(20,40,30,0.05)]",
+    "grid gap-1.5 max-[1023px]:grid-cols-3 max-[1023px]:rounded-xl max-[1023px]:border max-[1023px]:border-[#dfe7df] max-[1023px]:bg-white max-[1023px]:p-1 max-[1023px]:shadow-[0_10px_28px_rgba(20,40,30,0.05)] max-[767px]:gap-0",
   tabButton:
-    "inline-flex min-h-14 cursor-pointer items-center justify-start gap-3 rounded-xl border px-4 text-left font-extrabold transition max-[1023px]:min-h-11 max-[1023px]:justify-center max-[767px]:gap-1.5 max-[767px]:px-2 max-[767px]:text-sm",
+    "inline-flex min-h-11 cursor-pointer items-center justify-start gap-2 rounded-lg border px-3 text-left text-[13px] font-extrabold leading-[18px] transition max-[1023px]:justify-center max-[767px]:min-h-[35px] max-[767px]:gap-0 max-[767px]:px-2",
   tabButtonActive:
     "border-[#dce9e2] border-l-4 border-l-[#245c46] bg-[#eef5f1] text-[#245c46] shadow-none ring-0 max-[1023px]:border-l max-[1023px]:border-[#245c46] max-[1023px]:bg-[#245c46] max-[1023px]:text-white",
   tabButtonIdle: "border-transparent bg-transparent text-[#18221d] hover:bg-[#eef3f0] hover:text-[#245c46]",
-  bodyGrid: "grid grid-cols-[280px_minmax(0,1fr)] items-start gap-6 max-[1023px]:grid-cols-1 max-[767px]:gap-4",
+  bodyGrid: "grid grid-cols-[220px_minmax(0,1fr)] items-start gap-4 max-[1023px]:grid-cols-1 max-[767px]:gap-3",
   section:
-    "rounded-2xl border border-[#dfe7df] bg-white p-7 shadow-[0_16px_44px_rgba(20,40,30,0.06)] max-[767px]:p-5",
-  sectionHeader: "mb-5 flex items-start justify-between gap-3",
-  sectionTitle: "m-0 text-[22px] font-black leading-tight text-[#18221d]",
-  field: "grid gap-2 [&_label]:text-sm [&_label]:font-black [&_label]:text-[#18221d]",
+    "rounded-xl border border-[#dfe7df] bg-white p-4 shadow-[0_10px_28px_rgba(20,40,30,0.05)] max-[767px]:p-3.5",
+  sectionHeader: "mb-3 flex items-start justify-between gap-3",
+  sectionTitle: "m-0 text-[17px] font-black leading-[22px] text-[#18221d]",
+  field: "grid gap-1.5 [&_label]:text-[13px] [&_label]:font-black [&_label]:leading-[18px] [&_label]:text-[#18221d]",
   input:
-    "min-h-12 rounded-xl border border-[#d8e0da] bg-white px-4 text-base text-[#18221d] outline-none focus:border-[#245c46]",
+    "min-h-11 rounded-lg border border-[#d8e0da] bg-white px-3 text-[14px] leading-5 text-[#18221d] outline-none focus:border-[#245c46]",
   primaryButton:
-    "inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#245c46] bg-[#245c46] px-4 font-extrabold text-white transition hover:bg-[#1f4e39] disabled:cursor-not-allowed disabled:border-[#8aa699] disabled:bg-[#8aa699]",
-  avatarGrid: "grid grid-cols-5 gap-3 max-[767px]:grid-cols-3",
+    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#245c46] bg-[#245c46] px-3 text-[13px] font-extrabold leading-[18px] text-white transition hover:bg-[#1f4e39] disabled:cursor-not-allowed disabled:border-[#8aa699] disabled:bg-[#8aa699]",
+  avatarGrid: "grid grid-cols-5 gap-2 max-[767px]:grid-cols-6 max-[767px]:gap-1.5",
   avatarChoice:
-    "relative aspect-square min-h-16 cursor-pointer overflow-hidden rounded-2xl border-2 bg-[#eef3f0] p-0 transition focus:outline-none focus:ring-2 focus:ring-[#245c46]",
-  list: "grid gap-3",
+    "relative aspect-square min-h-12 cursor-pointer overflow-hidden rounded-lg border-2 bg-white p-0 transition focus:outline-none focus:ring-2 focus:ring-[#245c46]",
+  list: "grid gap-2",
   listItem:
-    "grid gap-3 rounded-2xl border border-[#d8e0da] bg-[#fbfdfb] p-4 transition hover:border-[#9fb2a7] max-[560px]:p-3",
-  itemTop: "flex items-start justify-between gap-3",
-  itemTitle: "m-0 text-lg font-black leading-6 text-[#18221d]",
-  completedItem: "grid grid-cols-[132px_minmax(0,1fr)] gap-4 max-[560px]:grid-cols-1",
+    "grid gap-2.5 rounded-lg border border-[#d8e0da] bg-[#fbfdfb] p-3 transition hover:border-[#9fb2a7] max-[560px]:p-2.5",
+  itemTop: "flex items-start justify-between gap-2",
+  itemTitle: "m-0 text-[15px] font-black leading-5 text-[#18221d]",
+  completedItem: "grid grid-cols-[104px_minmax(0,1fr)] gap-3 max-[560px]:grid-cols-1",
   completedImage:
-    "h-full min-h-28 w-full rounded-xl object-cover shadow-[0_10px_24px_rgba(24,34,29,0.12)] max-[560px]:aspect-[16/9] max-[560px]:min-h-0",
-  tag: "inline-flex min-h-8 items-center rounded-full bg-[#eef3f0] px-3 text-sm font-black text-[#245c46]",
+    "h-full min-h-20 w-full rounded-lg object-cover shadow-[0_8px_18px_rgba(24,34,29,0.10)] max-[560px]:aspect-[16/9] max-[560px]:min-h-0",
+  tag: "inline-flex min-h-6 items-center rounded-full bg-[#eef3f0] px-2 text-[12px] font-black leading-4 text-[#245c46]",
   iconButton:
-    "inline-flex h-11 min-h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-xl border border-[#d8e0da] bg-white text-[#18221d] transition hover:bg-[#eef3f0]",
+    "inline-flex h-11 min-h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg border border-[#d8e0da] bg-white text-[#18221d] transition hover:bg-[#eef3f0]",
   empty:
-    "grid min-h-36 place-items-center rounded-2xl border border-dashed border-[#d8e0da] bg-[#f7faf8] px-4 text-center font-bold leading-7 text-[#5d6a62]",
+    "grid min-h-28 place-items-center rounded-lg border border-dashed border-[#d8e0da] bg-[#f7faf8] px-3 text-center text-[13px] font-bold leading-[18px] text-[#5d6a62]",
   status:
-    "rounded-2xl border border-[#d8e0da] bg-[#f7faf8] px-4 py-3 text-sm font-bold leading-6 text-[#5d6a62]",
+    "rounded-lg border border-[#d8e0da] bg-[#f7faf8] px-3 py-2 text-[13px] font-bold leading-[18px] text-[#5d6a62]",
 };
 
 export function MyPage({
@@ -215,18 +224,18 @@ export function MyPage({
     return () => {
       isActive = false;
     };
-  }, [session.user]);
+  }, [session.user.id]);
 
   const completedSummary = useMemo(() => summarizeCompletedMountains(completedMountains), [completedMountains]);
   const completedMountainCount = completedSummary.length;
   const completionProgressPercent = Math.min(100, Math.round((completedMountainCount / mountains.length) * 100));
-  const primaryAvatarUrl = avatarUrl || profile?.avatarUrl || getDefaultAvatarUrl(avatarKind);
+  const savedAvatarUrl = profile?.avatarUrl || getDefaultAvatarUrl(profile?.avatarKind);
+  const editorAvatarUrl = avatarUrl || savedAvatarUrl;
   const displayNameLabel = profile?.displayName || "내 산행 기록";
   const recentMountainName = completedSummary[0]?.mountain?.name ?? "기록 없음";
   const recentMountainDescription = completedSummary[0]?.completedAt
     ? `${formatDate(completedSummary[0].completedAt)} 산행 완료`
     : "기록이 쌓이면 표시됩니다.";
-  const levelLabel = `Lv.${getProfileLevel(completedMountainCount)}`;
   const openTab = (tab: MyPageTab) => {
     onTabChange?.(tab);
   };
@@ -247,7 +256,7 @@ export function MyPage({
         id: profile.id,
         email: profile.email,
         displayName: nextDisplayName,
-        avatarUrl: primaryAvatarUrl,
+        avatarUrl: editorAvatarUrl,
         avatarKind,
       });
       setProfile(nextProfile);
@@ -328,7 +337,7 @@ export function MyPage({
   const profileEditor = (
     <ProfileEditor
       displayName={displayName}
-      avatarUrl={primaryAvatarUrl}
+      avatarUrl={editorAvatarUrl}
       avatarKind={avatarKind}
       isSaving={isSaving}
       isUploadingAvatar={isUploadingAvatar}
@@ -368,36 +377,29 @@ export function MyPage({
       <div className={pageClass.inner}>
         <div className={pageClass.pageIntro}>
           <div className={pageClass.pageHeading}>
-            <div>
+            <MountainPanorama />
+            <div className="relative z-20">
               <h1 className={pageClass.pageTitle}>마이페이지</h1>
               <p className={pageClass.pageDescription}>나의 산행 기록과 활동을 관리해보세요.</p>
             </div>
-            <MountainPanorama />
           </div>
         </div>
 
         <header className={pageClass.hero}>
-          <div className={pageClass.heroDecoration} aria-hidden="true" />
           <div className={pageClass.heroTop}>
             <div className={pageClass.profileSummary}>
-              <img className={pageClass.avatar} src={primaryAvatarUrl} alt="" aria-hidden="true" />
+              <img className={pageClass.avatar} src={savedAvatarUrl} alt="" aria-hidden="true" />
               <div className="grid min-w-0 gap-1">
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <h2 className={pageClass.title}>{displayNameLabel}</h2>
-                  <span className="inline-flex min-h-8 items-center rounded-full bg-[#e7f3e4] px-3 font-numeric text-sm font-black text-[#245c46]">
-                    {levelLabel}
-                  </span>
-                </div>
-                <p className={pageClass.muted}>{session.user.email}</p>
-                <p className="m-0 text-sm font-black text-[#245c46]">대한민국 100대 명산 도전 중</p>
+                <h2 className={pageClass.title}>{displayNameLabel}</h2>
+                <p className="m-0 text-[12px] font-black leading-4 text-[#245c46]">대한민국 100대 명산 도전 중</p>
               </div>
             </div>
             <div className={pageClass.heroActions}>
-              <button className={pageClass.secondaryButton} type="button" onClick={onBackToMap}>
+              <button className={cn(pageClass.secondaryButton, "w-full max-[767px]:min-h-[35px]")} type="button" onClick={onBackToMap}>
                 <MapPin size={18} />
                 지도 보기
               </button>
-              <button className={pageClass.dangerButton} type="button" onClick={onSignOut}>
+              <button className={cn(pageClass.dangerButton, "w-full max-[767px]:min-h-[35px]")} type="button" onClick={onSignOut}>
                 <LogOut size={18} />
                 로그아웃
               </button>
@@ -405,32 +407,34 @@ export function MyPage({
           </div>
 
           <dl className={pageClass.metrics}>
-            <div className={pageClass.metric}>
-              <div className={pageClass.metricIcon} aria-hidden="true">
-                <MountainIcon size={18} />
+            <div className={cn(pageClass.metric, "max-[767px]:grid-cols-[34px_auto_auto_minmax(88px,1fr)]")}>
+              <div className={cn(pageClass.metricIcon, "max-[767px]:row-span-1")} aria-hidden="true">
+                <MountainIcon size={22} className="max-[767px]:h-[18px] max-[767px]:w-[18px]" />
               </div>
               <dt>완료한 산</dt>
               <dd>{completedMountainCount} / {mountains.length}</dd>
-              <p className={cn(pageClass.muted, "text-sm max-[767px]:text-xs")}>100대 명산 중 {completionProgressPercent}% 완료</p>
-              <div className={pageClass.progressTrack} aria-hidden="true">
+              <p className={cn(pageClass.muted, "text-[12px] max-[767px]:hidden")}>
+                100대 명산 중 {completionProgressPercent}% 완료
+              </p>
+              <div className={cn(pageClass.progressTrack, "max-[767px]:!col-span-1 max-[767px]:!col-start-4 max-[767px]:!row-start-1 max-[767px]:self-center")} aria-hidden="true">
                 <div className={pageClass.progressValue} style={{ width: `${completionProgressPercent}%` }} />
               </div>
             </div>
-            <div className={pageClass.metric}>
+            <div className={cn(pageClass.metric, "max-[767px]:grid-cols-[34px_auto_auto_minmax(0,1fr)]")}>
               <div className={pageClass.metricIcon} aria-hidden="true">
-                <MessageCircle size={18} />
+                <MessageCircle size={22} className="max-[767px]:h-[18px] max-[767px]:w-[18px]" />
               </div>
               <dt>작성 리뷰</dt>
               <dd>{reviews.length}개</dd>
-              <p className={cn(pageClass.muted, "text-sm max-[767px]:text-xs")}>내가 남긴 한줄평</p>
+              <p className={cn(pageClass.muted, "text-[12px] max-[767px]:hidden")}>내가 남긴 한줄평</p>
             </div>
-            <div className={pageClass.metric}>
-              <div className={pageClass.metricIcon} aria-hidden="true">
-                <Clock size={18} />
+            <div className={cn(pageClass.metric, "max-[767px]:grid-cols-[34px_auto_auto_minmax(0,1fr)]")}>
+              <div className={cn(pageClass.metricIcon, "max-[767px]:row-span-1")} aria-hidden="true">
+                <Clock size={22} className="max-[767px]:h-[18px] max-[767px]:w-[18px]" />
               </div>
               <dt>최근 산행</dt>
-              <dd className="truncate text-[20px]">{recentMountainName}</dd>
-              <p className={cn(pageClass.muted, "text-sm max-[767px]:text-xs")}>{recentMountainDescription}</p>
+              <dd className="truncate text-[17px] max-[767px]:max-w-[72px] max-[767px]:text-[16px]">{recentMountainName}</dd>
+              <p className={cn(pageClass.muted, "text-[12px] max-[767px]:col-start-4 max-[767px]:row-start-1 max-[767px]:min-w-0 max-[767px]:truncate max-[767px]:whitespace-nowrap max-[767px]:text-[13px] max-[767px]:leading-5")}>{recentMountainDescription}</p>
             </div>
           </dl>
         </header>
@@ -456,7 +460,7 @@ export function MyPage({
                   aria-current={activeTab === tab.id ? "page" : undefined}
                   onClick={() => openTab(tab.id)}
                 >
-                  {getMyPageTabIcon(tab.id)}
+                  <span className="max-[767px]:hidden">{getMyPageTabIcon(tab.id)}</span>
                   <span>{tab.label}</span>
                 </button>
               ))}
@@ -500,19 +504,8 @@ function getMyPageTabIcon(tab: MyPageTab) {
   return <MessageCircle size={18} aria-hidden="true" />;
 }
 
-function getProfileLevel(completedMountainCount: number) {
-  return Math.min(10, Math.floor(completedMountainCount / 3) + 1);
-}
-
 function MountainPanorama() {
-  return (
-    <div className={pageClass.mountainBackdrop} aria-hidden="true">
-      <span className={cn(pageClass.mountainLayer, "right-32 bottom-1 scale-110 bg-[#e5eee9]")} />
-      <span className={cn(pageClass.mountainLayer, "right-8 bottom-0 h-28 w-72 bg-[#d6e6dd]")} />
-      <span className={cn(pageClass.mountainLayer, "right-0 bottom-0 h-24 w-52 bg-[#c7dccf] opacity-70")} />
-      <span className={cn(pageClass.treeLayer, "right-0")} />
-    </div>
-  );
+  return <div className={pageClass.mountainBackdrop} aria-hidden="true" />;
 }
 
 function ProfileEditor({
@@ -548,19 +541,16 @@ function ProfileEditor({
           <h2 id="profile-editor-title" className={pageClass.sectionTitle}>
             프로필 편집
           </h2>
-          <p className={cn(pageClass.muted, "mt-1 text-sm")}>프로필 정보를 관리하고 변경할 수 있습니다.</p>
+          <p className={cn(pageClass.muted, "mt-1 text-[12px]")}>프로필 정보를 관리하고 변경할 수 있습니다.</p>
         </div>
-        <UserRound size={24} className="text-[#245c46]" aria-hidden="true" />
+        <UserRound size={19} className="text-[#245c46] max-[767px]:hidden" aria-hidden="true" />
       </div>
 
-      <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] gap-7 border-t border-[#d8e0da] pt-6 max-[767px]:grid-cols-1 max-[767px]:gap-6">
-        <div className="grid gap-5">
-          <div className="grid justify-items-center gap-3 rounded-2xl bg-[#f7faf8] p-5">
-            <img className="h-32 w-32 rounded-full border-4 border-white object-cover shadow-[0_14px_34px_rgba(24,34,29,0.14)]" src={avatarUrl} alt="" aria-hidden="true" />
-            <div className="text-center">
-              <h3 className="m-0 text-lg font-black text-[#18221d]">프로필 사진</h3>
-              <p className={cn(pageClass.muted, "text-sm")}>권장 이미지: 정사각형, 2MB 이하</p>
-            </div>
+      <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] gap-5 border-t border-[#d8e0da] pt-4 max-[767px]:grid-cols-1 max-[767px]:gap-4">
+        <div className="grid gap-3">
+          <h3 className="m-0 text-[13px] font-black leading-[18px] text-[#18221d]">프로필 사진</h3>
+          <div className="grid justify-items-center gap-2 rounded-xl bg-transparent p-0">
+            <img className="h-20 w-20 rounded-full border-[3px] border-white object-cover shadow-[0_10px_24px_rgba(24,34,29,0.12)]" src={avatarUrl} alt="" aria-hidden="true" />
           </div>
 
           <div className={pageClass.avatarGrid} aria-label="기본 프로필 이미지 선택">
@@ -569,9 +559,7 @@ function ProfileEditor({
                 key={avatar.id}
                 className={cn(
                   pageClass.avatarChoice,
-                  avatarKind === avatar.id
-                    ? "border-[#245c46] bg-[#e7f3e4] shadow-[0_8px_18px_rgba(36,92,70,0.16)]"
-                    : "border-[#d8e0da]",
+                  avatarKind === avatar.id ? "border-[#245c46] bg-white shadow-[0_8px_18px_rgba(36,92,70,0.16)]" : "border-[#d8e0da]",
                 )}
                 type="button"
                 title={avatar.label}
@@ -589,9 +577,9 @@ function ProfileEditor({
             <button
               className={cn(
                 pageClass.avatarChoice,
-                "col-span-2 flex aspect-auto min-h-14 items-center justify-center gap-2 rounded-xl border-dashed text-[#245c46] max-[767px]:col-span-3",
+                "col-span-full flex h-11 min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border-dashed text-[#245c46] max-[767px]:col-span-1 max-[767px]:aspect-square max-[767px]:h-auto max-[767px]:min-h-12 max-[767px]:flex-col max-[767px]:gap-0.5 max-[767px]:px-1",
                 avatarKind === "custom"
-                  ? "border-[#245c46] bg-[#e7f3e4] shadow-[0_8px_18px_rgba(36,92,70,0.16)]"
+                  ? "border-[#245c46] bg-white shadow-[0_8px_18px_rgba(36,92,70,0.16)]"
                   : "border-[#9fb2a7] bg-white",
               )}
               type="button"
@@ -599,8 +587,8 @@ function ProfileEditor({
               onClick={onUploadClick}
               disabled={isUploadingAvatar}
             >
-              <ImagePlus size={22} />
-              <span className="text-sm font-black">사진 추가</span>
+              <ImagePlus size={18} />
+              <span className="text-[13px] font-black leading-[18px] max-[767px]:text-[11px] max-[767px]:leading-3">사진 추가</span>
               {avatarKind === "custom" ? (
                 <span className="absolute bottom-1 right-1 grid h-6 w-6 place-items-center rounded-full bg-[#245c46] text-white shadow">
                   <Check size={14} />
@@ -622,13 +610,8 @@ function ProfileEditor({
           </div>
         </div>
 
-        <div className="grid content-between gap-6 border-l border-[#d8e0da] pl-7 max-[767px]:border-l-0 max-[767px]:border-t max-[767px]:pl-0 max-[767px]:pt-6">
-          <div className="grid gap-4">
-            <div>
-              <h3 className="m-0 text-lg font-black text-[#18221d]">닉네임 변경</h3>
-              <p className={cn(pageClass.muted, "mt-1 text-sm")}>닉네임은 중복 여부와 관계없이 저장할 수 있습니다.</p>
-            </div>
-
+        <div className="grid content-between gap-4 border-l border-[#d8e0da] pl-5 max-[767px]:border-l-0 max-[767px]:border-t max-[767px]:pl-0 max-[767px]:pt-4">
+          <div className="grid gap-3">
             <div className={pageClass.field}>
               <label htmlFor="profile-display-name">닉네임</label>
               <input
@@ -638,11 +621,11 @@ function ProfileEditor({
                 maxLength={20}
                 onChange={(event) => onDisplayNameChange(event.target.value)}
               />
-              <p className="m-0 text-sm font-black text-[#237a1f]">저장 가능한 닉네임입니다.</p>
             </div>
 
-            <ul className="m-0 grid gap-2 pl-5 text-sm font-bold leading-6 text-[#5d6a62]">
+            <ul className="m-0 grid list-disc gap-1.5 pl-4 text-[12px] font-bold leading-[18px] text-[#5d6a62]">
               <li>2자 이상, 20자 이하로 입력해주세요.</li>
+              <li>닉네임은 중복 여부와 관계없이 저장할 수 있습니다.</li>
               <li>공백은 한 칸으로 정리되어 저장됩니다.</li>
               <li>닉네임은 언제든지 변경할 수 있습니다.</li>
             </ul>
@@ -678,7 +661,7 @@ function CompletedMountainsPanel({
             완료 기록 관리
           </h2>
         </div>
-        <MountainIcon size={24} className="text-[#245c46]" aria-hidden="true" />
+        <MountainIcon size={19} className="text-[#245c46] max-[767px]:hidden" aria-hidden="true" />
       </div>
 
       {completedMountains.length > 0 ? (
@@ -693,7 +676,7 @@ function CompletedMountainsPanel({
                     alt={`${record.mountain.name} 대표 이미지`}
                   />
                 ) : null}
-                <div className="grid min-w-0 gap-3">
+                <div className="grid min-w-0 gap-2.5">
                   <div className={pageClass.itemTop}>
                     <div className="min-w-0">
                       <h3 className={pageClass.itemTitle}>{record.mountain?.name ?? record.mountainId}</h3>
@@ -749,7 +732,7 @@ function UserReviewsPanel({
             내가 남긴 한줄평
           </h2>
         </div>
-        <MessageCircle size={24} className="text-[#245c46]" aria-hidden="true" />
+        <MessageCircle size={19} className="text-[#245c46] max-[767px]:hidden" aria-hidden="true" />
       </div>
 
       {reviews.length > 0 ? (
@@ -760,10 +743,10 @@ function UserReviewsPanel({
               <article key={review.id} className={pageClass.listItem}>
                 <div className={pageClass.itemTop}>
                   <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-2.5">
+                    <div className="flex min-w-0 items-center gap-2">
                       {review.authorAvatarUrl ? (
                         <img
-                          className="h-10 w-10 shrink-0 rounded-full border border-[#d8e0da] bg-[#eef3f0] object-cover"
+                          className="h-9 w-9 shrink-0 rounded-full border border-[#d8e0da] bg-[#eef3f0] object-cover"
                           src={review.authorAvatarUrl}
                           alt=""
                           aria-hidden="true"
@@ -775,16 +758,16 @@ function UserReviewsPanel({
                       {review.routeName} · {formatDate(review.createdAt)}
                     </p>
                     {review.routeStartPoint || review.routeEndPoint ? (
-                      <p className={cn(pageClass.muted, "text-sm font-bold")}>
+                      <p className={cn(pageClass.muted, "text-[12px] font-bold")}>
                         {formatRouteEndpoints(review.routeStartPoint, review.routeEndPoint)}
                       </p>
                     ) : null}
                   </div>
-                  <span className={pageClass.tag}>{review.difficulty}</span>
+                  <span className={cn(pageClass.tag, "text-[11px] font-semibold")}>{review.difficulty}</span>
                 </div>
-                <p className="m-0 leading-7 text-[#18221d]">“{review.body}”</p>
-                <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-[#5d6a62]">
-                  <span>{review.durationLabel}</span>
+                <p className="m-0 text-[12px] font-medium leading-[18px] text-[#18221d]">{review.body}</p>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-[#5d6a62]">
+                  <span className="font-semibold">{review.durationLabel}</span>
                   <span>{review.authorName}</span>
                   {review.imageUrls.length > 0 ? (
                     <span className="inline-flex items-center gap-1">
@@ -827,6 +810,10 @@ function EditableUserReviewsPanel({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [mobileReviewStep, setMobileReviewStep] = useState<1 | 2>(1);
+  const [isMobileReviewSheetMounted, setIsMobileReviewSheetMounted] = useState(false);
+  const [isMobileReviewSheetVisible, setIsMobileReviewSheetVisible] = useState(false);
+  const [lightboxState, setLightboxState] = useState<MyPageReviewLightboxState | null>(null);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const usesMobileReviewSheet = useMediaQuery("(max-width: 560px)");
   const {
@@ -855,20 +842,52 @@ function EditableUserReviewsPanel({
     getRouteEndpointNames,
   });
 
+  useEffect(() => {
+    if (!usesMobileReviewSheet) {
+      setIsMobileReviewSheetMounted(false);
+      setIsMobileReviewSheetVisible(false);
+    }
+  }, [usesMobileReviewSheet]);
+
   const closeEditor = () => {
     resetDraft();
     setEditingReview(null);
     setFormMessage(null);
+    setMobileReviewStep(1);
+    setIsMobileReviewSheetMounted(false);
+    setIsMobileReviewSheetVisible(false);
     if (photoInputRef.current) {
       photoInputRef.current.value = "";
     }
+  };
+
+  const closeMobileEditor = () => {
+    setIsMobileReviewSheetVisible(false);
+    window.setTimeout(closeEditor, 300);
   };
 
   const startEditingReview = (review: UserReviewSummary) => {
     setEditingReview(review);
     startEditingDraft(toMountainReview(review));
     setFormMessage(null);
+    setMobileReviewStep(1);
+    if (usesMobileReviewSheet) {
+      setIsMobileReviewSheetMounted(true);
+      setIsMobileReviewSheetVisible(false);
+      window.setTimeout(() => setIsMobileReviewSheetVisible(true), 24);
+    }
     onStatusMessage(null);
+  };
+
+  const openReviewLightbox = (review: UserReviewSummary, imageIndex: number) => {
+    if (review.imageUrls.length === 0) {
+      return;
+    }
+
+    setLightboxState({
+      review,
+      imageIndex: clampNumber(imageIndex, 0, review.imageUrls.length - 1),
+    });
   };
 
   const handlePhotoSelect = (event: ChangeEvent<HTMLInputElement>) => {
@@ -971,6 +990,30 @@ function EditableUserReviewsPanel({
       onSave={() => void saveEditingReview()}
     />
   ) : null;
+  const mobileEditorForm = editingReview ? (
+    <MyPageReviewEditMobileForm
+      review={editingReview}
+      step={mobileReviewStep}
+      difficultyIndex={difficultyIndex}
+      durationMinutes={durationMinutes}
+      reviewText={reviewText}
+      trimmedReviewText={trimmedReviewText}
+      existingImageUrls={editingExistingImageUrls}
+      uploadedPhotos={uploadedPhotos}
+      formMessage={formMessage}
+      isSubmitting={isSubmitting}
+      photoInputRef={photoInputRef}
+      onDifficultyChange={setDifficultyIndex}
+      onDurationChange={setDurationMinutes}
+      onReviewTextChange={setReviewText}
+      onPhotoSelect={handlePhotoSelect}
+      onRemoveExistingImage={removeExistingImageUrl}
+      onRemoveUploadedPhoto={removeUploadedPhoto}
+      onBack={() => setMobileReviewStep(1)}
+      onNext={() => setMobileReviewStep(2)}
+      onSave={() => void saveEditingReview()}
+    />
+  ) : null;
 
   return (
     <section className={pageClass.section} aria-labelledby="user-reviews-title">
@@ -981,7 +1024,7 @@ function EditableUserReviewsPanel({
             내가 남긴 한줄평
           </h2>
         </div>
-        <MessageCircle size={24} className="text-[#245c46]" aria-hidden="true" />
+        <MessageCircle size={19} className="text-[#245c46] max-[767px]:hidden" aria-hidden="true" />
       </div>
 
       {reviews.length > 0 ? (
@@ -993,23 +1036,23 @@ function EditableUserReviewsPanel({
               <article
                 key={review.id}
                 className={cn(
-                  "relative grid rounded-md border border-[#d8e0da] bg-white p-4 shadow-[0_10px_24px_rgba(24,34,29,0.045)]",
-                  "grid-cols-[minmax(0,0.92fr)_minmax(280px,1fr)] gap-x-12 gap-y-4 max-[840px]:grid-cols-1 max-[840px]:gap-x-0",
+                  "relative grid rounded-md border border-[#d8e0da] bg-white p-3 shadow-[0_10px_24px_rgba(24,34,29,0.045)]",
+                  "grid-cols-[minmax(0,0.92fr)_minmax(240px,1fr)] gap-x-8 gap-y-3 max-[840px]:grid-cols-1 max-[840px]:gap-x-0",
                   isEditing && "border-[#245c46] ring-2 ring-[#245c46]/15",
                 )}
               >
-                <div className="grid min-w-0 content-start gap-3">
-                  <div className="flex min-w-0 items-start gap-2.5">
+                <div className="grid min-w-0 content-start gap-2.5">
+                  <div className="flex min-w-0 items-start gap-2">
                     {review.authorAvatarUrl ? (
                       <img
-                        className="h-11 w-11 shrink-0 rounded-full border border-[#d8e0da] bg-[#eef3f0] object-cover"
+                        className="h-9 w-9 shrink-0 rounded-full border border-[#d8e0da] bg-[#eef3f0] object-cover"
                         src={review.authorAvatarUrl}
                         alt=""
                         aria-hidden="true"
                       />
                     ) : (
                       <span
-                        className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#d8e0da] bg-[#eef3f0] text-[#245c46]"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#d8e0da] bg-[#eef3f0] text-[#245c46]"
                         role="img"
                         aria-label="기본 프로필"
                       >
@@ -1018,7 +1061,7 @@ function EditableUserReviewsPanel({
                     )}
                     <div className="grid min-w-0 flex-1 gap-1">
                       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pr-8">
-                        <strong className="block max-w-full truncate text-[15px] font-black leading-5 text-[#18221d]">
+                        <strong className="block max-w-full truncate text-[14px] font-extrabold leading-5 text-[#18221d]">
                           {review.authorName}
                         </strong>
                         <span className="inline-flex min-w-0 max-w-full items-center rounded-full bg-[#e7f3e4] px-2 py-0.5 text-xs font-medium text-[#237a1f]">
@@ -1039,22 +1082,22 @@ function EditableUserReviewsPanel({
                     </div>
                   </div>
 
-                  <p className="m-0 min-w-0 whitespace-pre-line break-words text-base font-extrabold leading-7 text-[#18221d] [overflow-wrap:anywhere]">
-                    “{review.body}”
+                  <p className="m-0 min-w-0 whitespace-pre-line break-words text-[13px] font-medium leading-5 text-[#18221d] [overflow-wrap:anywhere]">
+                    {review.body}
                   </p>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex min-h-8 items-center rounded-full border border-[#d7e4ba] bg-[#f0f7e4] px-3.5 text-sm font-black text-[#237a1f]">
+                    <span className="inline-flex min-h-6 items-center rounded-full border border-[#d7e4ba] bg-[#f0f7e4] px-2 text-[11px] font-semibold text-[#237a1f]">
                       난이도 {review.difficulty}
                     </span>
-                    <span className="inline-flex min-h-8 items-center gap-1 rounded-full border border-[#d8e0da] bg-[#f1f5f7] px-3.5 font-numeric text-sm font-black text-[#49524d]">
-                      <Clock size={14} />
+                    <span className="inline-flex min-h-6 items-center gap-1 rounded-full border border-[#d8e0da] bg-[#f1f5f7] px-2 font-numeric text-[11px] font-semibold text-[#49524d]">
+                      <Clock size={13} />
                       {review.durationLabel}
                     </span>
                   </div>
                 </div>
 
-                <MyPageReviewPhotoStrip review={review} />
+                <MyPageReviewPhotoStrip review={review} onPhotoOpen={openReviewLightbox} />
 
                 <div className="col-span-2 flex flex-wrap gap-2 max-[840px]:col-span-1">
                   {mountain ? (
@@ -1092,11 +1135,31 @@ function EditableUserReviewsPanel({
         <div className={pageClass.empty}>아직 작성한 한줄평이 없습니다.</div>
       )}
 
-      {editingReview && usesMobileReviewSheet ? (
-        <MyPageReviewEditSheet review={editingReview} onClose={closeEditor}>
-          {editorForm}
+      {editingReview && usesMobileReviewSheet && isMobileReviewSheetMounted ? (
+        <MyPageReviewEditSheet
+          review={editingReview}
+          step={mobileReviewStep}
+          isSubmitting={isSubmitting}
+          isVisible={isMobileReviewSheetVisible}
+          onClose={closeMobileEditor}
+        >
+          {mobileEditorForm}
         </MyPageReviewEditSheet>
       ) : null}
+      <MyPageReviewPhotoLightbox
+        state={lightboxState}
+        onClose={() => setLightboxState(null)}
+        onNavigate={(imageIndex) =>
+          setLightboxState((currentState) =>
+            currentState
+              ? {
+                  ...currentState,
+                  imageIndex,
+                }
+              : currentState,
+          )
+        }
+      />
     </section>
   );
 }
@@ -1140,149 +1203,566 @@ function MyPageReviewEditForm({
 }) {
   const durationHours = Math.floor(durationMinutes / 60);
   const durationRemainderMinutes = durationMinutes % 60;
+  const totalSelectedPhotoCount = existingImageUrls.length + uploadedPhotos.length;
+  const routeLabel =
+    review.routeStartPoint && review.routeEndPoint
+      ? `${review.routeStartPoint} > ${review.routeEndPoint}`
+      : review.routeName;
   const updateDurationFromParts = (hours: number, minutes: number) => {
     onDurationChange(clampNumber(Math.trunc(hours) * 60 + Math.trunc(minutes), 30, 600));
   };
 
   return (
-    <div className="grid gap-4 rounded-lg border border-[#d8e0da] bg-white p-4 shadow-[0_10px_28px_rgba(24,34,29,0.045)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="m-0 text-lg font-black leading-6 text-[#18221d]">한줄평 수정</h3>
-          <p className={cn(pageClass.muted, "text-sm")}>
-            {review.mountainName} · {review.routeName}
-          </p>
+    <div className="col-span-2 overflow-hidden rounded-md border border-[#d8e0da] bg-white shadow-[0_10px_28px_rgba(24,34,29,0.045)] max-[840px]:col-span-1">
+      <h3 className="m-0 px-6 pt-6 text-[22px] font-black leading-7 text-[#18221d] max-[560px]:px-4 max-[560px]:pt-5">
+        코스 평가
+      </h3>
+
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(320px,1.08fr)] grid-rows-[auto_auto] gap-3 px-5 pt-5 max-[1100px]:grid-cols-1 max-[1100px]:grid-rows-none max-[560px]:px-4 max-[560px]:pt-4">
+        <div className="col-span-2 row-start-1 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[1100px]:col-span-1 max-[1100px]:row-auto">
+          <label
+            className="mb-3 block text-center text-base font-extrabold leading-6 text-[#18221d]"
+            htmlFor={`course-feedback-route-${review.id}`}
+          >
+            코스를 선택해주세요
+          </label>
+          <div className="relative">
+            <select
+              id={`course-feedback-route-${review.id}`}
+              className="h-11 w-full appearance-none rounded-md border border-[#d8e0da] bg-white px-3 pr-10 text-sm font-bold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+              value={review.routeName}
+              disabled
+              onChange={() => undefined}
+            >
+              <option value={review.routeName}>{routeLabel}</option>
+            </select>
+            <ChevronDown
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#18221d]"
+              size={18}
+              aria-hidden="true"
+            />
+          </div>
+          <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 max-[560px]:grid-cols-1">
+            <label className="grid min-w-0 gap-1.5 text-sm font-extrabold text-[#18221d]">
+              출발지
+              <input
+                className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] outline-none transition placeholder:text-[#8a9690] read-only:bg-[#f4f8f6] read-only:text-[#5d6a62] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                value={review.routeStartPoint ?? ""}
+                placeholder="출발지 입력"
+                readOnly
+                disabled
+                onChange={() => undefined}
+              />
+            </label>
+            <label className="grid min-w-0 gap-1.5 text-sm font-extrabold text-[#18221d]">
+              도착지
+              <input
+                className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] outline-none transition placeholder:text-[#8a9690] read-only:bg-[#f4f8f6] read-only:text-[#5d6a62] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                value={review.routeEndPoint ?? ""}
+                placeholder="도착지 입력"
+                readOnly
+                disabled
+                onChange={() => undefined}
+              />
+            </label>
+          </div>
         </div>
-        <button className={pageClass.iconButton} type="button" aria-label="수정 닫기" onClick={onCancel}>
-          <X size={18} />
-        </button>
-      </div>
 
-      {review.routeStartPoint || review.routeEndPoint ? (
-        <p className="m-0 rounded-md bg-[#f7faf8] px-3 py-2 text-sm font-bold leading-6 text-[#49524d]">
-          {formatRouteEndpoints(review.routeStartPoint, review.routeEndPoint)}
-        </p>
-      ) : null}
+        <MyPageEvaluationPicker
+          className="col-start-1 row-start-2 max-[1100px]:col-auto max-[1100px]:row-auto"
+          title="난이도는 어떠셨나요?"
+          options={difficultyEvaluationOptions}
+          activeIndex={difficultyIndex}
+          onChange={(index) => {
+            if (!isSubmitting) {
+              onDifficultyChange(index);
+            }
+          }}
+        />
 
-      <div className="grid gap-2">
-        <span className="text-sm font-black text-[#18221d]">체감 난이도</span>
-        <div className="grid grid-cols-5 gap-2 max-[560px]:grid-cols-2">
-          {difficultyEvaluationOptions.map((option, index) => (
+        <div className="col-start-2 row-start-2 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[1100px]:col-auto max-[1100px]:row-auto">
+          <strong className="block text-center text-lg font-extrabold leading-7 text-[#18221d]">
+            소요시간은 얼마나 걸렸나요?
+          </strong>
+          <p className="mx-auto mb-4 mt-2 max-w-[360px] break-keep text-center text-sm font-semibold leading-6 text-[#2d3932]">
+            산행 시작부터 하산 완료까지 걸린 전체 시간입니다. 휴식, 사진 촬영,
+            식사 시간을 포함해서 입력해주세요.
+          </p>
+
+          <div className="mx-auto grid max-w-[320px] grid-cols-2 gap-3">
+            <div className="min-w-0">
+              <div className="relative">
+                <input
+                  className="h-12 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-xl font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                  type="number"
+                  min={0}
+                  max={10}
+                  inputMode="numeric"
+                  value={durationHours}
+                  disabled={isSubmitting}
+                  aria-label="소요시간 시간"
+                  onChange={(event) =>
+                    updateDurationFromParts(
+                      clampNumber(Number(event.target.value) || 0, 0, 10),
+                      durationRemainderMinutes,
+                    )
+                  }
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#5d6a62]">
+                  시간
+                </span>
+              </div>
+            </div>
+            <div className="min-w-0">
+              <div className="relative">
+                <input
+                  className="h-12 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-xl font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                  type="number"
+                  min={0}
+                  max={59}
+                  inputMode="numeric"
+                  value={durationRemainderMinutes}
+                  disabled={isSubmitting}
+                  aria-label="소요시간 분"
+                  onChange={(event) =>
+                    updateDurationFromParts(
+                      durationHours,
+                      clampNumber(Number(event.target.value) || 0, 0, 59),
+                    )
+                  }
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#5d6a62]">
+                  분
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-start-3 row-span-2 row-start-1 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[1100px]:col-auto max-[1100px]:row-auto max-[1100px]:row-span-1">
+          <strong className="mb-3 block text-center text-lg font-extrabold leading-7 text-[#18221d]">
+            한줄평을 남겨주세요!
+          </strong>
+          <textarea
+            maxLength={100}
+            value={reviewText}
+            placeholder="코스에 대한 느낌을 자유롭게 남겨주세요."
+            className="min-h-[108px] w-full resize-y rounded-md border border-[#d8e0da] p-3 text-[15px] font-medium leading-6 text-[#18221d] outline-none transition placeholder:text-[#8a9690] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+            disabled={isSubmitting}
+            onChange={(event) => onReviewTextChange(event.target.value)}
+          />
+          <span className="mt-1 block text-right font-numeric text-sm font-bold text-[#5d6a62]">
+            {reviewText.length}/100
+          </span>
+
+          <div className="mt-2.5">
+            <div className="mb-2 flex flex-wrap items-baseline gap-2">
+              <strong className="text-[15px] font-extrabold text-[#18221d]">
+                사진을 추가해주세요!
+              </strong>
+              <span className="text-xs font-bold text-[#5d6a62]">
+                (최대 5장)
+              </span>
+            </div>
+            <input
+              ref={photoInputRef}
+              className="sr-only"
+              type="file"
+              accept="image/jpeg,image/png"
+              multiple
+              disabled={isSubmitting || totalSelectedPhotoCount >= 5}
+              onChange={onPhotoSelect}
+            />
+            <div className="grid grid-cols-[92px_repeat(3,minmax(0,1fr))] gap-2 max-[560px]:grid-cols-2">
+              <button
+                className="grid min-h-[82px] place-items-center content-center gap-1 rounded-md border border-[#d8e0da] bg-white px-2 text-xs font-extrabold text-[#5d6a62] transition hover:bg-[#f7faf8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#245c46]/25 disabled:cursor-not-allowed disabled:opacity-45"
+                type="button"
+                disabled={isSubmitting || totalSelectedPhotoCount >= 5}
+                onClick={() => photoInputRef.current?.click()}
+              >
+                <Camera size={20} aria-hidden="true" />
+                사진 추가
+              </button>
+              {existingImageUrls.map((imageUrl, index) => (
+                <div
+                  key={imageUrl}
+                  className="relative min-h-[82px] overflow-hidden rounded-md bg-[#eef3f0]"
+                >
+                  <img
+                    className="h-full min-h-[82px] w-full object-cover"
+                    src={imageUrl}
+                    alt={`기존 한줄평 사진 ${index + 1}`}
+                  />
+                  <button
+                    className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full border-0 bg-black/70 text-white"
+                    type="button"
+                    aria-label={`기존 한줄평 사진 ${index + 1} 삭제`}
+                    disabled={isSubmitting}
+                    onClick={() => onRemoveExistingImage(imageUrl)}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+              {uploadedPhotos.map((photo) => (
+                <div
+                  key={photo.id}
+                  className="relative min-h-[82px] overflow-hidden rounded-md bg-[#eef3f0]"
+                >
+                  <img
+                    className="h-full min-h-[82px] w-full object-cover"
+                    src={photo.url}
+                    alt={photo.name}
+                  />
+                  <button
+                    className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full border-0 bg-black/70 text-white"
+                    type="button"
+                    aria-label={`${photo.name} 사진 제거`}
+                    disabled={isSubmitting}
+                    onClick={() => onRemoveUploadedPhoto(photo.id)}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <ul className="m-0 mt-2 grid list-none gap-1 p-0 text-xs font-semibold leading-5 text-[#5d6a62]">
+              <li>· JPG, PNG 파일만 가능 (최대 10MB)</li>
+              <li>· 사진은 최대 5장까지 등록할 수 있습니다.</li>
+            </ul>
+          </div>
+
+          {formMessage ? (
+            <p className="m-0 mt-3 rounded-md bg-[#fff2f0] px-3 py-2 text-sm font-bold leading-5 text-[#b14a3d]">
+              {formMessage}
+            </p>
+          ) : null}
+
+          <div className="mt-3 grid gap-2">
             <button
-              key={option}
-              className={cn(
-                "min-h-11 rounded-lg border px-2 text-sm font-black transition",
-                difficultyIndex === index
-                  ? "border-[#245c46] bg-[#245c46] text-white"
-                  : "border-[#d8e0da] bg-white text-[#18221d] hover:bg-[#eef3f0]",
-              )}
+              className="min-h-11 w-full rounded-md border-0 bg-[#166b3d] px-4 text-sm font-black text-white transition hover:bg-[#125b34] disabled:cursor-not-allowed disabled:opacity-50"
+              type="button"
+              disabled={!reviewText.trim() || isSubmitting}
+              onClick={onSave}
+            >
+              {isSubmitting ? "수정 중..." : "수정 저장"}
+            </button>
+            <button
+              className="min-h-10 w-full rounded-md border border-[#d8e0da] bg-white px-4 text-sm font-black text-[#18221d] transition hover:bg-[#f7faf8]"
               type="button"
               disabled={isSubmitting}
-              onClick={() => onDifficultyChange(index)}
+              onClick={onCancel}
             >
-              {option}
+              수정 취소
             </button>
-          ))}
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="grid gap-2">
-        <span className="text-sm font-black text-[#18221d]">소요시간</span>
-        <div className="grid grid-cols-2 gap-2">
-          <select
-            className={pageClass.input}
-            value={durationHours}
-            aria-label="소요시간"
-            disabled={isSubmitting}
-            onChange={(event) => updateDurationFromParts(Number(event.target.value), durationRemainderMinutes)}
+function MyPageReviewEditMobileForm({
+  review,
+  step,
+  difficultyIndex,
+  durationMinutes,
+  reviewText,
+  trimmedReviewText,
+  existingImageUrls,
+  uploadedPhotos,
+  formMessage,
+  isSubmitting,
+  photoInputRef,
+  onDifficultyChange,
+  onDurationChange,
+  onReviewTextChange,
+  onPhotoSelect,
+  onRemoveExistingImage,
+  onRemoveUploadedPhoto,
+  onBack,
+  onNext,
+  onSave,
+}: {
+  review: UserReviewSummary;
+  step: 1 | 2;
+  difficultyIndex: number;
+  durationMinutes: number;
+  reviewText: string;
+  trimmedReviewText: string;
+  existingImageUrls: string[];
+  uploadedPhotos: Array<{ id: string; file: File; url: string; name: string }>;
+  formMessage: string | null;
+  isSubmitting: boolean;
+  photoInputRef: MutableRefObject<HTMLInputElement | null>;
+  onDifficultyChange: (index: number) => void;
+  onDurationChange: (minutes: number) => void;
+  onReviewTextChange: (value: string) => void;
+  onPhotoSelect: (event: ChangeEvent<HTMLInputElement>) => void;
+  onRemoveExistingImage: (imageUrl: string) => void;
+  onRemoveUploadedPhoto: (photoId: string) => void;
+  onBack: () => void;
+  onNext: () => void;
+  onSave: () => void;
+}) {
+  const durationHours = Math.floor(durationMinutes / 60);
+  const durationRemainderMinutes = durationMinutes % 60;
+  const totalSelectedPhotoCount = existingImageUrls.length + uploadedPhotos.length;
+  const routeLabel =
+    review.routeStartPoint && review.routeEndPoint
+      ? `${review.routeStartPoint} > ${review.routeEndPoint}`
+      : review.routeName;
+  const updateDurationFromParts = (hours: number, minutes: number) => {
+    onDurationChange(clampNumber(Math.trunc(hours) * 60 + Math.trunc(minutes), 30, 600));
+  };
+
+  if (step === 1) {
+    return (
+      <div className="grid gap-3">
+        <div className="rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-3">
+          <label
+            className="mb-2 block text-[14px] font-extrabold leading-5 text-[#18221d]"
+            htmlFor={`course-feedback-route-mobile-${review.id}`}
           >
-            {Array.from({ length: 11 }, (_, index) => (
-              <option key={index} value={index}>
-                {index}시간
-              </option>
-            ))}
-          </select>
-          <select
-            className={pageClass.input}
-            value={durationRemainderMinutes}
-            aria-label="소요분"
+            코스 선택
+          </label>
+          <div className="relative">
+            <select
+              id={`course-feedback-route-mobile-${review.id}`}
+              className="h-11 w-full appearance-none rounded-md border border-[#d8e0da] bg-white px-3 pr-10 text-sm font-bold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+              value={review.routeName}
+              disabled
+              onChange={() => undefined}
+            >
+              <option value={review.routeName}>{routeLabel}</option>
+            </select>
+            <ChevronDown
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#18221d]"
+              size={18}
+              aria-hidden="true"
+            />
+          </div>
+          <div className="mt-2.5 grid min-w-0 gap-2">
+            <label className="grid min-w-0 gap-1.5 text-[13px] font-extrabold text-[#18221d]">
+              출발지
+              <input
+                className="h-10 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] outline-none transition placeholder:text-[#8a9690] read-only:bg-[#f4f8f6] read-only:text-[#5d6a62] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                value={review.routeStartPoint ?? ""}
+                placeholder="출발지 입력"
+                readOnly
+                disabled
+                onChange={() => undefined}
+              />
+            </label>
+            <label className="grid min-w-0 gap-1.5 text-[13px] font-extrabold text-[#18221d]">
+              도착지
+              <input
+                className="h-10 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] outline-none transition placeholder:text-[#8a9690] read-only:bg-[#f4f8f6] read-only:text-[#5d6a62] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                value={review.routeEndPoint ?? ""}
+                placeholder="도착지 입력"
+                readOnly
+                disabled
+                onChange={() => undefined}
+              />
+            </label>
+          </div>
+        </div>
+
+        <MyPageEvaluationPicker
+          title="난이도는 어떠셨나요?"
+          options={difficultyEvaluationOptions}
+          activeIndex={difficultyIndex}
+          onChange={(index) => {
+            if (!isSubmitting) {
+              onDifficultyChange(index);
+            }
+          }}
+        />
+
+        <div className="rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-3">
+          <strong className="block text-[14px] font-extrabold leading-5 text-[#18221d]">
+            소요시간
+          </strong>
+          <p className="m-0 mt-1 break-keep text-[13px] font-semibold leading-5 text-[#2d3932]">
+            산행 시작부터 하산 완료까지 걸린 전체 시간입니다.
+          </p>
+
+          <div className="mt-3 grid grid-cols-2 gap-2.5">
+            <div className="relative">
+              <input
+                className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-lg font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                type="number"
+                min={0}
+                max={10}
+                inputMode="numeric"
+                value={durationHours}
+                disabled={isSubmitting}
+                aria-label="소요시간 시간"
+                onChange={(event) =>
+                  updateDurationFromParts(
+                    clampNumber(Number(event.target.value) || 0, 0, 10),
+                    durationRemainderMinutes,
+                  )
+                }
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#5d6a62]">
+                시간
+              </span>
+            </div>
+            <div className="relative">
+              <input
+                className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-lg font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                type="number"
+                min={0}
+                max={59}
+                inputMode="numeric"
+                value={durationRemainderMinutes}
+                disabled={isSubmitting}
+                aria-label="소요시간 분"
+                onChange={(event) =>
+                  updateDurationFromParts(
+                    durationHours,
+                    clampNumber(Number(event.target.value) || 0, 0, 59),
+                  )
+                }
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#5d6a62]">
+                분
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white pt-1">
+          <button
+            className="min-h-11 w-full rounded-md border-0 bg-[#166b3d] px-3 text-[13px] font-black text-white transition hover:bg-[#125b34] disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
             disabled={isSubmitting}
-            onChange={(event) => updateDurationFromParts(durationHours, Number(event.target.value))}
+            onClick={onNext}
           >
-            {[0, 10, 20, 30, 40, 50].map((minutes) => (
-              <option key={minutes} value={minutes}>
-                {minutes}분
-              </option>
-            ))}
-          </select>
+            다음
+          </button>
         </div>
       </div>
+    );
+  }
 
-      <label className={pageClass.field}>
-        <span>한줄평</span>
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex min-h-[190px] flex-[1.15] flex-col rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-3">
+        <strong className="mb-2 block text-[14px] font-extrabold leading-5 text-[#18221d]">
+          한줄평
+        </strong>
         <textarea
-          className="min-h-32 resize-y rounded-lg border border-[#d8e0da] bg-white px-3 py-3 text-base leading-7 text-[#18221d] outline-none focus:border-[#245c46]"
+          maxLength={100}
           value={reviewText}
-          maxLength={500}
+          placeholder="코스에 대한 느낌을 자유롭게 남겨주세요."
+          className="min-h-0 flex-1 resize-none rounded-md border border-[#d8e0da] p-2.5 text-sm font-medium leading-5 text-[#18221d] outline-none transition placeholder:text-[#8a9690] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
           disabled={isSubmitting}
           onChange={(event) => onReviewTextChange(event.target.value)}
         />
-      </label>
+        <span className="mt-1 block text-right font-numeric text-sm font-bold text-[#5d6a62]">
+          {reviewText.length}/100
+        </span>
+      </div>
 
-      <div className="grid gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm font-black text-[#18221d]">사진</span>
+      <div className="flex flex-col rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-3">
+        <div className="mb-2 flex flex-wrap items-baseline gap-2">
+          <strong className="text-[14px] font-extrabold text-[#18221d]">
+            사진 추가
+          </strong>
+          <span className="text-xs font-bold text-[#5d6a62]">
+            최대 5장
+          </span>
+        </div>
+        <input
+          ref={photoInputRef}
+          className="sr-only"
+          type="file"
+          accept="image/jpeg,image/png"
+          multiple
+          disabled={isSubmitting || totalSelectedPhotoCount >= 5}
+          onChange={onPhotoSelect}
+        />
+        {totalSelectedPhotoCount === 0 ? (
           <button
-            className={pageClass.secondaryButton}
+            className="grid min-h-[92px] w-full place-items-center content-center gap-1 rounded-md border border-[#d8e0da] bg-white px-2 text-xs font-extrabold text-[#5d6a62] transition hover:bg-[#f7faf8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#245c46]/25 disabled:cursor-not-allowed disabled:opacity-45"
             type="button"
-            disabled={isSubmitting}
+            disabled={isSubmitting || totalSelectedPhotoCount >= 5}
             onClick={() => photoInputRef.current?.click()}
           >
-            <ImagePlus size={17} />
+            <Camera size={18} aria-hidden="true" />
             사진 추가
           </button>
-          <input
-            ref={photoInputRef}
-            className="sr-only"
-            type="file"
-            accept="image/png,image/jpeg"
-            multiple
-            onChange={onPhotoSelect}
-          />
-        </div>
-        {[...existingImageUrls.map((url, index) => ({ id: url, url, name: `기존 사진 ${index + 1}`, isExisting: true })), ...uploadedPhotos.map((photo) => ({ id: photo.id, url: photo.url, name: photo.name, isExisting: false }))].length > 0 ? (
-          <div className="grid grid-cols-5 gap-2 max-[760px]:grid-cols-3">
-            {[
-              ...existingImageUrls.map((url, index) => ({
-                id: url,
-                url,
-                name: `기존 사진 ${index + 1}`,
-                isExisting: true,
-              })),
-              ...uploadedPhotos.map((photo) => ({
-                id: photo.id,
-                url: photo.url,
-                name: photo.name,
-                isExisting: false,
-              })),
-            ].map((photo) => (
-              <div key={photo.id} className="relative aspect-square overflow-hidden rounded-md border border-[#d8e0da] bg-[#eef3f0]">
-                <img className="h-full w-full object-cover" src={photo.url} alt={photo.name} />
-                <button
-                  className="absolute right-1 top-1 inline-flex h-8 w-8 items-center justify-center rounded-md bg-white/95 text-[#b14a3d] shadow"
-                  type="button"
-                  aria-label={`${photo.name} 삭제`}
-                  disabled={isSubmitting}
-                  onClick={() => (photo.isExisting ? onRemoveExistingImage(photo.url) : onRemoveUploadedPhoto(photo.id))}
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
-          </div>
         ) : (
-          <p className={cn(pageClass.muted, "m-0 text-sm")}>등록된 사진이 없습니다.</p>
+          <div className="relative">
+            <div
+              className={cn(
+                "flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                totalSelectedPhotoCount >= 5 ? "pr-0" : "pr-11",
+              )}
+            >
+              {existingImageUrls.map((imageUrl, index) => (
+                <div
+                  key={`${imageUrl}-mobile`}
+                  className="relative h-[88px] w-[88px] flex-none overflow-hidden rounded-md bg-[#eef3f0]"
+                >
+                  <img
+                    className="h-full w-full object-cover"
+                    src={imageUrl}
+                    alt={`기존 한줄평 사진 ${index + 1}`}
+                  />
+                  <button
+                    className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full border-0 bg-black/70 text-white"
+                    type="button"
+                    aria-label={`기존 한줄평 사진 ${index + 1} 삭제`}
+                    disabled={isSubmitting}
+                    onClick={() => onRemoveExistingImage(imageUrl)}
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+              {uploadedPhotos.map((photo) => (
+                <div
+                  key={`${photo.id}-mobile`}
+                  className="relative h-[88px] w-[88px] flex-none overflow-hidden rounded-md bg-[#eef3f0]"
+                >
+                  <img
+                    className="h-full w-full object-cover"
+                    src={photo.url}
+                    alt={photo.name}
+                  />
+                  <button
+                    className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full border-0 bg-black/70 text-white"
+                    type="button"
+                    aria-label={`${photo.name} 사진 제거`}
+                    disabled={isSubmitting}
+                    onClick={() => onRemoveUploadedPhoto(photo.id)}
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {totalSelectedPhotoCount < 5 ? (
+              <button
+                className="absolute bottom-2 right-2 grid h-9 w-9 place-items-center rounded-full border border-[#d8e0da] bg-white text-[#5d6a62] shadow-[0_6px_16px_rgba(24,34,29,0.14)] transition hover:bg-[#f7faf8] disabled:cursor-not-allowed disabled:opacity-45"
+                type="button"
+                aria-label="사진 추가"
+                disabled={isSubmitting}
+                onClick={() => photoInputRef.current?.click()}
+              >
+                <Camera size={17} aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
         )}
+        <ul className="m-0 mt-2 grid list-none gap-1 p-0 text-xs font-semibold leading-5 text-[#5d6a62]">
+          <li>· JPG, PNG 파일만 가능 (최대 10MB)</li>
+          <li>· 사진은 최대 5장까지 등록할 수 있습니다.</li>
+        </ul>
       </div>
 
       {formMessage ? (
@@ -1291,23 +1771,205 @@ function MyPageReviewEditForm({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap justify-end gap-2">
-        <button className={pageClass.secondaryButton} type="button" disabled={isSubmitting} onClick={onCancel}>
-          취소
+      <div className="sticky bottom-0 z-10 mt-auto grid grid-cols-[auto_minmax(0,1fr)] gap-2 bg-white pt-2 shadow-[0_-10px_18px_rgba(255,255,255,0.92)]">
+        <button
+          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-[#d8e0da] bg-white px-3 text-[13px] font-black text-[#18221d] transition hover:bg-[#f7faf8]"
+          type="button"
+          disabled={isSubmitting}
+          onClick={onBack}
+        >
+          <ArrowLeft size={16} />
+          이전
         </button>
-        <button className={pageClass.primaryButton} type="button" disabled={isSubmitting || !reviewText.trim()} onClick={onSave}>
-          <Save size={18} />
-          {isSubmitting ? "수정 중" : "수정 저장"}
+        <button
+          className="min-h-11 rounded-md border-0 bg-[#166b3d] px-3 text-[13px] font-black text-white transition hover:bg-[#125b34] disabled:cursor-not-allowed disabled:opacity-50"
+          type="button"
+          disabled={!trimmedReviewText || isSubmitting}
+          onClick={onSave}
+        >
+          {isSubmitting ? "수정 중..." : "수정 저장"}
         </button>
       </div>
     </div>
   );
 }
 
-function MyPageReviewPhotoStrip({ review }: { review: UserReviewSummary }) {
+function MyPageEvaluationPicker({
+  className,
+  title,
+  options,
+  activeIndex,
+  onChange,
+}: {
+  className?: string;
+  title: string;
+  options: string[];
+  activeIndex: number;
+  onChange: (index: number) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "min-w-0 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[560px]:p-3 [&>strong]:mb-5 [&>strong]:block [&>strong]:text-center [&>strong]:text-lg [&>strong]:font-extrabold [&>strong]:leading-7 max-[560px]:[&>strong]:mb-3 max-[560px]:[&>strong]:text-[14px] max-[560px]:[&>strong]:leading-5",
+        className,
+      )}
+    >
+      <strong>{title}</strong>
+      <div className="grid grid-cols-5 gap-2 max-[560px]:gap-1">
+        {options.map((option, index) => {
+          const isActive = index === activeIndex;
+
+          return (
+            <button
+              key={option}
+              className={cn(
+                "grid min-w-0 cursor-pointer justify-items-center gap-2 rounded-md border-0 bg-transparent px-1 py-1 text-[#627168] transition hover:bg-[#f7f8f7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e10f07]/40 max-[560px]:gap-1",
+                isActive && "text-[#e10f07]",
+              )}
+              type="button"
+              aria-pressed={isActive}
+              onClick={() => onChange(index)}
+            >
+              <MyPageFeedbackEvaluationIcon index={index} isActive={isActive} />
+              <span className="break-keep text-center text-[13px] font-semibold leading-[18px] max-[560px]:text-[11px] max-[560px]:leading-4">
+                {option}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MyPageFeedbackEvaluationIcon({
+  index,
+  isActive,
+}: {
+  index: number;
+  isActive: boolean;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const iconSrc = difficultyEvaluationIconSrcs[index];
+
+  return (
+    <span
+      className={cn(
+        "grid h-11 w-11 place-items-center overflow-hidden rounded-full border bg-[#f7f8f7] p-[7px] max-[560px]:h-9 max-[560px]:w-9 max-[560px]:p-1.5",
+        isActive
+          ? "border-[#e10f07] bg-[#fff1f1] text-[#e10f07]"
+          : "border-[#d8e0da]",
+      )}
+      aria-hidden="true"
+    >
+      {!imageFailed && iconSrc ? (
+        <img
+          className="h-[120%] w-[120%] max-w-none object-contain -mt-[3px]"
+          src={iconSrc}
+          alt=""
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <MyPageDifficultyEvaluationIcon level={index} />
+      )}
+    </span>
+  );
+}
+
+function MyPageDifficultyEvaluationIcon({
+  className,
+  level,
+}: {
+  className?: string;
+  level: number;
+}) {
+  const peakCount = Math.min(Math.max(level, 0), 3);
+  const showFlag = level >= 4;
+
+  if (level === 0) {
+    return (
+      <svg
+        className={className}
+        viewBox="0 0 64 64"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          d="M9 43c6.5-8.5 13-12.5 19.5-12.5S41 34.5 55 43"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M12 45h40"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 64 64"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {peakCount >= 1 ? (
+        <path
+          d="M8 45 20 23l12 22Z"
+          fill="currentColor"
+          opacity={peakCount === 1 ? "0.92" : "0.72"}
+        />
+      ) : null}
+      {peakCount >= 2 ? (
+        <path
+          d="M22 45 34 18l13 27Z"
+          fill="currentColor"
+          opacity={peakCount === 2 ? "0.92" : "0.82"}
+        />
+      ) : null}
+      {peakCount >= 3 ? (
+        <path d="M36 45 47 24l11 21Z" fill="currentColor" opacity="0.92" />
+      ) : null}
+      <path
+        d="M11 45h43"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+      {showFlag ? (
+        <>
+          <path
+            d="M47 13v25"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+          <path d="M48 14h10l-3.2 4.8L58 24H48Z" fill="currentColor" />
+        </>
+      ) : null}
+    </svg>
+  );
+}
+
+function MyPageReviewPhotoStrip({
+  review,
+  onPhotoOpen,
+}: {
+  review: UserReviewSummary;
+  onPhotoOpen: (review: UserReviewSummary, imageIndex: number) => void;
+}) {
   if (review.imageUrls.length === 0) {
     return (
-      <div className="grid min-h-[112px] place-items-center self-stretch rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] text-sm font-bold text-[#5d6a62]">
+      <div className="grid min-h-[92px] place-items-center self-stretch rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] text-[12px] font-bold text-[#5d6a62] max-[767px]:hidden">
         <span className="inline-flex items-center gap-1.5">
           <Camera size={15} />
           사진 없음
@@ -1323,9 +1985,12 @@ function MyPageReviewPhotoStrip({ review }: { review: UserReviewSummary }) {
         const showImageCountOverlay = index === 2 && remainingImageCount > 0;
 
         return (
-          <div
+          <button
             key={`${imageUrl}-${index}`}
-            className="relative h-[112px] overflow-hidden rounded-md border-0 bg-[#eef3f0]"
+            className="relative h-[92px] overflow-hidden rounded-md border-0 bg-[#eef3f0] p-0 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#245c46]/30"
+            type="button"
+            aria-label={`${review.routeName} 한줄평 사진 ${index + 1} 확대`}
+            onClick={() => onPhotoOpen(review, index)}
           >
             <img
               className="h-full w-full object-cover"
@@ -1334,32 +1999,183 @@ function MyPageReviewPhotoStrip({ review }: { review: UserReviewSummary }) {
               loading="lazy"
             />
             {showImageCountOverlay ? (
-              <span className="absolute inset-0 grid place-items-center bg-black/55 font-numeric text-lg font-black text-white">
+              <span className="absolute inset-0 grid place-items-center bg-black/55 font-numeric text-[14px] font-black text-white">
                 +{remainingImageCount}
               </span>
             ) : null}
-          </div>
+          </button>
         );
       })}
     </div>
   );
 }
 
+function MyPageReviewPhotoLightbox({
+  state,
+  onClose,
+  onNavigate,
+}: {
+  state: MyPageReviewLightboxState | null;
+  onClose: () => void;
+  onNavigate: (imageIndex: number) => void;
+}) {
+  useEffect(() => {
+    if (!state) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, state]);
+
+  if (!state || state.review.imageUrls.length === 0) {
+    return null;
+  }
+
+  const { review, imageIndex } = state;
+  const imageUrls = review.imageUrls;
+  const safeImageIndex = clampNumber(imageIndex, 0, imageUrls.length - 1);
+  const currentImageUrl = imageUrls[safeImageIndex];
+  const canNavigate = imageUrls.length > 1;
+  const previousIndex =
+    safeImageIndex === 0 ? imageUrls.length - 1 : safeImageIndex - 1;
+  const nextIndex =
+    safeImageIndex === imageUrls.length - 1 ? 0 : safeImageIndex + 1;
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] grid h-screen w-screen place-items-center bg-black/80 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${review.routeName} 한줄평 사진 확대`}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="relative flex h-full max-h-[calc(100vh-32px)] w-full min-w-0 max-w-[calc(100vw-32px)] items-center justify-center">
+        <div className="absolute left-0 right-0 top-0 z-10 flex min-h-11 items-center justify-between gap-3 px-2 pt-2 text-white">
+          <div className="min-w-0">
+            <strong className="block truncate text-base font-black">
+              {review.routeName}
+            </strong>
+            <span className="font-numeric text-sm font-bold text-white/75">
+              {safeImageIndex + 1} / {imageUrls.length}
+            </span>
+          </div>
+          <button
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/30 bg-black/25 text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            type="button"
+            aria-label="확대 사진 닫기"
+            onClick={onClose}
+          >
+            <X size={22} />
+          </button>
+        </div>
+
+        <img
+          className="block max-h-[calc(100vh-32px)] max-w-[calc(100vw-32px)] rounded-md object-contain shadow-[0_18px_60px_rgba(0,0,0,0.55)]"
+          src={currentImageUrl}
+          alt={`${review.routeName} 한줄평 사진 ${safeImageIndex + 1}`}
+        />
+
+        {canNavigate ? (
+          <>
+            <button
+              className="absolute left-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-black/35 text-white transition hover:bg-black/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 max-[560px]:left-0"
+              type="button"
+              aria-label="이전 사진 보기"
+              onClick={() => onNavigate(previousIndex)}
+            >
+              <ArrowLeft size={22} />
+            </button>
+            <button
+              className="absolute right-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-black/35 text-white transition hover:bg-black/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 max-[560px]:right-0"
+              type="button"
+              aria-label="다음 사진 보기"
+              onClick={() => onNavigate(nextIndex)}
+            >
+              <ArrowLeft className="rotate-180" size={22} />
+            </button>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function MyPageReviewEditSheet({
   review,
+  step,
   children,
+  isSubmitting,
+  isVisible,
   onClose,
 }: {
   review: UserReviewSummary;
+  step: 1 | 2;
   children: ReactNode;
+  isSubmitting: boolean;
+  isVisible: boolean;
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/45" role="dialog" aria-modal="true" aria-label={`${review.mountainName} 한줄평 수정`}>
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex items-end bg-black/45 transition-opacity duration-300 ease-out",
+        isVisible ? "opacity-100" : "pointer-events-none opacity-0",
+      )}
+      role="presentation"
+    >
       <button className="absolute inset-0 h-full w-full cursor-default" type="button" aria-label="수정 닫기" onClick={onClose} />
-      <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-2xl bg-[#f5f7f4] p-4 shadow-[0_-16px_50px_rgba(0,0,0,0.22)]">
-        {children}
-      </div>
+      <section
+        className={cn(
+          "relative flex w-full flex-col overflow-hidden rounded-t-[18px] bg-white shadow-[0_-18px_60px_rgba(0,0,0,0.28)] transition-[height,transform] duration-300 ease-out will-change-transform",
+          isVisible ? "translate-y-0" : "translate-y-full",
+        )}
+        style={{
+          height:
+            step === 1
+              ? "min(680px, calc(100dvh - 16px))"
+              : "min(580px, calc(100dvh - 16px))",
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="my-page-mobile-review-sheet-title"
+      >
+        <div className="flex min-h-[52px] items-center justify-between gap-3 px-4">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="shrink-0 text-[13px] font-black leading-5 text-[#245c46]">
+              {step}/2
+            </span>
+            <h3
+              id="my-page-mobile-review-sheet-title"
+              className="m-0 truncate text-[15px] font-black leading-5 text-[#18221d]"
+            >
+              {step === 1 ? "코스 평가" : "한줄평 작성"}
+            </h3>
+          </div>
+          <button
+            className="grid h-10 w-10 flex-none place-items-center rounded-md border-0 bg-transparent text-[#18221d]"
+            type="button"
+            aria-label={`${review.mountainName} 한줄평 수정 닫기`}
+            disabled={isSubmitting}
+            onClick={onClose}
+          >
+            <X size={14} />
+          </button>
+        </div>
+        <div className="min-h-0 overflow-y-auto px-3 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-3">
+          {children}
+        </div>
+      </section>
     </div>
   );
 }
