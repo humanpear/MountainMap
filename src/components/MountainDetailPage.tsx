@@ -1908,44 +1908,50 @@ function CourseFeedbackSection({
       role="presentation"
       aria-hidden={!isFullReviewFormOpen}
     >
-      <section
-        className={cn(
-          "flex h-[84vh] max-h-[760px] w-full flex-col overflow-hidden rounded-t-[18px] bg-white shadow-[0_-18px_60px_rgba(0,0,0,0.28)] transition-transform duration-300 ease-out will-change-transform",
-          isMobileReviewSheetVisible ? "translate-y-0" : "translate-y-full",
-        )}
+        <section
+          className={cn(
+            "flex w-full flex-col overflow-hidden rounded-t-[18px] bg-white shadow-[0_-18px_60px_rgba(0,0,0,0.28)] transition-[height,transform] duration-300 ease-out will-change-transform",
+            isMobileReviewSheetVisible ? "translate-y-0" : "translate-y-full",
+          )}
+          style={{
+            height:
+              mobileReviewStep === 1
+                ? "min(680px, calc(100dvh - 16px))"
+                : "min(580px, calc(100dvh - 16px))",
+          }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="mobile-review-sheet-title"
       >
-        <div className="flex min-h-[62px] items-center justify-between gap-3 border-b border-[#d8e0da] px-4">
-          <div className="min-w-0">
-            <span className="block text-xs font-black leading-4 text-[#245c46]">
+        <div className="flex min-h-[52px] items-center justify-between gap-3 px-4">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="shrink-0 text-[13px] font-black leading-5 text-[#245c46]">
               {mobileReviewStep}/2
             </span>
             <h3
               id="mobile-review-sheet-title"
-              className="m-0 text-lg font-black leading-6 text-[#18221d]"
+              className="m-0 truncate text-[15px] font-black leading-5 text-[#18221d]"
             >
               {mobileReviewStep === 1 ? "코스 평가" : "한줄평 작성"}
             </h3>
           </div>
           <button
-            className="grid h-11 w-11 flex-none place-items-center rounded-md border border-[#d8e0da] bg-[#f7faf8] text-[#18221d]"
+            className="grid h-10 w-10 flex-none place-items-center rounded-md border-0 bg-transparent text-[#18221d]"
             type="button"
             aria-label="한줄평 작성 닫기"
             disabled={isSubmitting}
             onClick={closeReviewForm}
           >
-            <X size={20} />
+            <X size={14} />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4">
+        <div className="min-h-0 overflow-y-auto px-3 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-3">
           {mobileReviewStep === 1 ? (
-            <div className="grid gap-4">
-              <div className="rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4">
+            <div className="grid gap-3">
+              <div className="rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-3">
                 <label
-                  className="mb-3 block text-base font-extrabold leading-6 text-[#18221d]"
+                  className="mb-2 block text-[14px] font-extrabold leading-5 text-[#18221d]"
                   htmlFor="course-feedback-route-mobile"
                 >
                   코스 선택
@@ -1953,7 +1959,7 @@ function CourseFeedbackSection({
                 <div className="relative">
                   <select
                     id="course-feedback-route-mobile"
-                    className="h-12 w-full appearance-none rounded-md border border-[#d8e0da] bg-white px-3 pr-10 text-base font-bold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                    className="h-11 w-full appearance-none rounded-md border border-[#d8e0da] bg-white px-3 pr-10 text-sm font-bold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                     value={selectedRouteName ?? manualCourseRouteName}
                     disabled={routeControlsDisabled}
                     onChange={(event) => handleRouteNameChange(event.target.value)}
@@ -1984,11 +1990,11 @@ function CourseFeedbackSection({
                     aria-hidden="true"
                   />
                 </div>
-                <div className="mt-3 grid min-w-0 gap-2">
-                  <label className="grid min-w-0 gap-1.5 text-sm font-extrabold text-[#18221d]">
+                <div className="mt-2.5 grid min-w-0 gap-2">
+                  <label className="grid min-w-0 gap-1.5 text-[13px] font-extrabold text-[#18221d]">
                     출발지
                     <input
-                      className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 text-base font-bold text-[#18221d] outline-none transition placeholder:text-[#8a9690] read-only:bg-[#f4f8f6] read-only:text-[#5d6a62] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                      className="h-10 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] outline-none transition placeholder:text-[#8a9690] read-only:bg-[#f4f8f6] read-only:text-[#5d6a62] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                       value={routeStartPoint}
                       placeholder="출발지 입력"
                       readOnly={!isManualCourse || isEditingExistingReview}
@@ -1996,10 +2002,10 @@ function CourseFeedbackSection({
                       onChange={(event) => setManualStartPoint(event.target.value)}
                     />
                   </label>
-                  <label className="grid min-w-0 gap-1.5 text-sm font-extrabold text-[#18221d]">
+                  <label className="grid min-w-0 gap-1.5 text-[13px] font-extrabold text-[#18221d]">
                     도착지
                     <input
-                      className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 text-base font-bold text-[#18221d] outline-none transition placeholder:text-[#8a9690] read-only:bg-[#f4f8f6] read-only:text-[#5d6a62] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                      className="h-10 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] outline-none transition placeholder:text-[#8a9690] read-only:bg-[#f4f8f6] read-only:text-[#5d6a62] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                       value={routeEndPoint}
                       placeholder="도착지 입력"
                       readOnly={!isManualCourse || isEditingExistingReview}
@@ -2021,18 +2027,18 @@ function CourseFeedbackSection({
                 }}
               />
 
-              <div className="rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4">
-                <strong className="block text-base font-extrabold leading-6 text-[#18221d]">
+              <div className="rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-3">
+                <strong className="block text-[14px] font-extrabold leading-5 text-[#18221d]">
                   소요시간
                 </strong>
-                <p className="m-0 mt-1 break-keep text-base font-semibold leading-6 text-[#2d3932]">
+                <p className="m-0 mt-1 break-keep text-[13px] font-semibold leading-5 text-[#2d3932]">
                   산행 시작부터 하산 완료까지 걸린 전체 시간입니다.
                 </p>
 
-                <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="mt-3 grid grid-cols-2 gap-2.5">
                   <div className="relative">
                     <input
-                      className="h-12 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-xl font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                      className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-lg font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                       type="number"
                       min={0}
                       max={10}
@@ -2053,7 +2059,7 @@ function CourseFeedbackSection({
                   </div>
                   <div className="relative">
                     <input
-                      className="h-12 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-xl font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                      className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-lg font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                       type="number"
                       min={0}
                       max={59}
@@ -2077,7 +2083,7 @@ function CourseFeedbackSection({
 
               <div className="bg-white pt-1">
                 <button
-                  className="min-h-12 w-full rounded-md border-0 bg-[#166b3d] px-4 text-base font-black text-white transition hover:bg-[#125b34] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-h-11 w-full rounded-md border-0 bg-[#166b3d] px-3 text-[13px] font-black text-white transition hover:bg-[#125b34] disabled:cursor-not-allowed disabled:opacity-50"
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => setMobileReviewStep(2)}
@@ -2087,9 +2093,9 @@ function CourseFeedbackSection({
               </div>
             </div>
           ) : (
-            <div className="flex min-h-full flex-col gap-4">
-              <div className="flex min-h-[246px] flex-[1.15] flex-col rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4">
-                <strong className="mb-3 block text-base font-extrabold leading-6 text-[#18221d]">
+            <div className="flex flex-col gap-3">
+              <div className="flex min-h-[190px] flex-[1.15] flex-col rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-3">
+                <strong className="mb-2 block text-[14px] font-extrabold leading-5 text-[#18221d]">
                   한줄평
                 </strong>
                 <textarea
@@ -2100,7 +2106,7 @@ function CourseFeedbackSection({
                       ? "코스에 대한 느낌을 자유롭게 남겨주세요."
                       : "로그인 후 한줄평을 남길 수 있습니다."
                   }
-                  className="min-h-0 flex-1 resize-none rounded-md border border-[#d8e0da] p-3 text-base font-medium leading-6 text-[#18221d] outline-none transition placeholder:text-[#8a9690] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                  className="min-h-0 flex-1 resize-none rounded-md border border-[#d8e0da] p-2.5 text-sm font-medium leading-5 text-[#18221d] outline-none transition placeholder:text-[#8a9690] focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                   disabled={controlsDisabled}
                   onChange={(event) => setReviewText(event.target.value)}
                 />
@@ -2109,69 +2115,99 @@ function CourseFeedbackSection({
                 </span>
               </div>
 
-              <div className="flex min-h-[202px] flex-[0.85] flex-col rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4">
+              <div className="flex flex-col rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-3">
                 <div className="mb-2 flex flex-wrap items-baseline gap-2">
-                  <strong className="text-base font-extrabold text-[#18221d]">
+                  <strong className="text-[14px] font-extrabold text-[#18221d]">
                     사진 추가
                   </strong>
-                  <span className="text-sm font-bold text-[#5d6a62]">
+                  <span className="text-xs font-bold text-[#5d6a62]">
                     최대 5장
                   </span>
                 </div>
-                <div className="grid flex-1 grid-cols-2 gap-2">
+                <input
+                  ref={photoInputRef}
+                  className="sr-only"
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  multiple
+                  disabled={controlsDisabled || totalSelectedPhotoCount >= 5}
+                  onChange={handlePhotoSelect}
+                />
+                {totalSelectedPhotoCount === 0 ? (
                   <button
-                    className="grid min-h-[112px] place-items-center content-center gap-1 rounded-md border border-[#d8e0da] bg-white px-2 text-sm font-extrabold text-[#5d6a62] transition hover:bg-[#f7faf8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#245c46]/25 disabled:cursor-not-allowed disabled:opacity-45"
+                    className="grid min-h-[92px] w-full place-items-center content-center gap-1 rounded-md border border-[#d8e0da] bg-white px-2 text-xs font-extrabold text-[#5d6a62] transition hover:bg-[#f7faf8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#245c46]/25 disabled:cursor-not-allowed disabled:opacity-45"
                     type="button"
                     disabled={controlsDisabled || totalSelectedPhotoCount >= 5}
                     onClick={() => photoInputRef.current?.click()}
                   >
-                    <Camera size={22} aria-hidden="true" />
+                    <Camera size={18} aria-hidden="true" />
                     사진 추가
                   </button>
-                  {editingExistingImageUrls.map((imageUrl, index) => (
+                ) : (
+                  <div className="relative">
                     <div
-                      key={`${imageUrl}-mobile`}
-                      className="relative min-h-[112px] overflow-hidden rounded-md bg-[#eef3f0]"
+                      className={cn(
+                        "flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                        totalSelectedPhotoCount >= 5 ? "pr-0" : "pr-11",
+                      )}
                     >
-                      <img
-                        className="h-full min-h-[112px] w-full object-cover"
-                        src={imageUrl}
-                        alt={`기존 한줄평 사진 ${index + 1}`}
-                      />
-                      <button
-                        className="absolute right-1.5 top-1.5 grid h-8 w-8 place-items-center rounded-full border-0 bg-black/70 text-white"
-                        type="button"
-                        aria-label={`기존 한줄평 사진 ${index + 1} 삭제`}
-                        disabled={isSubmitting}
-                        onClick={() => requestRemoveExistingPhoto(imageUrl)}
-                      >
-                        <X size={16} />
-                      </button>
+                      {editingExistingImageUrls.map((imageUrl, index) => (
+                        <div
+                          key={`${imageUrl}-mobile`}
+                          className="relative h-[88px] w-[88px] flex-none overflow-hidden rounded-md bg-[#eef3f0]"
+                        >
+                          <img
+                            className="h-full w-full object-cover"
+                            src={imageUrl}
+                            alt={`기존 한줄평 사진 ${index + 1}`}
+                          />
+                          <button
+                            className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full border-0 bg-black/70 text-white"
+                            type="button"
+                            aria-label={`기존 한줄평 사진 ${index + 1} 삭제`}
+                            disabled={isSubmitting}
+                            onClick={() => requestRemoveExistingPhoto(imageUrl)}
+                          >
+                            <X size={11} />
+                          </button>
+                        </div>
+                      ))}
+                      {uploadedPhotos.map((photo) => (
+                        <div
+                          key={`${photo.id}-mobile`}
+                          className="relative h-[88px] w-[88px] flex-none overflow-hidden rounded-md bg-[#eef3f0]"
+                        >
+                          <img
+                            className="h-full w-full object-cover"
+                            src={photo.url}
+                            alt={photo.name}
+                          />
+                          <button
+                            className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full border-0 bg-black/70 text-white"
+                            type="button"
+                            aria-label={`${photo.name} 사진 제거`}
+                            disabled={isSubmitting}
+                            onClick={() => removeUploadedPhoto(photo.id)}
+                          >
+                            <X size={11} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  {uploadedPhotos.map((photo) => (
-                    <div
-                      key={`${photo.id}-mobile`}
-                      className="relative min-h-[112px] overflow-hidden rounded-md bg-[#eef3f0]"
-                    >
-                      <img
-                        className="h-full min-h-[112px] w-full object-cover"
-                        src={photo.url}
-                        alt={photo.name}
-                      />
+                    {totalSelectedPhotoCount < 5 ? (
                       <button
-                        className="absolute right-1.5 top-1.5 grid h-8 w-8 place-items-center rounded-full border-0 bg-black/70 text-white"
+                        className="absolute bottom-2 right-2 grid h-9 w-9 place-items-center rounded-full border border-[#d8e0da] bg-white text-[#5d6a62] shadow-[0_6px_16px_rgba(24,34,29,0.14)] transition hover:bg-[#f7faf8] disabled:cursor-not-allowed disabled:opacity-45"
                         type="button"
-                        aria-label={`${photo.name} 사진 제거`}
-                        disabled={isSubmitting}
-                        onClick={() => removeUploadedPhoto(photo.id)}
+                        aria-label="사진 추가"
+                        disabled={controlsDisabled}
+                        onClick={() => photoInputRef.current?.click()}
                       >
-                        <X size={16} />
+                        <Camera size={17} aria-hidden="true" />
                       </button>
-                    </div>
-                  ))}
-                </div>
-                <ul className="m-0 mt-2 grid list-none gap-1 p-0 text-sm font-semibold leading-5 text-[#5d6a62]">
+                    ) : null}
+                  </div>
+                )}
+                <ul className="m-0 mt-2 grid list-none gap-1 p-0 text-xs font-semibold leading-5 text-[#5d6a62]">
                   <li>· JPG, PNG 파일만 가능 (최대 10MB)</li>
                   <li>· 사진은 최대 5장까지 등록할 수 있습니다.</li>
                 </ul>
@@ -2191,16 +2227,16 @@ function CourseFeedbackSection({
 
               <div className="sticky bottom-0 z-10 mt-auto grid grid-cols-[auto_minmax(0,1fr)] gap-2 bg-white pt-2 shadow-[0_-10px_18px_rgba(255,255,255,0.92)]">
                 <button
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-[#d8e0da] bg-white px-4 text-base font-black text-[#18221d] transition hover:bg-[#f7faf8]"
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-[#d8e0da] bg-white px-3 text-[13px] font-black text-[#18221d] transition hover:bg-[#f7faf8]"
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => setMobileReviewStep(1)}
                 >
-                  <ArrowLeft size={18} />
+                  <ArrowLeft size={16} />
                   이전
                 </button>
                 <button
-                  className="min-h-12 rounded-md border-0 bg-[#166b3d] px-4 text-base font-black text-white transition hover:bg-[#125b34] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-h-11 rounded-md border-0 bg-[#166b3d] px-3 text-[13px] font-black text-white transition hover:bg-[#125b34] disabled:cursor-not-allowed disabled:opacity-50"
                   type="button"
                   disabled={!trimmedReviewText || controlsDisabled}
                   onClick={requestReviewSubmit}
@@ -2853,7 +2889,7 @@ function ReviewCard({
                 isList && "pr-8",
               )}
             >
-              <strong className="block max-w-full truncate text-[15px] font-black leading-5 text-[#18221d]">
+              <strong className="block max-w-full truncate text-[14px] font-extrabold leading-5 text-[#18221d]">
                 {review.authorName}
               </strong>
               <span className="inline-flex min-w-0 max-w-full items-center rounded-full bg-[#e7f3e4] px-2 py-0.5 text-xs font-medium text-[#237a1f]">
@@ -2873,24 +2909,24 @@ function ReviewCard({
 
         <p
           className={cn(
-            "m-0 min-w-0 whitespace-pre-line break-words text-base font-extrabold leading-7 text-[#18221d] [overflow-wrap:anywhere]",
+            "m-0 min-w-0 whitespace-pre-line break-words text-[14px] font-medium leading-6 text-[#18221d] [overflow-wrap:anywhere] max-[560px]:text-[13px] max-[560px]:leading-5",
             !isList && "min-h-[82px]",
           )}
         >
-          “{review.body}”
+          {review.body}
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-flex min-h-8 items-center rounded-full border border-[#d7e4ba] bg-[#f0f7e4] px-3.5 text-sm font-black",
+              "inline-flex min-h-7 items-center rounded-full border border-[#d7e4ba] bg-[#f0f7e4] px-2.5 text-[12px] font-semibold",
               getDifficultyTextColorClass(review.difficulty),
             )}
           >
             난이도 {review.difficulty}
           </span>
-          <span className="inline-flex min-h-8 items-center gap-1 rounded-full border border-[#d8e0da] bg-[#f1f5f7] px-3.5 font-numeric text-sm font-black text-[#49524d]">
-            <Clock size={14} />
+          <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-[#d8e0da] bg-[#f1f5f7] px-2.5 font-numeric text-[12px] font-semibold text-[#49524d]">
+            <Clock size={13} />
             {review.durationLabel}
           </span>
         </div>
@@ -2928,7 +2964,7 @@ function ReviewPhotoStrip({
     return (
       <div
         className={cn(
-          "grid place-items-center rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] text-sm font-bold text-[#5d6a62]",
+          "grid place-items-center rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] text-sm font-bold text-[#5d6a62] max-[767px]:hidden",
           layout === "list" ? "min-h-[112px] self-stretch" : "min-h-[108px]",
         )}
       >
@@ -3020,7 +3056,7 @@ function ReviewPhotoLightbox({
 
   return (
     <div
-      className="fixed inset-0 z-[90] grid h-screen w-screen place-items-center bg-black/85 p-4"
+      className="fixed inset-0 z-[90] grid h-screen w-screen place-items-center bg-black/80 p-4"
       role="dialog"
       aria-modal="true"
       aria-label={`${review.routeName} 한줄평 사진 확대`}
@@ -3030,7 +3066,7 @@ function ReviewPhotoLightbox({
         }
       }}
     >
-      <div className="relative flex h-full max-h-[calc(100vh-32px)] w-full min-w-0 max-w-[calc(100vw-32px)] items-center justify-center rounded-md bg-black/85">
+      <div className="relative flex h-full max-h-[calc(100vh-32px)] w-full min-w-0 max-w-[calc(100vw-32px)] items-center justify-center">
         <div className="absolute left-0 right-0 top-0 z-10 flex min-h-11 items-center justify-between gap-3 px-2 pt-2 text-white">
           <div className="min-w-0">
             <strong className="block truncate text-base font-black">
@@ -3059,7 +3095,7 @@ function ReviewPhotoLightbox({
         {canNavigate ? (
           <>
             <button
-              className="absolute left-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-black/45 text-white transition hover:bg-black/65 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 max-[560px]:left-0"
+              className="absolute left-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-black/35 text-white transition hover:bg-black/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 max-[560px]:left-0"
               type="button"
               aria-label="이전 사진 보기"
               onClick={() => onNavigate(previousIndex)}
@@ -3067,7 +3103,7 @@ function ReviewPhotoLightbox({
               <ArrowLeft size={22} />
             </button>
             <button
-              className="absolute right-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-black/45 text-white transition hover:bg-black/65 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 max-[560px]:right-0"
+              className="absolute right-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-black/35 text-white transition hover:bg-black/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 max-[560px]:right-0"
               type="button"
               aria-label="다음 사진 보기"
               onClick={() => onNavigate(nextIndex)}
@@ -4370,12 +4406,12 @@ function EvaluationPicker({
   return (
     <div
       className={cn(
-        "min-w-0 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 [&>strong]:mb-5 [&>strong]:block [&>strong]:text-center [&>strong]:text-lg [&>strong]:font-extrabold [&>strong]:leading-7",
+        "min-w-0 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[560px]:p-3 [&>strong]:mb-5 [&>strong]:block [&>strong]:text-center [&>strong]:text-lg [&>strong]:font-extrabold [&>strong]:leading-7 max-[560px]:[&>strong]:mb-3 max-[560px]:[&>strong]:text-[14px] max-[560px]:[&>strong]:leading-5",
         className,
       )}
     >
       <strong>{title}</strong>
-      <div className="grid grid-cols-5 gap-2 max-[560px]:gap-1.5">
+      <div className="grid grid-cols-5 gap-2 max-[560px]:gap-1">
         {options.map((option, index) => {
           const isActive = index === activeIndex;
 
@@ -4383,7 +4419,7 @@ function EvaluationPicker({
             <button
               key={option}
               className={cn(
-                "grid min-w-0 cursor-pointer justify-items-center gap-2 rounded-md border-0 bg-transparent px-1 py-1 text-[#627168] transition hover:bg-[#f7f8f7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e10f07]/40",
+                "grid min-w-0 cursor-pointer justify-items-center gap-2 rounded-md border-0 bg-transparent px-1 py-1 text-[#627168] transition hover:bg-[#f7f8f7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e10f07]/40 max-[560px]:gap-1",
                 isActive && "text-[#e10f07]",
               )}
               type="button"
@@ -4391,7 +4427,7 @@ function EvaluationPicker({
               onClick={() => onChange(index)}
             >
               <FeedbackEvaluationIcon index={index} isActive={isActive} />
-              <span className="break-keep text-center text-[13px] font-semibold leading-[18px] max-[560px]:text-xs">
+              <span className="break-keep text-center text-[13px] font-semibold leading-[18px] max-[560px]:text-[11px] max-[560px]:leading-4">
                 {option}
               </span>
             </button>
@@ -4415,7 +4451,7 @@ function FeedbackEvaluationIcon({
   return (
     <span
       className={cn(
-        "grid h-11 w-11 place-items-center overflow-hidden rounded-full border bg-[#f7f8f7] p-[7px] max-[560px]:h-[42px] max-[560px]:w-[42px]",
+        "grid h-11 w-11 place-items-center overflow-hidden rounded-full border bg-[#f7f8f7] p-[7px] max-[560px]:h-9 max-[560px]:w-9 max-[560px]:p-1.5",
         isActive
           ? "border-[#e10f07] bg-[#fff1f1] text-[#e10f07]"
           : "border-[#d8e0da]",

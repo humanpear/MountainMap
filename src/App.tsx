@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import {
   Camera,
@@ -8,6 +8,7 @@ import {
   LogIn,
   LogOut,
   MapPin,
+  Menu,
   MessageCircle,
   Mountain as MountainIcon,
   Search,
@@ -19,6 +20,7 @@ import { MountainDetailPage } from './components/MountainDetailPage';
 import { MountainMap } from './components/MountainMap';
 import { MountainNameWithHanja } from './components/MountainNameWithHanja';
 import { MyPage } from './components/MyPage';
+import { getMountainGuide } from './data/mountainDetails';
 import { mountains } from './data/mountains';
 import { getCandidateIdsForRandomMode, getRandomCandidates, pickRandomMountain } from './game/random';
 import { cn } from './lib/classNames';
@@ -78,6 +80,34 @@ function getLatestReviewPhotos(reviews: MountainReview[]) {
     .slice(0, 3);
 }
 
+function getLatestCompletionRecord(records: CompletionRecord[]) {
+  return records.reduce<CompletionRecord | null>((latestRecord, record) => {
+    if (!latestRecord) {
+      return record;
+    }
+
+    return new Date(record.completedAt).getTime() > new Date(latestRecord.completedAt).getTime() ? record : latestRecord;
+  }, null);
+}
+
+function getMountainHeroImage(mountain: Mountain) {
+  return getMountainGuide(mountain).heroImage?.src ?? `/mountain-images/${mountain.id}/hero.png`;
+}
+
+function formatAccountDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}.${month}.${day}`;
+}
+
 const randomModeLabels: Record<RandomMode, string> = {
   all: '전체',
   incomplete: '완료 산 제외',
@@ -124,38 +154,58 @@ function setBrowserPath(path: string) {
 }
 
 const appClass = {
-  shell: 'grid min-h-screen grid-rows-[auto_1fr] bg-[#f4f7f5] text-[#18221d]',
+  shell: 'grid h-dvh min-h-screen grid-rows-[auto_minmax(0,1fr)] overflow-x-hidden bg-[#f4f7f5] text-[#18221d]',
   topbar:
     'z-[4] bg-[#00172b] text-white',
   topbarInner:
-    'mx-auto grid h-[68px] w-[1180px] max-w-[calc(100%-60px)] grid-cols-[minmax(230px,1fr)_auto] items-center gap-4 max-[900px]:h-auto max-[900px]:w-full max-[900px]:max-w-none max-[900px]:grid-cols-[minmax(0,1fr)_auto] max-[900px]:gap-x-3 max-[900px]:gap-y-2 max-[900px]:px-4 max-[900px]:py-2.5',
+    'mx-auto grid h-[68px] w-[1180px] max-w-[calc(100%-60px)] grid-cols-[minmax(230px,1fr)_auto] items-center gap-4 max-[900px]:h-auto max-[900px]:w-full max-[900px]:max-w-none max-[900px]:grid-cols-[minmax(0,max-content)_minmax(72px,1fr)_36px_36px] max-[900px]:gap-x-1 max-[900px]:gap-y-2 max-[900px]:px-4 max-[900px]:py-2.5',
   topbarActions:
     'flex min-w-0 items-center justify-end gap-2.5 max-[900px]:contents',
   brand:
-    'inline-flex min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent text-[20px] font-black text-white max-[900px]:col-start-1 max-[900px]:row-start-1 max-[900px]:justify-start max-[900px]:text-[18px] [&_span]:truncate [&_svg]:text-white',
+    'inline-flex min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent text-[20px] font-black text-white max-[900px]:col-start-1 max-[900px]:row-start-1 max-[900px]:justify-start max-[900px]:gap-1.5 max-[900px]:text-[16px] [&_span]:truncate [&_svg]:text-white',
   search:
-    'grid min-h-9 w-[252px] grid-cols-[minmax(0,1fr)_40px] overflow-hidden rounded-[9px] bg-white max-[900px]:col-span-2 max-[900px]:row-start-2 max-[900px]:w-full',
-  searchInput: 'min-w-0 border-0 px-3 text-[13px] text-[#18221d] outline-none placeholder:text-[#627168]',
+    'grid min-h-9 w-[252px] grid-cols-[minmax(0,1fr)_40px] overflow-hidden rounded-[9px] bg-white transition-[opacity,transform] duration-200 ease-out max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:ml-1 max-[900px]:min-h-9 max-[900px]:w-full max-[900px]:origin-right max-[900px]:grid-cols-1',
+  searchInput: 'min-w-0 border-0 px-4 text-[13px] text-[#18221d] outline-none placeholder:text-[#627168]',
   searchButton: 'inline-flex cursor-pointer items-center justify-center border-0 bg-white text-[#00172b]',
+  mobileSearchToggle:
+    'hidden h-9 min-h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-white transition hover:bg-transparent max-[900px]:col-start-3 max-[900px]:row-start-1 max-[900px]:inline-flex',
   authButton:
-    'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3.5 text-sm font-extrabold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-55 max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:min-h-9 max-[900px]:px-3 max-[900px]:text-[13px]',
-  accountMenuWrap: 'relative max-[900px]:col-start-2 max-[900px]:row-start-1',
+    'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3.5 text-sm font-extrabold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-55 max-[900px]:min-h-9 max-[900px]:w-9 max-[900px]:border-0 max-[900px]:bg-transparent max-[900px]:px-0 max-[900px]:text-[13px] max-[900px]:hover:bg-transparent',
+  accountMenuWrap: 'relative max-[900px]:col-start-4 max-[900px]:row-start-1',
   accountMenu:
-    'absolute right-0 top-[calc(100%+10px)] z-20 grid w-[320px] max-w-[calc(100vw-24px)] gap-3 rounded-lg border border-[#d8e0da] bg-white p-4 text-[#18221d] shadow-[0_22px_70px_rgba(0,0,0,0.22)] max-[560px]:right-[-4px] max-[560px]:w-[calc(100vw-24px)]',
-  accountMenuProfile: 'flex min-w-0 items-center gap-3 border-b border-[#d8e0da] pb-3',
-  accountMenuAvatar: 'h-12 w-12 flex-none rounded-full border-2 border-[#eef3f0] object-cover',
-  accountMenuName: 'm-0 truncate text-base font-black text-[#18221d]',
-  accountMenuMeta: 'm-0 truncate text-sm font-bold text-[#5d6a62]',
-  accountMenuStats: 'grid grid-cols-2 gap-2',
-  accountMenuStat:
-    'rounded-lg border border-[#d8e0da] bg-[#f7faf8] px-3 py-2 [&_dt]:text-xs [&_dt]:font-black [&_dt]:text-[#5d6a62] [&_dd]:m-0 [&_dd]:font-numeric [&_dd]:text-lg [&_dd]:font-black [&_dd]:text-[#18221d]',
+    'absolute right-0 top-[calc(100%+10px)] z-20 grid w-[344px] max-w-[calc(100vw-24px)] origin-top-right gap-2.5 rounded-xl border border-[#d8e0da] bg-[#fbfcfb] p-2.5 text-[#18221d] shadow-[0_18px_56px_rgba(0,0,0,0.16)] max-[560px]:right-[-4px] max-[560px]:w-[calc(100vw-24px)]',
+  accountMenuProfile: 'flex min-w-0 items-center gap-3 px-1.5 pb-1.5 pt-1',
+  accountMenuAvatar:
+    'h-16 w-16 flex-none rounded-full border-[3px] border-white bg-[#eef3f0] object-cover shadow-[0_0_0_2px_#d8e0da,0_8px_20px_rgba(24,34,29,0.12)]',
+  accountMenuName: 'm-0 truncate text-[17px] font-black leading-[22px] text-[#18221d]',
+  accountMenuMeta: 'm-0 mt-0.5 truncate text-[13px] font-bold leading-[18px] text-[#5d6a62]',
+  accountProgressCard:
+    "relative isolate overflow-hidden rounded-lg border border-[#d8e0da] bg-[linear-gradient(135deg,#ffffff_0%,#f8fbf9_58%,#eef5f1_100%)] p-3.5 shadow-[0_7px_20px_rgba(24,34,29,0.05)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-[url('/my-page/completed-progress-bg-desktop.png')] before:bg-cover before:bg-center before:bg-no-repeat before:opacity-30 max-[560px]:before:bg-[url('/my-page/completed-progress-bg-mobile.png')]",
+  accountCardLabel: 'm-0 text-[13px] font-black leading-[18px] text-[#06442f]',
+  accountProgressValue: 'm-0 mt-2 font-numeric text-[25px] font-black leading-none text-[#092336]',
+  accountProgressCaption: 'm-0 mt-3 text-[13px] font-bold leading-[18px] text-[#5d6a62]',
+  accountProgressRow: 'mt-3 grid w-[80%] grid-cols-[minmax(0,1fr)_26px] items-center gap-2.5',
+  accountProgressTrack: 'h-2 overflow-hidden rounded-full bg-[#dfe8e2]',
+  accountProgressFill: 'h-full rounded-full bg-[#006f43]',
+  accountProgressPercent: 'font-numeric text-[13px] font-black leading-[18px] text-[#06442f]',
+  accountRecentCard:
+    'grid grid-cols-[minmax(0,1fr)_128px] gap-3 rounded-lg border border-[#d8e0da] bg-white p-3 shadow-[0_7px_20px_rgba(24,34,29,0.05)] max-[560px]:grid-cols-1',
+  accountRecentName: 'm-0 mt-1.5 truncate text-[17px] font-black leading-[22px] text-[#18221d]',
+  accountRecentMeta: 'm-0 mt-2.5 text-[13px] font-bold leading-[18px] text-[#5d6a62]',
+  accountRecentImage:
+    'h-[76px] w-full rounded-md object-cover shadow-[0_6px_16px_rgba(24,34,29,0.12)] max-[560px]:aspect-[16/9] max-[560px]:h-auto',
+  accountMenuActions:
+    'grid overflow-hidden rounded-lg border border-[#d8e0da] bg-white shadow-[0_7px_20px_rgba(24,34,29,0.05)]',
   accountMenuAction:
-    'inline-flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#d8e0da] bg-white px-3 text-left font-extrabold text-[#18221d] transition hover:bg-[#eef3f0]',
+    'inline-flex min-h-11 w-full cursor-pointer items-center justify-between gap-2.5 border-0 border-b border-[#e3e8e4] bg-white px-3 text-left text-[14px] font-black leading-5 text-[#18221d] transition last:border-b-0 hover:bg-[#f5f8f5]',
+  accountMenuActionIcon: 'inline-flex h-6 w-6 items-center justify-center text-[#101820]',
+  accountReviewBadge:
+    'mr-1.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#e7f2ec] px-1.5 font-numeric text-[13px] font-black leading-[18px] text-[#245c46]',
   accountMenuDanger:
-    'inline-flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#b14a3d] bg-white px-3 text-left font-extrabold text-[#b14a3d] transition hover:bg-[#fff1ee]',
+    'inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-3 text-center text-[14px] font-black leading-5 text-[#d90d0d] shadow-[0_7px_20px_rgba(24,34,29,0.05)] transition hover:bg-[#fff1ee]',
   workspace:
-    'relative grid min-h-[calc(100vh-68px)] overflow-hidden transition-[grid-template-columns] duration-200 ease-out max-[900px]:grid-cols-1',
-  mapStage: 'relative min-h-[calc(100vh-68px)] overflow-visible',
+    'relative grid h-full min-h-0 overflow-hidden transition-[grid-template-columns] duration-200 ease-out max-[900px]:grid-cols-1',
+  mapStage: 'relative h-full min-h-0 min-w-0 overflow-hidden',
   mapControls:
     'absolute left-5 top-5 z-[2] grid justify-items-start gap-3 max-[560px]:left-3 max-[560px]:right-auto max-[560px]:gap-2',
   filterBar:
@@ -251,16 +301,64 @@ export default function App() {
   const [sidebarPhotoState, setSidebarPhotoState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [isMobileDetailSheetOpen, setIsMobileDetailSheetOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isAccountMenuClosing, setIsAccountMenuClosing] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [accountSummary, setAccountSummary] = useState<AccountSummaryState>({
     status: 'idle',
     profile: null,
     reviewCount: 0
   });
   const [mapRefreshKey, setMapRefreshKey] = useState(0);
+  const accountMenuCloseTimerRef = useRef<number | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const closeAccountMenu = useCallback((animated = true) => {
+    if (accountMenuCloseTimerRef.current !== null) {
+      window.clearTimeout(accountMenuCloseTimerRef.current);
+      accountMenuCloseTimerRef.current = null;
+    }
+
+    setIsAccountMenuOpen((isOpen) => {
+      if (isOpen && animated) {
+        setIsAccountMenuClosing(true);
+        accountMenuCloseTimerRef.current = window.setTimeout(() => {
+          setIsAccountMenuClosing(false);
+          accountMenuCloseTimerRef.current = null;
+        }, 150);
+      } else {
+        setIsAccountMenuClosing(false);
+      }
+
+      return false;
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (accountMenuCloseTimerRef.current !== null) {
+        window.clearTimeout(accountMenuCloseTimerRef.current);
+      }
+    };
+  }, []);
 
   const selectedMountain = mountains.find((mountain) => mountain.id === selectedMountainId);
   const detailMountain = mountains.find((mountain) => mountain.id === detailMountainId);
   const completedIds = useMemo(() => new Set(completionRecords.map((record) => record.mountainId)), [completionRecords]);
+  const completedMountainCount = completedIds.size;
+  const totalChallengeMountains = 100;
+  const completionProgressPercent = Math.min(
+    100,
+    Math.round((completedMountainCount / totalChallengeMountains) * 100)
+  );
+  const latestCompletionRecord = useMemo(() => getLatestCompletionRecord(completionRecords), [completionRecords]);
+  const latestCompletedMountain = latestCompletionRecord
+    ? mountains.find((mountain) => mountain.id === latestCompletionRecord.mountainId) ?? null
+    : null;
+  const latestCompletedDateLabel = latestCompletionRecord
+    ? `${formatAccountDate(latestCompletionRecord.completedAt)} 산행 완료`
+    : '완료한 산이 없습니다';
+  const latestCompletedMountainName = latestCompletedMountain?.name ?? '기록 없음';
+  const latestCompletedHeroImage = latestCompletedMountain ? getMountainHeroImage(latestCompletedMountain) : null;
   const completionCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const record of completionRecords) {
@@ -279,11 +377,21 @@ export default function App() {
   const accountAvatarUrl = accountProfile?.avatarUrl || getDefaultAvatarUrl(accountProfile?.avatarKind);
 
   useEffect(() => {
+    if (!isMobileSearchOpen) {
+      return;
+    }
+
+    const focusTimer = window.setTimeout(() => searchInputRef.current?.focus(), 180);
+    return () => window.clearTimeout(focusTimer);
+  }, [isMobileSearchOpen]);
+
+  useEffect(() => {
     const syncDetailRoute = () => {
     setDetailMountainId(getMountainDetailRouteId());
     setIsMyPageOpen(getIsMyPageRoute());
       setMyPageTab(getMyPageTabRoute());
       setIsAccountMenuOpen(false);
+      setIsMobileSearchOpen(false);
       setIsMobileDetailSheetOpen(false);
     };
 
@@ -379,20 +487,20 @@ export default function App() {
       return;
     }
 
-    const closeAccountMenu = () => setIsAccountMenuOpen(false);
+    const closeAccountMenuOnDocumentClick = () => closeAccountMenu();
     const closeAccountMenuOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         closeAccountMenu();
       }
     };
 
-    window.addEventListener('click', closeAccountMenu);
+    window.addEventListener('click', closeAccountMenuOnDocumentClick);
     window.addEventListener('keydown', closeAccountMenuOnEscape);
     return () => {
-      window.removeEventListener('click', closeAccountMenu);
+      window.removeEventListener('click', closeAccountMenuOnDocumentClick);
       window.removeEventListener('keydown', closeAccountMenuOnEscape);
     };
-  }, [isAccountMenuOpen]);
+  }, [closeAccountMenu, isAccountMenuOpen]);
 
   useEffect(() => {
     if (!supabase || !session?.user.id) {
@@ -490,6 +598,7 @@ export default function App() {
     setIsMyPageOpen(false);
     setMyPageTab('profile');
     setIsAccountMenuOpen(false);
+    setIsMobileSearchOpen(false);
     setIsMobileDetailSheetOpen(false);
     setResultModalMountain(null);
   };
@@ -500,6 +609,7 @@ export default function App() {
     setIsMyPageOpen(false);
     setMyPageTab('profile');
     setIsAccountMenuOpen(false);
+    setIsMobileSearchOpen(false);
   };
 
   const navigateHome = () => {
@@ -508,6 +618,7 @@ export default function App() {
     setIsMyPageOpen(false);
     setMyPageTab('profile');
     setIsAccountMenuOpen(false);
+    setIsMobileSearchOpen(false);
     setSelectedMountainId('');
     setFocusedMountainId(undefined);
     setIsMobileDetailSheetOpen(false);
@@ -534,6 +645,7 @@ export default function App() {
     setFocusedMountainId(match.id);
     openMountainDetail(match);
     setResultModalMountain(null);
+    setIsMobileSearchOpen(false);
   };
 
   const submitFeedback = async () => {
@@ -573,6 +685,7 @@ export default function App() {
     setIsMyPageOpen(false);
     setMyPageTab('profile');
     setIsAccountMenuOpen(false);
+    setIsMobileSearchOpen(false);
     setSelectedMountainId(mountain.id);
     setFocusedMountainId(mountain.id);
     setIsMobileDetailSheetOpen(true);
@@ -612,8 +725,20 @@ export default function App() {
   };
 
   const handleAuthClick = () => {
+    setIsMobileSearchOpen(false);
     if (session) {
-      setIsAccountMenuOpen((isOpen) => !isOpen);
+      if (isAccountMenuOpen) {
+        closeAccountMenu();
+        return;
+      }
+
+      if (accountMenuCloseTimerRef.current !== null) {
+        window.clearTimeout(accountMenuCloseTimerRef.current);
+        accountMenuCloseTimerRef.current = null;
+      }
+
+      setIsAccountMenuClosing(false);
+      setIsAccountMenuOpen(true);
       return;
     }
 
@@ -631,6 +756,7 @@ export default function App() {
     setIsMobileDetailSheetOpen(false);
     setResultModalMountain(null);
     setIsAccountMenuOpen(false);
+    setIsMobileSearchOpen(false);
   };
 
   const runRandomPick = () => {
@@ -694,12 +820,17 @@ export default function App() {
       <header className={appClass.topbar}>
         <div className={appClass.topbarInner}>
           <button className={appClass.brand} type="button" onClick={navigateHome} aria-label="지도로 이동">
-            <img className="h-9 w-auto object-contain brightness-0 invert" src="/logo-mountain.png" alt="" aria-hidden="true" />
-            <span>대한민국 100대 명산</span>
+            <img className="h-9 w-auto object-contain brightness-0 invert max-[900px]:h-[31px]" src="/logo-mountain.png" alt="" aria-hidden="true" />
+            <span className={cn(isMobileSearchOpen && 'max-[900px]:hidden')}>대한민국 100대 명산</span>
           </button>
           <div className={appClass.topbarActions}>
             <form
-              className={appClass.search}
+              className={cn(
+                appClass.search,
+                isMobileSearchOpen
+                  ? 'max-[900px]:pointer-events-auto max-[900px]:scale-x-100 max-[900px]:opacity-100'
+                  : 'max-[900px]:pointer-events-none max-[900px]:scale-x-0 max-[900px]:opacity-0'
+              )}
               role="search"
               onSubmit={(event) => {
                 event.preventDefault();
@@ -710,6 +841,7 @@ export default function App() {
                 산 이름 검색
               </label>
               <input
+                ref={searchInputRef}
                 className={appClass.searchInput}
                 id="mountain-search-input"
                 list="mountain-search-options"
@@ -723,10 +855,23 @@ export default function App() {
                   <option key={mountain.id} value={mountain.name} />
                 ))}
               </datalist>
-              <button className={appClass.searchButton} type="submit" aria-label="산 검색">
+              <button className={cn(appClass.searchButton, 'max-[900px]:hidden')} type="submit" aria-label="산 검색">
                 <Search size={22} />
               </button>
             </form>
+            <button
+              className={appClass.mobileSearchToggle}
+              type="button"
+              aria-label={isMobileSearchOpen ? '검색 닫기' : '산 검색'}
+              aria-controls="mountain-search-input"
+              aria-expanded={isMobileSearchOpen}
+              onClick={() => {
+                closeAccountMenu();
+                setIsMobileSearchOpen((isOpen) => !isOpen);
+              }}
+            >
+              {isMobileSearchOpen ? <X size={19} /> : <Search size={19} />}
+            </button>
             <div className={appClass.accountMenuWrap} onClick={(event) => event.stopPropagation()}>
               <button
                 className={appClass.authButton}
@@ -735,11 +880,27 @@ export default function App() {
                 aria-expanded={session ? isAccountMenuOpen : undefined}
                 aria-haspopup={session ? 'menu' : undefined}
               >
-                {session ? <UserRound size={17} /> : <LogIn size={17} />}
-                {session ? '마이페이지' : '로그인'}
+                {session ? (
+                  <>
+                    <UserRound className="max-[900px]:hidden" size={17} />
+                    <Menu className="hidden max-[900px]:block" size={19} />
+                  </>
+                ) : (
+                  <LogIn size={17} />
+                )}
+                <span className="max-[900px]:sr-only">{session ? '마이페이지' : '로그인'}</span>
               </button>
-              {session && isAccountMenuOpen ? (
-                <div className={appClass.accountMenu} role="menu" aria-label="마이페이지 메뉴">
+              {session && (isAccountMenuOpen || isAccountMenuClosing) ? (
+                <div
+                  className={cn(
+                    appClass.accountMenu,
+                    isAccountMenuClosing
+                      ? 'max-[900px]:animate-[account-menu-close_150ms_ease-in_both]'
+                      : 'max-[900px]:animate-[account-menu-open_170ms_ease-out_both]'
+                  )}
+                  role="menu"
+                  aria-label="마이페이지 메뉴"
+                >
                   <div className={appClass.accountMenuProfile}>
                     <img className={appClass.accountMenuAvatar} src={accountAvatarUrl} alt="" aria-hidden="true" />
                     <div className="min-w-0">
@@ -747,50 +908,79 @@ export default function App() {
                       <p className={appClass.accountMenuMeta}>{session.user.email}</p>
                     </div>
                   </div>
-                  <dl className={appClass.accountMenuStats}>
-                    <div className={appClass.accountMenuStat}>
-                      <dt>완료한 산</dt>
-                      <dd>{completedIds.size} / 100</dd>
+                  <section className={appClass.accountProgressCard} aria-label="완료한 산 진행률">
+                    <p className={appClass.accountCardLabel}>완료한 산</p>
+                    <p className={appClass.accountProgressValue}>
+                      {completedMountainCount} / {totalChallengeMountains}
+                    </p>
+                    <p className={appClass.accountProgressCaption}>전체 산 중 {completionProgressPercent}% 완료</p>
+                    <div className={appClass.accountProgressRow}>
+                      <div className={appClass.accountProgressTrack} aria-hidden="true">
+                        <div
+                          className={appClass.accountProgressFill}
+                          style={{ width: `${completionProgressPercent}%` }}
+                        />
+                      </div>
+                      <span className={appClass.accountProgressPercent}>{completionProgressPercent}%</span>
                     </div>
-                    <div className={appClass.accountMenuStat}>
-                      <dt>한줄평</dt>
-                      <dd>{accountSummary.status === 'loading' ? '-' : accountSummary.reviewCount}개</dd>
+                  </section>
+                  <section className={appClass.accountRecentCard} aria-label="최근 완료한 산">
+                    <div className="min-w-0">
+                      <p className={appClass.accountCardLabel}>최근 완료한 산</p>
+                      <p className={appClass.accountRecentName}>{latestCompletedMountainName}</p>
+                      <p className={appClass.accountRecentMeta}>{latestCompletedDateLabel}</p>
                     </div>
-                  </dl>
+                    {latestCompletedMountain && latestCompletedHeroImage ? (
+                      <img
+                        className={appClass.accountRecentImage}
+                        src={latestCompletedHeroImage}
+                        alt={`${latestCompletedMountain.name} 대표 이미지`}
+                      />
+                    ) : null}
+                  </section>
                   {accountSummary.status === 'error' ? (
                     <p className="m-0 rounded-md bg-[#fff2f0] px-3 py-2 text-sm font-bold leading-5 text-[#b14a3d]">
                       계정 요약을 불러오지 못했습니다.
                     </p>
                   ) : null}
-                  <div className="grid gap-2">
+                  <div className={appClass.accountMenuActions}>
                     <button className={appClass.accountMenuAction} type="button" role="menuitem" onClick={() => openMyPageTab('profile')}>
-                      <span className="inline-flex items-center gap-2">
-                        <Edit3 size={17} />
+                      <span className="inline-flex items-center gap-3">
+                        <span className={appClass.accountMenuActionIcon}>
+                          <Edit3 size={18} strokeWidth={2.1} />
+                        </span>
                         프로필 편집
                       </span>
-                      <ChevronRight size={17} />
+                      <ChevronRight size={17} strokeWidth={2.2} />
                     </button>
                     <button className={appClass.accountMenuAction} type="button" role="menuitem" onClick={() => openMyPageTab('completed')}>
-                      <span className="inline-flex items-center gap-2">
-                        <MountainIcon size={17} />
+                      <span className="inline-flex items-center gap-3">
+                        <span className={appClass.accountMenuActionIcon}>
+                          <MountainIcon size={18} strokeWidth={2.1} />
+                        </span>
                         완료한 산
                       </span>
-                      <ChevronRight size={17} />
+                      <ChevronRight size={17} strokeWidth={2.2} />
                     </button>
                     <button className={appClass.accountMenuAction} type="button" role="menuitem" onClick={() => openMyPageTab('reviews')}>
-                      <span className="inline-flex items-center gap-2">
-                        <MessageCircle size={17} />
+                      <span className="inline-flex items-center gap-3">
+                        <span className={appClass.accountMenuActionIcon}>
+                          <MessageCircle size={18} strokeWidth={2.1} />
+                        </span>
                         내 한줄평
                       </span>
-                      <ChevronRight size={17} />
-                    </button>
-                    <button className={appClass.accountMenuDanger} type="button" role="menuitem" onClick={() => void signOut()}>
-                      <span className="inline-flex items-center gap-2">
-                        <LogOut size={17} />
-                        로그아웃
+                      <span className="inline-flex items-center">
+                        <span className={appClass.accountReviewBadge}>
+                          {accountSummary.status === 'loading' ? '-' : accountSummary.reviewCount}
+                        </span>
+                        <ChevronRight size={17} strokeWidth={2.2} />
                       </span>
                     </button>
                   </div>
+                  <button className={appClass.accountMenuDanger} type="button" role="menuitem" onClick={() => void signOut()}>
+                    <LogOut size={17} strokeWidth={2.1} />
+                    로그아웃
+                  </button>
                 </div>
               ) : null}
             </div>

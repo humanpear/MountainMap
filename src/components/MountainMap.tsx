@@ -34,13 +34,13 @@ const INITIAL_MAP_CENTER = {
 const INITIAL_MAP_LEVEL = 12;
 
 const markerClass = {
-  map: 'absolute inset-0',
+  map: 'absolute inset-0 overflow-hidden',
   fallback:
-    'absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(47,107,79,0.08),transparent_28%),linear-gradient(135deg,#e8eee9_0%,#f9fbfa_50%,#dde8e1_100%)]',
+    'absolute inset-0 overflow-hidden bg-[radial-gradient(circle_at_50%_50%,rgba(47,107,79,0.08),transparent_28%),linear-gradient(135deg,#e8eee9_0%,#f9fbfa_50%,#dde8e1_100%)]',
   grid:
     'absolute inset-0 bg-[linear-gradient(rgba(47,107,79,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(47,107,79,0.08)_1px,transparent_1px)] bg-[length:56px_56px]',
   label:
-    'absolute bottom-[92px] left-5 max-w-[300px] rounded-lg border border-[#d8e0da] bg-white/90 px-3 py-2.5 text-[13px] leading-[18px] text-[#627168]',
+    'absolute bottom-[92px] left-5 max-w-[300px] rounded-lg border border-[#d8e0da] bg-white/90 px-3 py-2.5 text-[13px] leading-[18px] text-[#627168] max-[560px]:left-3 max-[560px]:right-3 max-[560px]:max-w-none',
   marker:
     'absolute block h-9 w-9 -translate-x-1/2 -translate-y-1/2 overflow-visible rounded-full border-2 border-[#2f6b4f] bg-white p-0 text-[#2f6b4f] shadow-[0_8px_20px_rgba(24,34,29,0.18)] transition-[transform,box-shadow,background,border-color] duration-150 ease-out',
   kakaoMarker:
