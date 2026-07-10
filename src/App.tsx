@@ -1,4 +1,12 @@
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import type { Session } from '@supabase/supabase-js';
 import {
   Camera,
@@ -166,7 +174,8 @@ const appClass = {
     'inline-flex min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent text-[20px] font-black text-white max-[900px]:col-start-1 max-[900px]:row-start-1 max-[900px]:justify-start max-[900px]:gap-1.5 max-[900px]:text-[16px] [&_span]:truncate [&_svg]:text-white',
   search:
     'grid min-h-9 w-[252px] grid-cols-[minmax(0,1fr)_40px] overflow-hidden rounded-[9px] bg-white transition-[opacity,transform] duration-200 ease-out max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:ml-1 max-[900px]:min-h-9 max-[900px]:w-full max-[900px]:origin-right max-[900px]:grid-cols-1',
-  searchInput: 'min-w-0 border-0 px-4 text-[13px] text-[#18221d] outline-none placeholder:text-[#627168]',
+  searchInput:
+    'min-w-0 border-0 px-4 text-[13px] text-[#18221d] outline-none placeholder:text-[#627168] max-[900px]:text-base',
   searchButton: 'inline-flex cursor-pointer items-center justify-center border-0 bg-white text-[#00172b]',
   mobileSearchToggle:
     'hidden h-9 min-h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-white transition hover:bg-transparent max-[900px]:col-start-3 max-[900px]:row-start-1 max-[900px]:inline-flex',
@@ -340,6 +349,22 @@ export default function App() {
       if (accountMenuCloseTimerRef.current !== null) {
         window.clearTimeout(accountMenuCloseTimerRef.current);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    const preventViewportZoom = (event: Event) => {
+      event.preventDefault();
+    };
+
+    document.addEventListener('gesturestart', preventViewportZoom, { passive: false });
+    document.addEventListener('gesturechange', preventViewportZoom, { passive: false });
+    document.addEventListener('gestureend', preventViewportZoom, { passive: false });
+
+    return () => {
+      document.removeEventListener('gesturestart', preventViewportZoom);
+      document.removeEventListener('gesturechange', preventViewportZoom);
+      document.removeEventListener('gestureend', preventViewportZoom);
     };
   }, []);
 
@@ -695,6 +720,15 @@ export default function App() {
     setIsMobileSearchOpen(false);
   };
 
+  const handleSearchInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
+      return;
+    }
+
+    event.preventDefault();
+    submitMountainSearch();
+  };
+
   const submitFeedback = async () => {
     const trimmedFeedback = feedbackText.trim();
 
@@ -893,9 +927,11 @@ export default function App() {
                 id="mountain-search-input"
                 list="mountain-search-options"
                 type="search"
+                enterKeyHint="search"
                 placeholder="산 이름을 검색하세요"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
+                onKeyDown={handleSearchInputKeyDown}
               />
               <datalist id="mountain-search-options">
                 {mountains.map((mountain) => (

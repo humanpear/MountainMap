@@ -31,6 +31,7 @@ import {
   useState,
   type ChangeEvent,
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type SyntheticEvent,
 } from "react";
@@ -93,6 +94,8 @@ type ReviewConfirmDialogState = {
 type RouteDifficultyLabelMap = Record<string, string>;
 
 const manualCourseRouteName = "코스 직접 입력";
+const courseMapMinScale = 1;
+const courseMapMaxScale = 3;
 
 type ScrollHeroState = {
   progress: number;
@@ -114,6 +117,40 @@ const initialScrollHeroState: ScrollHeroState = {
 
 function clampNumber(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+type CourseMapZoomState = {
+  scale: number;
+  x: number;
+  y: number;
+};
+
+type CourseMapPointer = {
+  x: number;
+  y: number;
+};
+
+type CourseMapGesture =
+  | { type: "pan"; lastX: number; lastY: number }
+  | {
+      type: "pinch";
+      startDistance: number;
+      startScale: number;
+      startX: number;
+      startY: number;
+      startCenterX: number;
+      startCenterY: number;
+    };
+
+function getPointerDistance(left: CourseMapPointer, right: CourseMapPointer) {
+  return Math.hypot(right.x - left.x, right.y - left.y);
+}
+
+function getPointerCenter(left: CourseMapPointer, right: CourseMapPointer) {
+  return {
+    x: (left.x + right.x) / 2,
+    y: (left.y + right.y) / 2,
+  };
 }
 
 const defaultHeroImageRatio = 9 / 16;
@@ -3641,6 +3678,178 @@ function getForestTripCourseKind(
   return "other3";
 }
 
+function ZoomableCourseMapImage({
+  image,
+  onError,
+}: {
+  image: MountainGuideImage;
+  onError: () => void;
+}) {
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const pointersRef = useRef(new Map<number, CourseMapPointer>());
+  const gestureRef = useRef<CourseMapGesture | null>(null);
+  const zoomRef = useRef<CourseMapZoomState>({ scale: 1, x: 0, y: 0 });
+  const [zoom, setZoom] = useState<CourseMapZoomState>(zoomRef.current);
+
+  const clampZoom = useCallback((nextZoom: CourseMapZoomState): CourseMapZoomState => {
+    const scale = clampNumber(nextZoom.scale, courseMapMinScale, courseMapMaxScale);
+    if (scale <= courseMapMinScale) {
+      return { scale: courseMapMinScale, x: 0, y: 0 };
+    }
+
+    const bounds = viewportRef.current?.getBoundingClientRect();
+    const maxX = ((bounds?.width ?? 320) * (scale - 1)) / 2;
+    const maxY = ((bounds?.height ?? 240) * (scale - 1)) / 2;
+
+    return {
+      scale,
+      x: clampNumber(nextZoom.x, -maxX, maxX),
+      y: clampNumber(nextZoom.y, -maxY, maxY),
+    };
+  }, []);
+
+  const applyZoom = useCallback(
+    (nextZoom: CourseMapZoomState) => {
+      const clampedZoom = clampZoom(nextZoom);
+      zoomRef.current = clampedZoom;
+      setZoom(clampedZoom);
+    },
+    [clampZoom],
+  );
+
+  useEffect(() => {
+    applyZoom({ scale: 1, x: 0, y: 0 });
+    pointersRef.current.clear();
+    gestureRef.current = null;
+  }, [applyZoom, image.src]);
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    const pointers = Array.from(pointersRef.current.values());
+    if (pointers.length >= 2) {
+      const [left, right] = pointers;
+      const center = getPointerCenter(left, right);
+      gestureRef.current = {
+        type: "pinch",
+        startDistance: Math.max(getPointerDistance(left, right), 1),
+        startScale: zoomRef.current.scale,
+        startX: zoomRef.current.x,
+        startY: zoomRef.current.y,
+        startCenterX: center.x,
+        startCenterY: center.y,
+      };
+      return;
+    }
+
+    gestureRef.current = { type: "pan", lastX: event.clientX, lastY: event.clientY };
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pointersRef.current.has(event.pointerId)) {
+      return;
+    }
+
+    event.preventDefault();
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const pointers = Array.from(pointersRef.current.values());
+    const gesture = gestureRef.current;
+
+    if (pointers.length >= 2) {
+      const [left, right] = pointers;
+      const center = getPointerCenter(left, right);
+      const distance = Math.max(getPointerDistance(left, right), 1);
+      const pinchGesture =
+        gesture?.type === "pinch"
+          ? gesture
+          : {
+              type: "pinch" as const,
+              startDistance: distance,
+              startScale: zoomRef.current.scale,
+              startX: zoomRef.current.x,
+              startY: zoomRef.current.y,
+              startCenterX: center.x,
+              startCenterY: center.y,
+            };
+
+      gestureRef.current = pinchGesture;
+      applyZoom({
+        scale: pinchGesture.startScale * (distance / pinchGesture.startDistance),
+        x: pinchGesture.startX + center.x - pinchGesture.startCenterX,
+        y: pinchGesture.startY + center.y - pinchGesture.startCenterY,
+      });
+      return;
+    }
+
+    if (pointers.length === 1 && gesture?.type === "pan" && zoomRef.current.scale > 1) {
+      const deltaX = event.clientX - gesture.lastX;
+      const deltaY = event.clientY - gesture.lastY;
+      gestureRef.current = { type: "pan", lastX: event.clientX, lastY: event.clientY };
+      applyZoom({
+        ...zoomRef.current,
+        x: zoomRef.current.x + deltaX,
+        y: zoomRef.current.y + deltaY,
+      });
+    }
+  };
+
+  const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    pointersRef.current.delete(event.pointerId);
+    const pointers = Array.from(pointersRef.current.values());
+    if (pointers.length === 1) {
+      gestureRef.current = { type: "pan", lastX: pointers[0].x, lastY: pointers[0].y };
+      return;
+    }
+
+    gestureRef.current = null;
+  };
+
+  const toggleZoom = () => {
+    if (zoomRef.current.scale > 1) {
+      applyZoom({ scale: 1, x: 0, y: 0 });
+      return;
+    }
+
+    applyZoom({ scale: 2, x: 0, y: 0 });
+  };
+
+  return (
+    <div
+      ref={viewportRef}
+      className="relative min-w-0 max-w-full touch-none overflow-hidden select-none bg-[#f4f8f6]"
+      onDoubleClick={toggleZoom}
+      onPointerCancel={handlePointerEnd}
+      onPointerDown={handlePointerDown}
+      onPointerLeave={handlePointerEnd}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+    >
+      <img
+        className={cn(
+          "block h-auto w-full max-w-none select-none will-change-transform",
+          zoom.scale > 1 ? "cursor-grab" : "cursor-zoom-in",
+        )}
+        src={image.src}
+        alt={image.alt}
+        draggable={false}
+        loading="lazy"
+        onError={onError}
+        style={{
+          transform: `translate3d(${zoom.x}px, ${zoom.y}px, 0) scale(${zoom.scale})`,
+          transformOrigin: "center center",
+          transition: pointersRef.current.size > 0 ? "none" : "transform 140ms ease-out",
+        }}
+      />
+    </div>
+  );
+}
+
 function RecommendedCourseSection({
   courseMapImage,
   routes,
@@ -3733,13 +3942,7 @@ function RecommendedCourseSection({
           </h4>
           {hasCourseMap ? (
             <figure className="m-0 overflow-hidden rounded-[5px] border border-[#d8e0da] bg-[#f4f8f6]">
-              <img
-                className="block h-auto w-full"
-                src={courseMapImage!.src}
-                alt={courseMapImage!.alt}
-                loading="lazy"
-                onError={() => setMapFailed(true)}
-              />
+              <ZoomableCourseMapImage image={courseMapImage!} onError={() => setMapFailed(true)} />
               {courseMapImage?.sourceUrl ? (
                 <figcaption className="border-t border-[#d8e0da] bg-white px-3 py-2 text-xs font-bold text-[#627168]">
                   출처:{" "}
