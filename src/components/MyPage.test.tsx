@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { Session } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MyPage } from "./MyPage";
@@ -67,7 +67,21 @@ function createSession() {
   } as Session;
 }
 
-function renderMyPage(options: { activeTab?: "profile" | "completed" | "reviews"; onTabChange?: (tab: "profile" | "completed" | "reviews") => void } = {}) {
+function renderMyPage(
+  options: {
+    activeTab?: "profile" | "completed" | "reviews";
+    onProfileChange?: (profile: {
+      id: string;
+      email: string | null;
+      displayName: string;
+      displayNameNormalized: string;
+      avatarUrl: string;
+      avatarKind: string;
+      updatedAt?: string | null;
+    }) => void;
+    onTabChange?: (tab: "profile" | "completed" | "reviews") => void;
+  } = {},
+) {
   return render(
     <MyPage
       session={createSession()}
@@ -75,6 +89,7 @@ function renderMyPage(options: { activeTab?: "profile" | "completed" | "reviews"
       completionRecords={[]}
       onBackToMap={() => undefined}
       onCompletionRecordsChange={() => undefined}
+      onProfileChange={options.onProfileChange}
       onTabChange={options.onTabChange}
       onOpenMountain={() => undefined}
       onSignOut={() => undefined}
@@ -197,6 +212,56 @@ describe("MyPage", () => {
 
     expect(await screen.findByRole("heading", { name: "프로필 편집" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "내 산행 현황" })).not.toBeInTheDocument();
+  });
+
+  it("notifies the parent app when the profile display name changes", async () => {
+    profileMocks.fetchOrCreateUserProfile.mockResolvedValue({
+      id: "user-1",
+      email: "user-1@example.com",
+      displayName: "Old Hiker",
+      displayNameNormalized: "old hiker",
+      avatarUrl: "/profile-avatars/avatar-1.svg",
+      avatarKind: "default-1",
+      updatedAt: "2026-06-01T00:00:00.000Z",
+    });
+    profileMocks.saveUserProfile.mockResolvedValue({
+      id: "user-1",
+      email: "user-1@example.com",
+      displayName: "New Hiker",
+      displayNameNormalized: "new hiker",
+      avatarUrl: "/profile-avatars/avatar-1.svg",
+      avatarKind: "default-1",
+      updatedAt: "2026-06-02T00:00:00.000Z",
+    });
+    myPageMocks.fetchUserCompletedMountains.mockResolvedValue([]);
+    myPageMocks.fetchUserReviews.mockResolvedValue([]);
+    const onProfileChange = vi.fn();
+
+    renderMyPage({ activeTab: "profile", onProfileChange });
+
+    const displayNameInput = await screen.findByDisplayValue("Old Hiker");
+    fireEvent.change(displayNameInput, { target: { value: "New Hiker" } });
+
+    const editor = displayNameInput.closest("section");
+    expect(editor).not.toBeNull();
+    const editorButtons = within(editor as HTMLElement).getAllByRole("button");
+    fireEvent.click(editorButtons[editorButtons.length - 1]);
+
+    await waitFor(() => {
+      expect(profileMocks.saveUserProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          displayName: "New Hiker",
+        }),
+      );
+    });
+    await waitFor(() => {
+      expect(onProfileChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          displayName: "New Hiker",
+        }),
+      );
+    });
+    expect(screen.getByDisplayValue("New Hiker")).toBeInTheDocument();
   });
 
   it("edits and deletes a user review from MyPage", async () => {

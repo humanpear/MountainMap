@@ -658,8 +658,8 @@ function MountainMainDetailView({
           expandedHeight: visualExpandedHeight,
           height: visualExpandedHeight,
           stickyOffset: 0,
-          imageBrightness: 1 - 0.62 * progress,
-          imageOpacity: 1 - 0.38 * progress,
+          imageBrightness: 0.9 - 0.7 * progress,
+          imageOpacity: 1,
         };
 
         setHeroState((currentState) => {
@@ -681,23 +681,16 @@ function MountainMainDetailView({
         return;
       }
 
-      const collapsedHeight = Math.min(visualExpandedHeight, contentHeight);
-      const collapseDistance = Math.max(
-        1,
-        visualExpandedHeight - collapsedHeight,
-      );
       const scrollTop = Math.max(section.scrollTop, pageScrollTop);
-      const progress = clampNumber(scrollTop / collapseDistance, 0, 1);
-      const nextHeight =
-        visualExpandedHeight -
-        (visualExpandedHeight - collapsedHeight) * progress;
+      const darkeningDistance = Math.max(1, visualExpandedHeight * 0.72);
+      const progress = clampNumber(scrollTop / darkeningDistance, 0, 1);
       const nextState: ScrollHeroState = {
-        progress,
+        progress: 0,
         expandedHeight: visualExpandedHeight,
-        height: nextHeight,
-        stickyOffset: Math.min(scrollTop, collapseDistance),
-        imageBrightness: 1 - 0.45 * progress,
-        imageOpacity: 1 - 0.28 * progress,
+        height: visualExpandedHeight,
+        stickyOffset: 0,
+        imageBrightness: 0.9 - 0.7 * progress,
+        imageOpacity: 1,
       };
 
       setHeroState((currentState) => {
@@ -770,7 +763,7 @@ function MountainMainDetailView({
       <header className="relative bg-black text-white" style={heroFrameStyle}>
         <div
           data-scroll-hero-frame
-          className="sticky top-0 flex items-end overflow-hidden bg-black text-white max-[900px]:relative max-[900px]:top-auto"
+          className="relative flex items-end overflow-hidden bg-black text-white"
           style={
             {
               height: "var(--hero-frame-height)",

@@ -52,6 +52,7 @@ type MyPageProps = {
   activeTab?: MyPageTab;
   completionRecords: CompletionRecord[];
   onCompletionRecordsChange: (records: CompletionRecord[]) => void;
+  onProfileChange?: (profile: UserProfile) => void;
   onTabChange?: (tab: MyPageTab) => void;
   onBackToMap: () => void;
   onOpenMountain: (mountain: Mountain) => void;
@@ -170,6 +171,7 @@ export function MyPage({
   activeTab = "profile",
   completionRecords,
   onCompletionRecordsChange,
+  onProfileChange,
   onTabChange,
   onBackToMap,
   onOpenMountain,
@@ -210,6 +212,7 @@ export function MyPage({
         setDisplayName(nextProfile.displayName);
         setAvatarUrl(nextProfile.avatarUrl);
         setAvatarKind(nextProfile.avatarKind);
+        onProfileChange?.(nextProfile);
         setCompletedMountains(nextCompletedMountains);
         setReviews(nextReviews);
         setLoadState("ready");
@@ -228,7 +231,7 @@ export function MyPage({
     return () => {
       isActive = false;
     };
-  }, [session.user.id]);
+  }, [session.user.id, onProfileChange]);
 
   const completedSummary = useMemo(() => summarizeCompletedMountains(completedMountains), [completedMountains]);
   const completedMountainCount = completedSummary.length;
@@ -267,6 +270,7 @@ export function MyPage({
       setDisplayName(nextProfile.displayName);
       setAvatarUrl(nextProfile.avatarUrl);
       setAvatarKind(nextProfile.avatarKind);
+      onProfileChange?.(nextProfile);
       setReviews((currentReviews) =>
         currentReviews.map((review) => ({
           ...review,

@@ -526,6 +526,13 @@ export default function App() {
   const accountDisplayName =
     accountProfile?.displayName || session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || '내 계정';
   const accountAvatarUrl = accountProfile?.avatarUrl || getDefaultAvatarUrl(accountProfile?.avatarKind);
+  const syncAccountProfile = useCallback((profile: UserProfile) => {
+    setAccountSummary((current) => ({
+      status: 'ready',
+      profile,
+      reviewCount: current.reviewCount
+    }));
+  }, []);
 
   useEffect(() => {
     if (!isMobileSearchOpen) {
@@ -1185,6 +1192,7 @@ export default function App() {
           activeTab={myPageTab}
           completionRecords={completionRecords}
           onCompletionRecordsChange={setCompletionRecords}
+          onProfileChange={syncAccountProfile}
           onTabChange={openMyPageTab}
           onBackToMap={navigateHome}
           onOpenMountain={openMountainDetail}

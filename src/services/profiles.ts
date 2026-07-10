@@ -142,7 +142,7 @@ export async function saveUserProfile(profile: Pick<UserProfile, "id" | "email" 
       display_name_normalized: normalizeDisplayName(displayName),
       avatar_url: profile.avatarUrl,
       avatar_kind: profile.avatarKind,
-    })
+    }, { onConflict: "id" })
     .select("id,email,display_name,display_name_normalized,avatar_url,avatar_kind,updated_at")
     .single();
 
