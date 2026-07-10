@@ -161,6 +161,66 @@ function setBrowserPath(path: string) {
   window.history.pushState(null, '', path);
 }
 
+const hangulInitials = [
+  'ㄱ',
+  'ㄲ',
+  'ㄴ',
+  'ㄷ',
+  'ㄸ',
+  'ㄹ',
+  'ㅁ',
+  'ㅂ',
+  'ㅃ',
+  'ㅅ',
+  'ㅆ',
+  'ㅇ',
+  'ㅈ',
+  'ㅉ',
+  'ㅊ',
+  'ㅋ',
+  'ㅌ',
+  'ㅍ',
+  'ㅎ'
+] as const;
+
+const hangulInitialSet = new Set<string>(hangulInitials);
+const hangulBaseCode = '가'.charCodeAt(0);
+const hangulLastCode = '힣'.charCodeAt(0);
+const hangulSyllableCountByInitial = 21 * 28;
+
+function getHangulInitials(value: string) {
+  return Array.from(value)
+    .map((letter) => {
+      const code = letter.charCodeAt(0);
+      if (code < hangulBaseCode || code > hangulLastCode) {
+        return letter;
+      }
+
+      return hangulInitials[Math.floor((code - hangulBaseCode) / hangulSyllableCountByInitial)];
+    })
+    .join('');
+}
+
+function isInitialOnlyQuery(query: string) {
+  return Array.from(query).every((letter) => hangulInitialSet.has(letter));
+}
+
+function matchesMountainSearchSuggestion(mountain: Mountain, query: string) {
+  const normalizedQuery = query.trim();
+  if (!normalizedQuery) {
+    return false;
+  }
+
+  const initialText = getHangulInitials(mountain.name);
+  if (isInitialOnlyQuery(normalizedQuery)) {
+    return normalizedQuery.length === 1
+      ? initialText.startsWith(normalizedQuery)
+      : initialText.includes(normalizedQuery);
+  }
+
+  return mountain.name.includes(normalizedQuery) || initialText.includes(normalizedQuery);
+}
+
 const appClass = {
   shell:
     'grid min-h-[var(--app-visible-height,100dvh)] grid-rows-[auto_minmax(0,1fr)] overflow-x-hidden bg-[#f4f7f5] text-[#18221d]',
@@ -173,10 +233,16 @@ const appClass = {
   brand:
     'inline-flex min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent text-[20px] font-black text-white max-[900px]:col-start-1 max-[900px]:row-start-1 max-[900px]:justify-start max-[900px]:gap-1.5 max-[900px]:text-[16px] [&_span]:truncate [&_svg]:text-white',
   search:
-    'grid min-h-9 w-[252px] grid-cols-[minmax(0,1fr)_40px] overflow-hidden rounded-[9px] bg-white transition-[opacity,transform] duration-200 ease-out max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:ml-1 max-[900px]:min-h-9 max-[900px]:w-full max-[900px]:origin-right max-[900px]:grid-cols-1',
+    'relative grid min-h-9 w-[252px] grid-cols-[minmax(0,1fr)_40px] rounded-[9px] bg-white transition-[opacity,transform] duration-200 ease-out max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:ml-1 max-[900px]:min-h-9 max-[900px]:w-full max-[900px]:origin-right max-[900px]:grid-cols-1',
   searchInput:
-    'min-w-0 border-0 px-4 text-[13px] text-[#18221d] outline-none placeholder:text-[#627168] max-[900px]:text-base',
-  searchButton: 'inline-flex cursor-pointer items-center justify-center border-0 bg-white text-[#00172b]',
+    'min-w-0 rounded-l-[9px] border-0 px-4 text-[13px] text-[#18221d] outline-none placeholder:text-[#627168] max-[900px]:rounded-[9px] max-[900px]:text-base',
+  searchButton: 'inline-flex cursor-pointer items-center justify-center rounded-r-[9px] border-0 bg-white text-[#00172b]',
+  searchSuggestions:
+    'absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[min(360px,calc(100vh-96px))] overflow-y-auto rounded-lg border border-[#d8e0da] bg-white py-1.5 text-[#18221d] shadow-[0_18px_48px_rgba(0,0,0,0.18)] max-[900px]:max-h-[min(320px,calc(100dvh-86px))]',
+  searchSuggestionButton:
+    'grid w-full cursor-pointer grid-cols-[max-content_minmax(0,1fr)] items-center gap-2 border-0 bg-white px-3 py-2.5 text-left transition hover:bg-[#f4f8f6] focus:bg-[#f4f8f6] focus:outline-none',
+  searchSuggestionName: 'whitespace-nowrap text-[12px] font-semibold leading-4 text-[#18221d] max-[900px]:text-[13px]',
+  searchSuggestionMeta: 'truncate text-[12px] font-bold leading-4 text-[#627168] max-[900px]:text-[13px]',
   mobileSearchToggle:
     'hidden h-9 min-h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-white transition hover:bg-transparent max-[900px]:col-start-3 max-[900px]:row-start-1 max-[900px]:inline-flex',
   authButton:
@@ -313,6 +379,7 @@ export default function App() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isAccountMenuClosing, setIsAccountMenuClosing] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [accountSummary, setAccountSummary] = useState<AccountSummaryState>({
     status: 'idle',
     profile: null,
@@ -442,6 +509,18 @@ export default function App() {
     () => getRandomCandidates({ mountains, completedIds, selectedIds: candidateIds, mode: randomMode }),
     [candidateIds, completedIds, randomMode]
   );
+  const searchSuggestions = useMemo(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      return [];
+    }
+
+    return mountains
+      .filter((mountain) => matchesMountainSearchSuggestion(mountain, query))
+      .sort((left, right) => left.name.localeCompare(right.name, 'ko-KR'))
+      .slice(0, 8);
+  }, [searchQuery]);
+  const shouldShowSearchSuggestions = isSearchFocused && searchSuggestions.length > 0;
   const isDetailPanelOpen = randomState.status === 'running' || Boolean(selectedMountain);
   const accountProfile = accountSummary.profile;
   const accountDisplayName =
@@ -698,6 +777,15 @@ export default function App() {
     setMapRefreshKey((key) => key + 1);
   };
 
+  const openSearchMountain = (match: Mountain) => {
+    setSelectedMountainId(match.id);
+    setFocusedMountainId(match.id);
+    openMountainDetail(match);
+    setResultModalMountain(null);
+    setIsMobileSearchOpen(false);
+    setIsSearchFocused(false);
+  };
+
   const submitMountainSearch = () => {
     const query = searchQuery.trim();
     if (!query) {
@@ -706,6 +794,7 @@ export default function App() {
 
     const match =
       mountains.find((mountain) => mountain.name === query) ??
+      searchSuggestions[0] ??
       mountains.find((mountain) => mountain.name.includes(query) || query.includes(mountain.name));
 
     if (!match) {
@@ -713,11 +802,7 @@ export default function App() {
       return;
     }
 
-    setSelectedMountainId(match.id);
-    setFocusedMountainId(match.id);
-    openMountainDetail(match);
-    setResultModalMountain(null);
-    setIsMobileSearchOpen(false);
+    openSearchMountain(match);
   };
 
   const handleSearchInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -925,19 +1010,42 @@ export default function App() {
                 ref={searchInputRef}
                 className={appClass.searchInput}
                 id="mountain-search-input"
-                list="mountain-search-options"
                 type="search"
                 enterKeyHint="search"
+                autoComplete="off"
+                aria-autocomplete="list"
+                aria-controls={shouldShowSearchSuggestions ? 'mountain-search-suggestions' : undefined}
+                aria-expanded={shouldShowSearchSuggestions}
                 placeholder="산 이름을 검색하세요"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
+                onBlur={() => setIsSearchFocused(false)}
+                onFocus={() => setIsSearchFocused(true)}
                 onKeyDown={handleSearchInputKeyDown}
               />
-              <datalist id="mountain-search-options">
-                {mountains.map((mountain) => (
-                  <option key={mountain.id} value={mountain.name} />
-                ))}
-              </datalist>
+              {shouldShowSearchSuggestions ? (
+                <div className={appClass.searchSuggestions} id="mountain-search-suggestions" role="listbox">
+                  {searchSuggestions.map((mountain) => (
+                    <button
+                      key={mountain.id}
+                      className={appClass.searchSuggestionButton}
+                      type="button"
+                      role="option"
+                      aria-selected="false"
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        setSearchQuery(mountain.name);
+                        openSearchMountain(mountain);
+                      }}
+                    >
+                      <span className={appClass.searchSuggestionName}>{mountain.name}</span>
+                      <span className={appClass.searchSuggestionMeta}>
+                        {mountain.province} {mountain.city}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <button className={cn(appClass.searchButton, 'max-[900px]:hidden')} type="submit" aria-label="산 검색">
                 <Search size={22} />
               </button>

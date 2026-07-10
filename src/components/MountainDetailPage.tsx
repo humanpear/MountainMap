@@ -15,6 +15,8 @@
   MoreHorizontal,
   Mountain as MountainIcon,
   MountainSnow,
+  Minus,
+  Plus,
   Route,
   ShieldAlert,
   Trash2,
@@ -34,6 +36,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type SyntheticEvent,
+  type TouchEvent as ReactTouchEvent,
 } from "react";
 import { getMountainGuide } from "../data/mountainDetails";
 import { cn } from "../lib/classNames";
@@ -3724,6 +3727,10 @@ function ZoomableCourseMapImage({
   }, [applyZoom, image.src]);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -3748,6 +3755,10 @@ function ZoomableCourseMapImage({
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+
     if (!pointersRef.current.has(event.pointerId)) {
       return;
     }
@@ -3796,6 +3807,10 @@ function ZoomableCourseMapImage({
   };
 
   const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -3804,6 +3819,95 @@ function ZoomableCourseMapImage({
     const pointers = Array.from(pointersRef.current.values());
     if (pointers.length === 1) {
       gestureRef.current = { type: "pan", lastX: pointers[0].x, lastY: pointers[0].y };
+      return;
+    }
+
+    gestureRef.current = null;
+  };
+
+  const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
+    const touches = Array.from(event.touches);
+    if (touches.length >= 2) {
+      event.preventDefault();
+      const [leftTouch, rightTouch] = touches;
+      const left = { x: leftTouch.clientX, y: leftTouch.clientY };
+      const right = { x: rightTouch.clientX, y: rightTouch.clientY };
+      const center = getPointerCenter(left, right);
+
+      gestureRef.current = {
+        type: "pinch",
+        startDistance: Math.max(getPointerDistance(left, right), 1),
+        startScale: zoomRef.current.scale,
+        startX: zoomRef.current.x,
+        startY: zoomRef.current.y,
+        startCenterX: center.x,
+        startCenterY: center.y,
+      };
+      return;
+    }
+
+    if (touches.length === 1) {
+      if (zoomRef.current.scale > 1) {
+        event.preventDefault();
+      }
+
+      const touch = touches[0];
+      gestureRef.current = { type: "pan", lastX: touch.clientX, lastY: touch.clientY };
+    }
+  };
+
+  const handleTouchMove = (event: ReactTouchEvent<HTMLDivElement>) => {
+    const touches = Array.from(event.touches);
+    const gesture = gestureRef.current;
+
+    if (touches.length >= 2) {
+      event.preventDefault();
+      const [leftTouch, rightTouch] = touches;
+      const left = { x: leftTouch.clientX, y: leftTouch.clientY };
+      const right = { x: rightTouch.clientX, y: rightTouch.clientY };
+      const center = getPointerCenter(left, right);
+      const distance = Math.max(getPointerDistance(left, right), 1);
+      const pinchGesture =
+        gesture?.type === "pinch"
+          ? gesture
+          : {
+              type: "pinch" as const,
+              startDistance: distance,
+              startScale: zoomRef.current.scale,
+              startX: zoomRef.current.x,
+              startY: zoomRef.current.y,
+              startCenterX: center.x,
+              startCenterY: center.y,
+            };
+
+      gestureRef.current = pinchGesture;
+      applyZoom({
+        scale: pinchGesture.startScale * (distance / pinchGesture.startDistance),
+        x: pinchGesture.startX + center.x - pinchGesture.startCenterX,
+        y: pinchGesture.startY + center.y - pinchGesture.startCenterY,
+      });
+      return;
+    }
+
+    if (touches.length === 1 && gesture?.type === "pan" && zoomRef.current.scale > 1) {
+      event.preventDefault();
+      const touch = touches[0];
+      const deltaX = touch.clientX - gesture.lastX;
+      const deltaY = touch.clientY - gesture.lastY;
+      gestureRef.current = { type: "pan", lastX: touch.clientX, lastY: touch.clientY };
+      applyZoom({
+        ...zoomRef.current,
+        x: zoomRef.current.x + deltaX,
+        y: zoomRef.current.y + deltaY,
+      });
+    }
+  };
+
+  const handleTouchEnd = (event: ReactTouchEvent<HTMLDivElement>) => {
+    const touches = Array.from(event.touches);
+    if (touches.length === 1) {
+      const touch = touches[0];
+      gestureRef.current = { type: "pan", lastX: touch.clientX, lastY: touch.clientY };
       return;
     }
 
@@ -3819,6 +3923,10 @@ function ZoomableCourseMapImage({
     applyZoom({ scale: 2, x: 0, y: 0 });
   };
 
+  const changeZoomBy = (delta: number) => {
+    applyZoom({ ...zoomRef.current, scale: zoomRef.current.scale + delta });
+  };
+
   return (
     <div
       ref={viewportRef}
@@ -3829,7 +3937,35 @@ function ZoomableCourseMapImage({
       onPointerLeave={handlePointerEnd}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerEnd}
+      onTouchCancel={handleTouchEnd}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
+      onTouchStart={handleTouchStart}
     >
+      <div
+        className="absolute right-2 top-2 z-10 hidden overflow-hidden rounded-md border border-[#d8e0da] bg-white/95 shadow-[0_8px_24px_rgba(24,34,29,0.16)] max-[900px]:flex"
+        onPointerDown={(event) => event.stopPropagation()}
+        onTouchStart={(event) => event.stopPropagation()}
+      >
+        <button
+          className="grid h-7 w-7 cursor-pointer place-items-center border-0 border-r border-[#d8e0da] bg-white text-[#18221d] disabled:cursor-not-allowed disabled:text-[#a0aaa4]"
+          type="button"
+          aria-label="추천 코스 지도 확대"
+          onClick={() => changeZoomBy(0.5)}
+          disabled={zoom.scale >= courseMapMaxScale}
+        >
+          <Plus size={13} strokeWidth={2.4} />
+        </button>
+        <button
+          className="grid h-7 w-7 cursor-pointer place-items-center border-0 bg-white text-[#18221d] disabled:cursor-not-allowed disabled:text-[#a0aaa4]"
+          type="button"
+          aria-label="추천 코스 지도 축소"
+          onClick={() => changeZoomBy(-0.5)}
+          disabled={zoom.scale <= courseMapMinScale}
+        >
+          <Minus size={13} strokeWidth={2.4} />
+        </button>
+      </div>
       <img
         className={cn(
           "block h-auto w-full max-w-none select-none will-change-transform",
@@ -3936,8 +4072,8 @@ function RecommendedCourseSection({
           )}
         </article>
 
-        <article className="min-w-0 max-w-full rounded-md border border-[#d8e0da] bg-white px-6 pb-6 pt-5 shadow-[0_10px_28px_rgba(24,34,29,0.045)] max-[560px]:px-4 max-[560px]:pb-5">
-          <h4 className="mb-4 mt-0 text-[22px] font-black leading-7 text-[#18221d]">
+        <article className="min-w-0 max-w-full overflow-hidden rounded-md border border-[#d8e0da] bg-white px-0 pb-0 pt-5 shadow-[0_10px_28px_rgba(24,34,29,0.045)]">
+          <h4 className="mb-4 mt-0 px-6 text-[22px] font-black leading-7 text-[#18221d] max-[560px]:px-4">
             추천 코스 지도
           </h4>
           {hasCourseMap ? (
