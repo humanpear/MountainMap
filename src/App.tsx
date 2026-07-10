@@ -154,7 +154,8 @@ function setBrowserPath(path: string) {
 }
 
 const appClass = {
-  shell: 'grid min-h-screen min-h-dvh grid-rows-[auto_minmax(0,1fr)] overflow-x-hidden bg-[#f4f7f5] text-[#18221d]',
+  shell:
+    'grid min-h-[var(--app-visible-height,100dvh)] grid-rows-[auto_minmax(0,1fr)] overflow-x-hidden bg-[#f4f7f5] text-[#18221d]',
   topbar:
     'z-[4] bg-[#00172b] text-white',
   topbarInner:
@@ -204,7 +205,7 @@ const appClass = {
   accountMenuDanger:
     'inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-3 text-center text-[14px] font-semibold leading-5 text-[#d90d0d] shadow-[0_7px_20px_rgba(24,34,29,0.05)] transition hover:bg-[#fff1ee] max-[560px]:min-h-10 max-[560px]:px-2.5 max-[560px]:text-[12px] max-[560px]:leading-4',
   workspace:
-    'relative grid h-full min-h-[calc(100dvh-68px)] overflow-hidden transition-[grid-template-columns] duration-200 ease-out max-[900px]:min-h-[calc(100dvh-56px)] max-[900px]:grid-cols-1',
+    'relative grid h-[calc(var(--app-visible-height,100dvh)-var(--app-header-height,68px))] min-h-0 overflow-hidden transition-[grid-template-columns] duration-200 ease-out max-[900px]:grid-cols-1',
   mapStage: 'relative h-full min-h-0 min-w-0 overflow-hidden',
   mapControls:
     'absolute left-5 top-5 z-[2] grid justify-items-start gap-3 max-[560px]:left-3 max-[560px]:right-auto max-[560px]:gap-2',
@@ -310,6 +311,7 @@ export default function App() {
   });
   const [mapRefreshKey, setMapRefreshKey] = useState(0);
   const accountMenuCloseTimerRef = useRef<number | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const closeAccountMenu = useCallback((animated = true) => {
@@ -337,6 +339,51 @@ export default function App() {
     return () => {
       if (accountMenuCloseTimerRef.current !== null) {
         window.clearTimeout(accountMenuCloseTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    let frameId: number | null = null;
+
+    const syncViewportSize = () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        const visibleHeight = window.visualViewport?.height ?? window.innerHeight;
+        const headerHeight = headerRef.current?.getBoundingClientRect().height ?? 68;
+
+        root.style.setProperty('--app-visible-height', `${visibleHeight}px`);
+        root.style.setProperty('--app-header-height', `${headerHeight}px`);
+      });
+    };
+
+    syncViewportSize();
+
+    window.addEventListener('resize', syncViewportSize);
+    window.addEventListener('orientationchange', syncViewportSize);
+    window.visualViewport?.addEventListener('resize', syncViewportSize);
+    window.visualViewport?.addEventListener('scroll', syncViewportSize);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && headerRef.current) {
+      resizeObserver = new ResizeObserver(syncViewportSize);
+      resizeObserver.observe(headerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', syncViewportSize);
+      window.removeEventListener('orientationchange', syncViewportSize);
+      window.visualViewport?.removeEventListener('resize', syncViewportSize);
+      window.visualViewport?.removeEventListener('scroll', syncViewportSize);
+      resizeObserver?.disconnect();
+
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
       }
     };
   }, []);
@@ -817,7 +864,7 @@ export default function App() {
 
   return (
     <main className={appClass.shell}>
-      <header className={appClass.topbar}>
+      <header ref={headerRef} className={appClass.topbar}>
         <div className={appClass.topbarInner}>
           <button className={appClass.brand} type="button" onClick={navigateHome} aria-label="지도로 이동">
             <img className="h-9 w-auto object-contain brightness-0 invert max-[900px]:h-[31px]" src="/logo-mountain.png" alt="" aria-hidden="true" />

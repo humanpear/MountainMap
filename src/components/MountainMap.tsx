@@ -32,6 +32,16 @@ const INITIAL_MAP_CENTER = {
 };
 
 const INITIAL_MAP_LEVEL = 12;
+const MOBILE_INITIAL_MAP_LEVEL = 13;
+const MOBILE_MAP_QUERY = '(max-width: 900px)';
+
+function getInitialMapLevel() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return INITIAL_MAP_LEVEL;
+  }
+
+  return window.matchMedia(MOBILE_MAP_QUERY).matches ? MOBILE_INITIAL_MAP_LEVEL : INITIAL_MAP_LEVEL;
+}
 
 const markerClass = {
   map: 'absolute inset-0 overflow-hidden',
@@ -88,7 +98,7 @@ export function MountainMap(props: MountainMapProps) {
 
         mapRef.current = new maps.Map(containerRef.current, {
           center: new maps.LatLng(INITIAL_MAP_CENTER.latitude, INITIAL_MAP_CENTER.longitude),
-          level: INITIAL_MAP_LEVEL,
+          level: getInitialMapLevel(),
           tileAnimation: true
         });
         mapRef.current.setZoomable(true);

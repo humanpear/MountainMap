@@ -19,7 +19,7 @@ const kakaoMocks = vi.hoisted(() => {
     setZoomable,
     addControl
   };
-  const Map = vi.fn(function () {
+  const Map = vi.fn(function (_container: HTMLElement, _options: unknown) {
     return mapInstance;
   });
   const CustomOverlay = vi.fn(function () {
@@ -120,6 +120,19 @@ function renderMountainMap() {
   );
 }
 
+function createMatchMedia(matchingQuery?: string) {
+  return vi.fn((query: string) => ({
+    matches: query === matchingQuery,
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn()
+  })) as typeof window.matchMedia;
+}
+
 describe('MountainMap', () => {
   beforeEach(() => {
     resizeCallback = null;
@@ -133,6 +146,7 @@ describe('MountainMap', () => {
     kakaoMocks.addControl.mockClear();
     window.kakao = { maps: kakaoMocks.maps } as unknown as Window['kakao'];
     vi.stubGlobal('ResizeObserver', TestResizeObserver);
+    vi.stubGlobal('matchMedia', createMatchMedia());
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       callback(0);
       return 1;
@@ -143,6 +157,28 @@ describe('MountainMap', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('uses the desktop initial map level by default', async () => {
+    renderMountainMap();
+
+    await waitFor(() => {
+      expect(kakaoMocks.Map).toHaveBeenCalledTimes(1);
+    });
+
+    expect(kakaoMocks.Map.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ level: 12 }));
+  });
+
+  it('uses the wider mobile initial map level on narrow screens', async () => {
+    vi.stubGlobal('matchMedia', createMatchMedia('(max-width: 900px)'));
+
+    renderMountainMap();
+
+    await waitFor(() => {
+      expect(kakaoMocks.Map).toHaveBeenCalledTimes(1);
+    });
+
+    expect(kakaoMocks.Map.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ level: 13 }));
   });
 
   it('relayouts the Kakao map when the map container size changes after mount', async () => {
