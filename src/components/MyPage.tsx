@@ -89,6 +89,25 @@ const difficultyDefaultIndex: Record<MountainGuideDifficulty, number> = {
   unknown: 2,
 };
 
+function getReviewDifficultyBadgeClass(difficultyLabel: string) {
+  if (difficultyLabel === "쉬움") {
+    return "border-[#dceec8] bg-[#f2f9e8]";
+  }
+  if (difficultyLabel === "보통") {
+    return "border-[#cfe4d4] bg-[#edf7f0]";
+  }
+  if (difficultyLabel === "약간 어려움") {
+    return "border-[#f0dfaa] bg-[#fff7dc]";
+  }
+  if (difficultyLabel === "어려움") {
+    return "border-[#f3d1b4] bg-[#fff0e3]";
+  }
+  if (difficultyLabel === "매우 어려움") {
+    return "border-[#efc9c5] bg-[#fdecea]";
+  }
+  return "border-[#d8e0da] bg-[#eef3f0]";
+}
+
 const pageClass = {
   shell:
     "min-h-[calc(100vh-68px)] bg-[radial-gradient(circle_at_top_right,rgba(218,231,224,0.72),transparent_34%),linear-gradient(180deg,#fbfcfb_0%,#f5f7f4_42%,#f7faf7_100%)]",
@@ -771,7 +790,7 @@ function UserReviewsPanel({
                       </p>
                     ) : null}
                   </div>
-                  <span className={cn(pageClass.tag, "text-[11px] font-semibold")}>{review.difficulty}</span>
+                  <span className={cn("inline-flex min-h-6 items-center rounded-full border px-2 text-[11px] font-semibold text-[#2d3932]", getReviewDifficultyBadgeClass(review.difficulty))}>{review.difficulty}</span>
                 </div>
                 <p className="m-0 text-[12px] font-medium leading-[18px] text-[#18221d]">{review.body}</p>
                 <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-[#5d6a62]">
@@ -1097,7 +1116,7 @@ function EditableUserReviewsPanel({
                   </p>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex min-h-6 items-center rounded-full border border-[#d7e4ba] bg-[#f0f7e4] px-2 text-[11px] font-semibold text-[#237a1f]">
+                    <span className={cn("inline-flex min-h-6 items-center rounded-full border px-2 text-[11px] font-semibold text-[#2d3932]", getReviewDifficultyBadgeClass(review.difficulty))}>
                       난이도 {review.difficulty}
                     </span>
                     <span className="inline-flex min-h-6 items-center gap-1 rounded-full border border-[#d8e0da] bg-[#f1f5f7] px-2 font-numeric text-[11px] font-semibold text-[#49524d]">
@@ -1224,12 +1243,12 @@ function MyPageReviewEditForm({
 
   return (
     <div className="col-span-2 overflow-hidden rounded-md border border-[#d8e0da] bg-white shadow-[0_10px_28px_rgba(24,34,29,0.045)] max-[840px]:col-span-1">
-      <h3 className="m-0 px-6 pt-6 text-[22px] font-black leading-7 text-[#18221d] max-[560px]:px-4 max-[560px]:pt-5">
+      <h3 className="m-0 px-6 pt-6 text-[17px] font-black leading-[22px] text-[#18221d] max-[560px]:px-4 max-[560px]:pt-5">
         코스 평가
       </h3>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(320px,1.08fr)] grid-rows-[auto_auto] gap-3 px-5 pt-5 max-[1100px]:grid-cols-1 max-[1100px]:grid-rows-none max-[560px]:px-4 max-[560px]:pt-4">
-        <div className="col-span-2 row-start-1 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[1100px]:col-span-1 max-[1100px]:row-auto">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(320px,1.08fr)] grid-rows-[auto_auto_auto] gap-3 px-5 pt-5 max-[1100px]:grid-cols-1 max-[1100px]:grid-rows-none max-[560px]:px-4 max-[560px]:pt-4">
+        <div className="col-start-1 row-start-1 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[1100px]:col-auto max-[1100px]:row-auto">
           <label
             className="mb-3 block text-center text-base font-extrabold leading-6 text-[#18221d]"
             htmlFor={`course-feedback-route-${review.id}`}
@@ -1290,20 +1309,15 @@ function MyPageReviewEditForm({
           }}
         />
 
-        <div className="col-start-2 row-start-2 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[1100px]:col-auto max-[1100px]:row-auto">
-          <strong className="block text-center text-lg font-extrabold leading-7 text-[#18221d]">
+        <div className="col-start-1 row-start-3 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[1100px]:col-auto max-[1100px]:row-auto">
+          <strong className="block text-center text-[15px] font-extrabold leading-5 text-[#18221d]">
             소요시간은 얼마나 걸렸나요?
           </strong>
-          <p className="mx-auto mb-4 mt-2 max-w-[360px] break-keep text-center text-sm font-semibold leading-6 text-[#2d3932]">
-            산행 시작부터 하산 완료까지 걸린 전체 시간입니다. 휴식, 사진 촬영,
-            식사 시간을 포함해서 입력해주세요.
-          </p>
-
-          <div className="mx-auto grid max-w-[320px] grid-cols-2 gap-3">
+          <div className="mx-auto mt-4 grid max-w-[320px] grid-cols-2 gap-3">
             <div className="min-w-0">
               <div className="relative">
                 <input
-                  className="h-12 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-xl font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                  className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-[17px] font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                   type="number"
                   min={0}
                   max={10}
@@ -1326,7 +1340,7 @@ function MyPageReviewEditForm({
             <div className="min-w-0">
               <div className="relative">
                 <input
-                  className="h-12 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-xl font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                  className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-[17px] font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                   type="number"
                   min={0}
                   max={59}
@@ -1349,8 +1363,8 @@ function MyPageReviewEditForm({
           </div>
         </div>
 
-        <div className="col-start-3 row-span-2 row-start-1 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[1100px]:col-auto max-[1100px]:row-auto max-[1100px]:row-span-1">
-          <strong className="mb-3 block text-center text-lg font-extrabold leading-7 text-[#18221d]">
+        <div className="col-start-2 row-span-3 row-start-1 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[1100px]:col-auto max-[1100px]:row-auto max-[1100px]:row-span-1">
+          <strong className="mb-3 block text-center text-[15px] font-extrabold leading-5 text-[#18221d]">
             한줄평을 남겨주세요!
           </strong>
           <textarea
@@ -1449,7 +1463,7 @@ function MyPageReviewEditForm({
             </p>
           ) : null}
 
-          <div className="mt-3 grid gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <button
               className="min-h-11 w-full rounded-md border-0 bg-[#166b3d] px-4 text-sm font-black text-white transition hover:bg-[#125b34] disabled:cursor-not-allowed disabled:opacity-50"
               type="button"
@@ -1601,7 +1615,7 @@ function MyPageReviewEditMobileForm({
           <div className="mt-3 grid grid-cols-2 gap-2.5">
             <div className="relative">
               <input
-                className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-lg font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-[17px] font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                 type="number"
                 min={0}
                 max={10}
@@ -1622,7 +1636,7 @@ function MyPageReviewEditMobileForm({
             </div>
             <div className="relative">
               <input
-                className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-lg font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-[17px] font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                 type="number"
                 min={0}
                 max={59}
@@ -1820,7 +1834,7 @@ function MyPageEvaluationPicker({
   return (
     <div
       className={cn(
-        "min-w-0 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[560px]:p-3 [&>strong]:mb-5 [&>strong]:block [&>strong]:text-center [&>strong]:text-lg [&>strong]:font-extrabold [&>strong]:leading-7 max-[560px]:[&>strong]:mb-3 max-[560px]:[&>strong]:text-[14px] max-[560px]:[&>strong]:leading-5",
+        "min-w-0 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[560px]:p-3 [&>strong]:mb-5 [&>strong]:block [&>strong]:text-center [&>strong]:text-[15px] [&>strong]:font-extrabold [&>strong]:leading-5 max-[560px]:[&>strong]:mb-3 max-[560px]:[&>strong]:text-[14px] max-[560px]:[&>strong]:leading-5",
         className,
       )}
     >

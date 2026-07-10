@@ -814,7 +814,7 @@ function MountainMainDetailView({
                   </button>
                 </div>
               </div>
-               <div className="col-start-1 row-start-2 flex max-w-[760px] self-stretch flex-col justify-between gap-10 max-[900px]:col-start-auto max-[900px]:row-start-auto max-[900px]:gap-5 max-[560px]:gap-4">
+               <div className="col-start-1 row-start-2 flex max-w-[760px] self-stretch flex-col justify-between gap-8 max-[900px]:col-start-auto max-[900px]:row-start-auto max-[900px]:gap-5 max-[560px]:gap-4">
                 <h2 className="m-0 text-[78px] font-black leading-[0.96] text-white shadow-black [letter-spacing:0] [text-shadow:0_5px_18px_rgba(0,0,0,0.42)] max-[900px]:text-[clamp(36px,10vw,52px)] max-[560px]:text-[34px] max-[560px]:leading-[1.02]">
                   <MountainNameWithHanja
                     mountain={mountain}
@@ -1056,7 +1056,7 @@ function CourseDetailView({
           role="tablist"
           aria-label="코스 상세 탭"
         >
-          <div className="mx-auto flex w-[1180px] max-w-[calc(100%-60px)] gap-[30px] overflow-x-auto [&_button]:min-h-[54px] [&_button]:shrink-0 [&_button]:border-0 [&_button]:border-b-4 [&_button]:border-transparent [&_button]:bg-transparent [&_button]:px-6 [&_button]:text-[21px] [&_button]:font-black [&_button]:text-[#627168] [&_button.is-active]:border-b-[#e10f07] [&_button.is-active]:text-[#18221d] max-[900px]:w-full max-[900px]:max-w-none max-[900px]:px-4 max-[560px]:gap-3 max-[560px]:[&_button]:px-2 max-[560px]:[&_button]:text-[18px]">
+          <div className="mx-auto flex w-[1180px] max-w-[calc(100%-60px)] gap-5 overflow-x-auto [&_button]:min-h-11 [&_button]:shrink-0 [&_button]:border-0 [&_button]:border-b-[3px] [&_button]:border-transparent [&_button]:bg-transparent [&_button]:px-4 [&_button]:text-[15px] [&_button]:font-black [&_button]:text-[#627168] [&_button.is-active]:border-b-[#e10f07] [&_button.is-active]:text-[#18221d] max-[900px]:w-full max-[900px]:max-w-none max-[900px]:px-4 max-[560px]:gap-3 max-[560px]:[&_button]:px-2 max-[560px]:[&_button]:text-[13px]">
             <button
               className={cn(activeTab === "overview" && "is-active")}
               type="button"
@@ -1086,7 +1086,7 @@ function CourseDetailView({
                 aria-label="코스 지도와 타임라인"
               >
                 <div className="rounded-md border border-[#dedede] bg-white p-[22px] shadow-[0_10px_28px_rgba(24,34,29,0.04)] max-[560px]:p-4">
-                  <h3 className="m-0 mb-4 text-[22px] font-black">
+                  <h3 className="m-0 mb-4 text-[17px] font-black leading-[22px]">
                     코스 이미지
                   </h3>
                   <CourseMapImagePanel route={route} />
@@ -1126,7 +1126,6 @@ const reviewFilterLabels: Record<ForestTripCourseKind, string> = {
 
 const manualReviewFilterKind = "manual" as const;
 type ReviewFilterKind = "all" | ForestTripCourseKind | typeof manualReviewFilterKind;
-type ReviewSortOrder = "newest" | "oldest";
 
 type ReviewFilterOption = {
   kind: ReviewFilterKind;
@@ -1657,7 +1656,7 @@ function CourseFeedbackSection({
   };
   const reviewForm = (
     <>
-      <h3 className="m-0 px-6 pt-6 text-[22px] font-black leading-7 text-[#18221d] max-[560px]:px-4 max-[560px]:pt-5">
+      <h3 className="m-0 px-6 pt-6 text-[17px] font-black leading-[22px] text-[#18221d] max-[560px]:px-4 max-[560px]:pt-5">
         코스 평가
       </h3>
 
@@ -1737,7 +1736,7 @@ function CourseFeedbackSection({
         />
 
         <div className="col-start-2 row-start-2 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[1100px]:col-auto max-[1100px]:row-auto">
-          <strong className="block text-center text-lg font-extrabold leading-7 text-[#18221d]">
+          <strong className="block text-center text-[15px] font-extrabold leading-5 text-[#18221d]">
             소요시간은 얼마나 걸렸나요?
           </strong>
           <p className="mx-auto mb-4 mt-2 max-w-[360px] break-keep text-center text-sm font-semibold leading-6 text-[#2d3932]">
@@ -1749,7 +1748,7 @@ function CourseFeedbackSection({
             <div className="min-w-0">
               <div className="relative">
                 <input
-                  className="h-12 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-xl font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                  className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-[17px] font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                   type="number"
                   min={0}
                   max={10}
@@ -1772,7 +1771,7 @@ function CourseFeedbackSection({
             <div className="min-w-0">
               <div className="relative">
                 <input
-                  className="h-12 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-xl font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                  className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-[17px] font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                   type="number"
                   min={0}
                   max={59}
@@ -1796,7 +1795,7 @@ function CourseFeedbackSection({
         </div>
 
         <div className="col-start-3 row-span-2 row-start-1 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[1100px]:col-auto max-[1100px]:row-auto max-[1100px]:row-span-1">
-          <strong className="mb-3 block text-center text-lg font-extrabold leading-7 text-[#18221d]">
+          <strong className="mb-3 block text-center text-[15px] font-extrabold leading-5 text-[#18221d]">
             한줄평을 남겨주세요!
           </strong>
           <textarea
@@ -2071,7 +2070,7 @@ function CourseFeedbackSection({
                 <div className="mt-3 grid grid-cols-2 gap-2.5">
                   <div className="relative">
                     <input
-                      className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-lg font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                      className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-11 text-right font-numeric text-[17px] font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                       type="number"
                       min={0}
                       max={10}
@@ -2092,7 +2091,7 @@ function CourseFeedbackSection({
                   </div>
                   <div className="relative">
                     <input
-                      className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-lg font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
+                      className="h-11 min-w-0 w-full rounded-md border border-[#d8e0da] bg-white px-3 pr-8 text-right font-numeric text-[17px] font-extrabold text-[#18221d] outline-none transition focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
                       type="number"
                       min={0}
                       max={59}
@@ -2427,19 +2426,13 @@ function ReviewFilterBar({
   ariaLabel,
   filterOptions,
   activeFilter,
-  sortOrder,
   onFilterChange,
-  onSortOrderChange,
 }: {
   ariaLabel: string;
   filterOptions: ReviewFilterOption[];
   activeFilter: ReviewFilterKind;
-  sortOrder: ReviewSortOrder;
   onFilterChange: (filter: ReviewFilterKind) => void;
-  onSortOrderChange: (sortOrder: ReviewSortOrder) => void;
 }) {
-  const sortAriaLabel = ariaLabel.replace(/\s*필터$/, " 정렬");
-
   return (
     <div
       className="mb-4 flex flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain pb-1"
@@ -2452,7 +2445,7 @@ function ReviewFilterBar({
           <button
             key={option.kind}
             className={cn(
-              "inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-black transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#245c46]/25",
+              "inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border px-4 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#245c46]/25 max-[560px]:min-h-8 max-[560px]:gap-1 max-[560px]:px-3 max-[560px]:text-[12px]",
               isActive
                 ? "border-[#245c46] bg-[#245c46] text-white"
                 : "border-[#d8e0da] bg-white text-[#18221d] hover:bg-[#f7faf8]",
@@ -2461,19 +2454,11 @@ function ReviewFilterBar({
             aria-pressed={isActive}
             onClick={() => onFilterChange(option.kind)}
           >
-            {option.label}
+            <span className="font-extrabold">{option.label}</span>
+            <span className={cn("font-numeric font-medium", isActive ? "text-white/78" : "text-[#6f7a72]")}>{option.count}</span>
           </button>
         );
       })}
-      <select
-        className="min-h-10 shrink-0 rounded-full border border-[#d8e0da] bg-white px-4 text-sm font-black text-[#18221d] outline-none focus:border-[#245c46] focus:ring-2 focus:ring-[#245c46]/15"
-        value={sortOrder}
-        aria-label={sortAriaLabel}
-        onChange={(event) => onSortOrderChange(event.target.value as ReviewSortOrder)}
-      >
-        <option value="newest">최신순</option>
-        <option value="oldest">오래된순</option>
-      </select>
     </div>
   );
 }
@@ -2517,27 +2502,25 @@ function CourseReviewSection({
 }) {
   const filterOptions = useReviewFilterOptions(reviews, routes);
   const [activeFilter, setActiveFilter] = useState<ReviewFilterKind>("all");
-  const [sortOrder, setSortOrder] = useState<ReviewSortOrder>("newest");
   const filteredReviews = useMemo(
     () =>
       getFilteredReviews({
         reviews,
         routes,
         activeFilter,
-        sortOrder,
       }),
-    [activeFilter, reviews, routes, sortOrder],
+    [activeFilter, reviews, routes],
   );
   const visibleReviews = filteredReviews.slice(0, 3);
 
   return (
     <section
-      className="mt-6 rounded-md border border-[#d8e0da] bg-white px-6 py-6 shadow-[0_10px_28px_rgba(24,34,29,0.045)] max-[560px]:px-4 max-[560px]:py-5"
+      className="rounded-md border border-[#d8e0da] bg-white px-6 py-6 shadow-[0_10px_28px_rgba(24,34,29,0.045)] max-[560px]:px-4 max-[560px]:py-5"
       aria-label="다른 등산객들의 한줄평"
     >
       <div className="mb-5 flex items-start justify-between gap-4 max-[720px]:grid max-[720px]:gap-3">
         <div className="min-w-0">
-          <h3 className="m-0 text-[22px] font-black leading-7 text-[#18221d]">
+          <h3 className="m-0 text-[17px] font-black leading-[22px] text-[#18221d]">
             실제 등산객 한줄평
           </h3>
           <p className="m-0 mt-1 break-keep text-sm font-semibold leading-6 text-[#2d3932]">
@@ -2580,9 +2563,7 @@ function CourseReviewSection({
         ariaLabel="한줄평 코스 필터"
         filterOptions={filterOptions}
         activeFilter={activeFilter}
-        sortOrder={sortOrder}
         onFilterChange={setActiveFilter}
-        onSortOrderChange={setSortOrder}
       />
 
       {reviews.length > 0 ? (
@@ -2672,7 +2653,6 @@ function FullReviewSection({
 }) {
   const filterOptions = useReviewFilterOptions(reviews, routes);
   const [activeFilter, setActiveFilter] = useState<ReviewFilterKind>("all");
-  const [sortOrder, setSortOrder] = useState<ReviewSortOrder>("newest");
   const [visibleCount, setVisibleCount] = useState(10);
   const filteredReviews = useMemo(
     () =>
@@ -2680,9 +2660,8 @@ function FullReviewSection({
         reviews,
         routes,
         activeFilter,
-        sortOrder,
       }),
-    [activeFilter, reviews, routes, sortOrder],
+    [activeFilter, reviews, routes],
   );
   const visibleReviews = filteredReviews.slice(0, visibleCount);
   const summary = useMemo(() => getReviewSummary(reviews, routes), [reviews, routes]);
@@ -2690,7 +2669,7 @@ function FullReviewSection({
 
   useEffect(() => {
     setVisibleCount(10);
-  }, [activeFilter, sortOrder, reviews.length]);
+  }, [activeFilter, reviews.length]);
 
   useEffect(() => {
     if (!isTipDialogOpen) {
@@ -2709,12 +2688,12 @@ function FullReviewSection({
 
   return (
     <section
-      className="mt-6 min-h-[760px] rounded-none border border-[#d8e0da] bg-white px-5 py-5 max-[560px]:min-h-0 max-[560px]:px-3 max-[560px]:py-4"
+      className="min-h-[760px] rounded-none border border-[#d8e0da] bg-white px-5 py-5 max-[560px]:min-h-0 max-[560px]:px-3 max-[560px]:py-4"
       aria-label={`${mountainName} 전체 한줄평`}
     >
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="m-0 text-[28px] font-black leading-[34px] text-[#18221d]">
+          <h3 className="m-0 text-[22px] font-black leading-7 text-[#18221d] max-[560px]:text-[19px] max-[560px]:leading-[24px]">
             {mountainName} 한줄평
           </h3>
           <p className="m-0 mt-1 text-base font-semibold leading-6 text-[#5d6a62]">
@@ -2806,9 +2785,7 @@ function FullReviewSection({
             ariaLabel="전체 한줄평 필터"
             filterOptions={filterOptions}
             activeFilter={activeFilter}
-            sortOrder={sortOrder}
             onFilterChange={setActiveFilter}
-            onSortOrderChange={setSortOrder}
           />
 
           {reviews.length > 0 ? (
@@ -2952,8 +2929,8 @@ function ReviewCard({
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-flex min-h-7 items-center rounded-full border border-[#d7e4ba] bg-[#f0f7e4] px-2.5 text-[12px] font-semibold",
-              getDifficultyTextColorClass(review.difficulty),
+              "inline-flex min-h-7 items-center rounded-full border px-2.5 text-[12px] font-semibold text-[#2d3932]",
+              getReviewDifficultyBadgeClass(review.difficulty),
             )}
           >
             난이도 {review.difficulty}
@@ -3474,7 +3451,7 @@ function useReviewFilterOptions(
       return {
         kind,
         count,
-        label: `${label} ${count}`,
+        label,
       };
     });
   }, [reviews, routes]);
@@ -3484,12 +3461,10 @@ function getFilteredReviews({
   reviews,
   routes,
   activeFilter,
-  sortOrder,
 }: {
   reviews: MountainReview[];
   routes: MountainGuideRoute[];
   activeFilter: ReviewFilterKind;
-  sortOrder: ReviewSortOrder;
 }) {
   const filteredReviews = reviews.filter((review) => {
     if (activeFilter === "all") {
@@ -3504,9 +3479,7 @@ function getFilteredReviews({
     const safeLeftTime = Number.isNaN(leftTime) ? 0 : leftTime;
     const safeRightTime = Number.isNaN(rightTime) ? 0 : rightTime;
 
-    return sortOrder === "newest"
-      ? safeRightTime - safeLeftTime
-      : safeLeftTime - safeRightTime;
+    return safeRightTime - safeLeftTime;
   });
 }
 
@@ -4039,7 +4012,7 @@ function RecommendedCourseSection({
 
       <div className={cn("grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-5", activeTab !== "courses" && "hidden")}>
         <article className="min-w-0 max-w-full rounded-md border border-[#d8e0da] bg-white px-6 pb-6 pt-5 shadow-[0_10px_28px_rgba(24,34,29,0.045)] max-[560px]:px-4 max-[560px]:pb-5">
-          <h4 className="mb-4 mt-0 text-[22px] font-black leading-7 text-[#18221d]">
+          <h4 className="mb-4 mt-0 text-[17px] font-black leading-[22px] text-[#18221d]">
             추천 코스 정보
           </h4>
           {displayRoutes.length > 0 ? (
@@ -4055,18 +4028,18 @@ function RecommendedCourseSection({
             </ul>
           ) : (
             <div className="rounded-[5px] border border-dashed border-[#b9c6bd] bg-[#f4f8f6] px-5 py-8 text-center">
-              <strong className="block text-lg font-black text-[#18221d]">
-                추천 코스 정보 준비 중
-              </strong>
-              <p className="m-0 mt-2 text-base font-semibold leading-6 text-[#627168]">
-                숲나들e 코스 표를 확인한 뒤 표시합니다.
-              </p>
+                <strong className="block text-[15px] font-black leading-5 text-[#18221d]">
+                  추천 코스 정보 준비 중
+                </strong>
+                <p className="m-0 mt-2 text-[13px] font-bold leading-[18px] text-[#627168]">
+                  숲나들e 코스 표를 확인한 뒤 표시합니다.
+                </p>
             </div>
           )}
         </article>
 
         <article className="min-w-0 max-w-full overflow-hidden rounded-md border border-[#d8e0da] bg-white px-0 pb-0 pt-5 shadow-[0_10px_28px_rgba(24,34,29,0.045)]">
-          <h4 className="mb-4 mt-0 px-6 text-[22px] font-black leading-7 text-[#18221d] max-[560px]:px-4">
+          <h4 className="mb-4 mt-0 px-6 text-[17px] font-black leading-[22px] text-[#18221d] max-[560px]:px-4">
             추천 코스 지도
           </h4>
           {hasCourseMap ? (
@@ -4090,10 +4063,10 @@ function RecommendedCourseSection({
             <div className="grid min-h-[220px] min-w-0 max-w-full place-items-center rounded-md border border-dashed border-[#b9c6bd] bg-[#f4f8f6] px-5 py-10 text-center">
               <div>
                 <Route className="mx-auto mb-3 text-[#245c46]" size={28} />
-                <strong className="block text-lg font-black text-[#18221d]">
+                <strong className="block text-[15px] font-black leading-5 text-[#18221d]">
                   추천 코스 지도 준비 중
                 </strong>
-                <p className="m-0 mt-2 text-base font-semibold leading-6 text-[#627168]">
+                <p className="m-0 mt-2 text-[13px] font-bold leading-[18px] text-[#627168]">
                   숲나들e 지도 이미지를 불러오지 못했습니다.
                 </p>
               </div>
@@ -4184,6 +4157,25 @@ function getDifficultyTextColorClass(difficultyLabel: string) {
   return "text-[#5d6a62]";
 }
 
+function getReviewDifficultyBadgeClass(difficultyLabel: string) {
+  if (difficultyLabel === "쉬움") {
+    return "border-[#dceec8] bg-[#f2f9e8]";
+  }
+  if (difficultyLabel === "보통") {
+    return "border-[#cfe4d4] bg-[#edf7f0]";
+  }
+  if (difficultyLabel === "약간 어려움") {
+    return "border-[#f0dfaa] bg-[#fff7dc]";
+  }
+  if (difficultyLabel === "어려움") {
+    return "border-[#f3d1b4] bg-[#fff0e3]";
+  }
+  if (difficultyLabel === "매우 어려움") {
+    return "border-[#efc9c5] bg-[#fdecea]";
+  }
+  return "border-[#d8e0da] bg-[#eef3f0]";
+}
+
 function DifficultyBarsIcon({ className }: { className?: string }) {
   return (
     <span
@@ -4269,7 +4261,7 @@ function ForestTripCourseInfoCard({
         <p className="m-0 min-w-0 break-keep text-sm font-bold leading-6 text-[#35413a] [overflow-wrap:anywhere] max-[720px]:text-[14px] max-[720px]:leading-6">
           {route.path}
         </p>
-        <dl className="hidden grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 text-[13px] font-bold max-[720px]:grid">
+        <dl className="mt-1 hidden grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 border-t border-[#d8e0da] pt-3 text-[13px] font-bold max-[720px]:grid">
           <dt className="flex items-center gap-1.5 text-[#111]">
             <Clock size={15} strokeWidth={2.4} />
             소요 시간
@@ -4379,16 +4371,16 @@ function ForestTripCourseMatrixCard({
           <span className="mb-2 inline-flex min-h-7 items-center rounded-[5px] bg-[var(--foresttrip-course-color)] px-2.5 text-[13px] font-black leading-none text-white max-[720px]:min-h-[24px] max-[720px]:px-2 max-[720px]:text-[11px]">
             {themeLabel}
           </span>
-          <strong className="block min-w-0 break-keep text-[21px] font-black leading-7 text-[#111] max-[720px]:text-[17px] max-[720px]:leading-6">
+          <strong className="block min-w-0 break-keep text-[17px] font-black leading-[22px] text-[#111] max-[720px]:text-[15px] max-[720px]:leading-5">
             {displayName}
           </strong>
         </div>
-        <dl className="grid min-w-[260px] grid-cols-2 gap-3 max-[720px]:min-w-0">
+        <dl className="grid min-w-[260px] grid-cols-2 gap-3 max-[720px]:min-w-0 max-[720px]:border-t max-[720px]:border-[#d8e0da] max-[720px]:pt-3">
           <ForestTripCourseMetric
             icon={<Clock className="text-[#111]" size={18} strokeWidth={2.4} />}
             label="소요 시간"
             value={displayTime}
-            valueClassName="font-numeric text-[19px] max-[720px]:text-[16px]"
+            valueClassName="font-numeric text-[17px] max-[720px]:text-[15px]"
           />
           <ForestTripCourseMetric
             icon={
@@ -4429,7 +4421,7 @@ function ForestTripCourseTicketCard({
         <span className="inline-flex min-h-7 w-fit items-center rounded-[5px] bg-[var(--foresttrip-course-color)] px-2.5 text-[13px] font-black leading-none text-white max-[720px]:min-h-[24px] max-[720px]:px-2 max-[720px]:text-[11px]">
           {themeLabel}
         </span>
-        <strong className="break-keep text-[22px] font-black leading-7 text-[#111] max-[720px]:text-[17px] max-[720px]:leading-6">
+        <strong className="break-keep text-[17px] font-black leading-[22px] text-[#111] max-[720px]:text-[15px] max-[720px]:leading-5">
           {displayName}
         </strong>
       </div>
@@ -4438,12 +4430,12 @@ function ForestTripCourseTicketCard({
         <p className="m-0 min-w-0 break-keep text-[15px] font-bold leading-6 text-[#35413a] [overflow-wrap:anywhere] max-[720px]:text-[14px]">
           {route.path}
         </p>
-        <dl className="grid grid-cols-2 gap-3 max-[520px]:grid-cols-1">
+        <dl className="grid grid-cols-2 gap-3 max-[720px]:border-t max-[720px]:border-[#d8e0da] max-[720px]:pt-3 max-[520px]:grid-cols-1">
           <ForestTripCourseMetric
             icon={<Clock className="text-[#111]" size={18} strokeWidth={2.4} />}
             label="소요 시간"
             value={displayTime}
-            valueClassName="font-numeric text-[19px] max-[720px]:text-[16px]"
+            valueClassName="font-numeric text-[17px] max-[720px]:text-[15px]"
           />
           <ForestTripCourseMetric
             icon={
@@ -4493,7 +4485,7 @@ function RouteSummaryCard({
           {getRouteLabel(route)}
         </span>
         <div className="flex min-w-0 items-center gap-2.5">
-          <strong className="min-w-0 break-keep text-[27px] font-black leading-[33px] [letter-spacing:0]">
+          <strong className="min-w-0 break-keep text-[22px] font-black leading-7 [letter-spacing:0] max-[560px]:text-[19px] max-[560px]:leading-[24px]">
             {routeDisplayName}
           </strong>
           <DifficultyBadge difficulty={route.difficulty} />
@@ -4738,7 +4730,7 @@ function EvaluationPicker({
   return (
     <div
       className={cn(
-        "min-w-0 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[560px]:p-3 [&>strong]:mb-5 [&>strong]:block [&>strong]:text-center [&>strong]:text-lg [&>strong]:font-extrabold [&>strong]:leading-7 max-[560px]:[&>strong]:mb-3 max-[560px]:[&>strong]:text-[14px] max-[560px]:[&>strong]:leading-5",
+        "min-w-0 rounded-md border border-[#d8e0da] bg-[#fbfcfb] p-4 max-[560px]:p-3 [&>strong]:mb-5 [&>strong]:block [&>strong]:text-center [&>strong]:text-[15px] [&>strong]:font-extrabold [&>strong]:leading-5 max-[560px]:[&>strong]:mb-3 max-[560px]:[&>strong]:text-[14px] max-[560px]:[&>strong]:leading-5",
         className,
       )}
     >
@@ -4980,7 +4972,7 @@ function DifficultyMetric({
 function DifficultyGuide() {
   return (
     <section
-      className="min-h-[216px] rounded-none border border-[#d9dee2] bg-white px-6 pb-5 pt-0 [&_h3]:mx-[-24px] [&_h3]:mb-[18px] [&_h3]:mt-0 [&_h3]:bg-[#f1f5f7] [&_h3]:px-6 [&_h3]:py-3.5 [&_h3]:text-lg [&_h3]:font-black [&_h3]:leading-[26px] [&_dd]:m-0 [&_dd]:text-sm [&_dd]:leading-6 [&_dt]:font-black"
+      className="min-h-[216px] rounded-none border border-[#d9dee2] bg-white px-6 pb-5 pt-0 [&_h3]:mx-[-24px] [&_h3]:mb-[18px] [&_h3]:mt-0 [&_h3]:bg-[#f1f5f7] [&_h3]:px-6 [&_h3]:py-3.5 [&_h3]:text-[17px] [&_h3]:font-black [&_h3]:leading-[22px] [&_dd]:m-0 [&_dd]:text-sm [&_dd]:leading-6 [&_dt]:font-black"
       aria-label="코스 난이도 안내"
     >
       <h3>코스 난이도 안내</h3>
@@ -5025,7 +5017,7 @@ function VisitWarnings({
 
   return (
     <section
-      className="min-h-[216px] rounded-none border border-[#d9dee2] bg-white px-6 pb-5 pt-0 [&_h3]:mx-[-24px] [&_h3]:mb-[18px] [&_h3]:mt-0 [&_h3]:bg-[#f1f5f7] [&_h3]:px-6 [&_h3]:py-3.5 [&_h3]:text-lg [&_h3]:font-black [&_h3]:leading-[26px] [&_li]:flex [&_li]:gap-2 [&_li]:text-sm [&_li]:leading-6 [&_p]:text-sm [&_p]:leading-6 [&_ul]:m-0 [&_ul]:grid [&_ul]:list-none [&_ul]:gap-2 [&_ul]:p-0"
+      className="min-h-[216px] rounded-none border border-[#d9dee2] bg-white px-6 pb-5 pt-0 [&_h3]:mx-[-24px] [&_h3]:mb-[18px] [&_h3]:mt-0 [&_h3]:bg-[#f1f5f7] [&_h3]:px-6 [&_h3]:py-3.5 [&_h3]:text-[17px] [&_h3]:font-black [&_h3]:leading-[22px] [&_li]:flex [&_li]:gap-2 [&_li]:text-sm [&_li]:leading-6 [&_p]:text-sm [&_p]:leading-6 [&_ul]:m-0 [&_ul]:grid [&_ul]:list-none [&_ul]:gap-2 [&_ul]:p-0"
       aria-label="등산 시 유의사항"
     >
       <h3>등산 시 유의사항</h3>
@@ -5161,7 +5153,7 @@ function WeatherStatusCard({ mountain }: { mountain: Mountain }) {
           <CloudSun className="h-14 w-14 justify-self-center text-white/90 max-[560px]:h-[42px] max-[560px]:w-[42px]" strokeWidth={1.6} />
         )}
 
-        <strong className="justify-self-start font-numeric text-[40px] font-black leading-none text-white max-[900px]:text-[36px] max-[560px]:justify-self-end max-[560px]:text-[36px]">
+        <strong className="justify-self-start font-numeric text-[24px] font-black leading-7 text-white max-[900px]:text-[22px] max-[560px]:justify-self-end max-[560px]:text-[19px] max-[560px]:leading-[24px]">
           {weather?.temperature ?? "--"}
         </strong>
       </div>
