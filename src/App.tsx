@@ -258,7 +258,7 @@ const appClass = {
   accountProgressCard:
     "relative isolate overflow-hidden rounded-lg border border-[#d8e0da] bg-[linear-gradient(135deg,#ffffff_0%,#f8fbf9_58%,#eef5f1_100%)] p-3.5 shadow-[0_7px_20px_rgba(24,34,29,0.05)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-[url('/my-page/completed-progress-bg-desktop.png')] before:bg-cover before:bg-center before:bg-no-repeat before:opacity-30 max-[560px]:p-2.5 max-[560px]:before:bg-[url('/my-page/completed-progress-bg-mobile.png')]",
   accountCardLabel: 'm-0 text-[13px] font-black leading-[18px] text-[#06442f] max-[560px]:text-[11px] max-[560px]:leading-4',
-  accountProgressValue: 'm-0 mt-2 font-numeric text-[25px] font-black leading-none text-[#092336] max-[560px]:mt-1 max-[560px]:text-[20px]',
+  accountProgressValue: 'm-0 mt-2 font-numeric text-[19px] font-black leading-[24px] text-[#092336] max-[560px]:mt-1 max-[560px]:text-[17px] max-[560px]:leading-5',
   accountProgressCaption: 'm-0 mt-3 text-[13px] font-bold leading-[18px] text-[#5d6a62] max-[560px]:mt-1 max-[560px]:text-[11px] max-[560px]:leading-4',
   accountProgressRow: 'mt-3 grid w-[80%] grid-cols-[minmax(0,1fr)_26px] items-center gap-2.5 max-[560px]:mt-1.5 max-[560px]:w-full',
   accountProgressTrack: 'h-2 overflow-hidden rounded-full bg-[#dfe8e2]',
@@ -317,7 +317,7 @@ const appClass = {
     'mt-2 grid grid-cols-3 gap-2 [&>*]:block [&_img]:aspect-square [&_img]:w-full [&_img]:rounded-md [&_img]:object-cover',
   sidebarPhotoEmpty:
     'mt-2 grid min-h-[94px] place-items-center rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] px-3 text-center text-sm font-bold leading-5 text-[#5d6a62]',
-  randomPending: 'grid min-h-60 place-items-center content-center gap-3 text-center text-[#2f6b4f] [&_h2]:text-2xl',
+  randomPending: 'grid min-h-60 place-items-center content-center gap-3 text-center text-[#2f6b4f] [&_h2]:text-[17px] [&_h2]:font-black [&_h2]:leading-[22px]',
   loadingDots:
     'inline-flex gap-1.5 [&_span]:h-[7px] [&_span]:w-[7px] [&_span]:rounded-full [&_span]:bg-[#d7922b] [&_span]:animate-[loading-dot_900ms_ease-in-out_infinite] [&_span:nth-child(2)]:[animation-delay:120ms] [&_span:nth-child(3)]:[animation-delay:240ms]',
   toast:
@@ -1294,11 +1294,11 @@ export default function App() {
                 <div className={appClass.detailHeader}>
                   <div>
                     <p className={appClass.eyebrow}>{selectedMountain.province}</p>
-                    <h2 className="m-0 text-2xl font-extrabold leading-tight">
+                    <h2 className="m-0 text-[19px] font-black leading-[24px] max-[560px]:text-[17px] max-[560px]:leading-[22px]">
                       <MountainNameWithHanja
                         mountain={selectedMountain}
                         className="flex-wrap"
-                        hanjaClassName="text-base text-[#627168]"
+                        hanjaClassName="text-[13px] font-bold text-[#627168]"
                       />
                     </h2>
                   </div>
@@ -1342,7 +1342,7 @@ export default function App() {
                 </dl>
                 <p className="mt-4 leading-7 text-[#627168]">{selectedMountain.shortDescription}</p>
                 <section className={appClass.sidebarPhotos} aria-label="최신 한줄평 사진">
-                  <h3 className="text-lg font-extrabold">최신 한줄평 사진</h3>
+                  <h3 className="text-[15px] font-black leading-5">최신 한줄평 사진</h3>
                   {sidebarPhotoState === 'loading' ? (
                     <div className={appClass.sidebarPhotoEmpty}>사진을 불러오는 중입니다.</div>
                   ) : sidebarReviewPhotos.length > 0 ? (
@@ -1411,7 +1411,7 @@ export default function App() {
             </button>
             <div>
               <p className={appClass.eyebrow}>앱 피드백</p>
-              <h2 id="feedback-modal-title" className="m-0 pr-10 text-2xl font-black max-[560px]:pr-8 max-[560px]:text-xl max-[560px]:leading-7">
+              <h2 id="feedback-modal-title" className="m-0 pr-10 text-[19px] font-black leading-[24px] max-[560px]:pr-8 max-[560px]:text-[17px] max-[560px]:leading-[22px]">
                 무엇을 개선하면 좋을까요?
               </h2>
             </div>
@@ -1474,11 +1474,11 @@ export default function App() {
               <X size={18} />
             </button>
             <p className={appClass.eyebrow}>랜덤 당첨</p>
-            <h2 id="result-modal-title" className="m-0 text-3xl font-black">
+            <h2 id="result-modal-title" className="m-0 text-[22px] font-black leading-7 max-[560px]:text-[19px] max-[560px]:leading-[24px]">
               <MountainNameWithHanja
                 mountain={resultModalMountain}
                 className="flex-wrap"
-                hanjaClassName="text-xl text-[#627168]"
+                hanjaClassName="text-[14px] font-bold text-[#627168]"
               />
             </h2>
             <dl className={appClass.resultMeta}>
