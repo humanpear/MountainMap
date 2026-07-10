@@ -102,7 +102,7 @@ const pageClass = {
   hero:
     "relative isolate grid gap-4 overflow-hidden rounded-xl border border-[#dfe7df] bg-white p-5 shadow-[0_12px_36px_rgba(20,40,30,0.06)] max-[767px]:gap-4 max-[767px]:p-4",
   heroTop: "grid gap-4",
-  profileSummary: "flex min-w-0 items-center gap-4 max-[767px]:gap-3 max-[420px]:grid max-[420px]:justify-items-start",
+  profileSummary: "flex min-w-0 items-center gap-4 max-[767px]:gap-3 max-[420px]:gap-2.5",
   avatar:
     "h-16 w-16 flex-none rounded-full border-[3px] border-white bg-[#eef3f0] object-cover shadow-[0_8px_20px_rgba(24,34,29,0.12)] max-[767px]:h-14 max-[767px]:w-14",
   eyebrow: "m-0 text-[12px] font-black leading-4 text-[#5d6a62]",
@@ -114,6 +114,10 @@ const pageClass = {
     "inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-[13px] font-extrabold leading-[18px] text-[#18221d] transition hover:bg-[#eef3f0]",
   dangerButton:
     "inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#b14a3d] bg-white px-3 text-[13px] font-extrabold leading-[18px] text-[#b14a3d] transition hover:bg-[#fff1ee]",
+  compactButton:
+    "inline-flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-[#d8e0da] bg-white px-2.5 text-[12px] font-extrabold leading-4 text-[#18221d] transition hover:bg-[#eef3f0]",
+  compactDangerButton:
+    "inline-flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-[#b14a3d] bg-white px-2.5 text-[12px] font-extrabold leading-4 text-[#b14a3d] transition hover:bg-[#fff1ee]",
   metrics: "grid grid-cols-3 gap-0 border-t border-[#d8e0da] pt-3 max-[767px]:grid-cols-1 max-[767px]:gap-0 max-[767px]:divide-y max-[767px]:divide-[#d8e0da] max-[767px]:pt-2",
   metric:
     "grid min-w-0 grid-cols-[52px_minmax(0,1fr)] content-center gap-x-3 gap-y-0.5 border-r border-[#d8e0da] px-3 py-1.5 last:border-r-0 max-[767px]:min-h-[44px] max-[767px]:grid-cols-[34px_auto_auto_minmax(0,1fr)] max-[767px]:items-center max-[767px]:gap-x-2 max-[767px]:gap-y-0 max-[767px]:border-r-0 max-[767px]:px-1 max-[767px]:py-2 [&_dd]:m-0 [&_dd]:font-numeric [&_dd]:text-[19px] [&_dd]:font-black [&_dd]:leading-[24px] max-[767px]:[&_dd]:self-center max-[767px]:[&_dd]:justify-self-start max-[767px]:[&_dd]:text-[17px] max-[767px]:[&_dd]:leading-5 [&_dt]:text-[12px] [&_dt]:font-black [&_dt]:leading-4 [&_dt]:text-[#245c46] max-[767px]:[&_dt]:self-center max-[767px]:[&_dt]:whitespace-nowrap max-[767px]:[&_p]:self-center",
@@ -149,9 +153,9 @@ const pageClass = {
     "grid gap-2.5 rounded-lg border border-[#d8e0da] bg-[#fbfdfb] p-3 transition hover:border-[#9fb2a7] max-[560px]:p-2.5",
   itemTop: "flex items-start justify-between gap-2",
   itemTitle: "m-0 text-[15px] font-black leading-5 text-[#18221d]",
-  completedItem: "grid grid-cols-[104px_minmax(0,1fr)] gap-3 max-[560px]:grid-cols-1",
+  completedItem: "grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3 max-[560px]:grid-cols-1",
   completedImage:
-    "h-full min-h-20 w-full rounded-lg object-cover shadow-[0_8px_18px_rgba(24,34,29,0.10)] max-[560px]:aspect-[16/9] max-[560px]:min-h-0",
+    "block aspect-[4/3] h-auto min-h-0 w-full self-start rounded-lg object-cover shadow-[0_8px_18px_rgba(24,34,29,0.10)] max-[560px]:aspect-[16/9]",
   tag: "inline-flex min-h-6 items-center rounded-full bg-[#eef3f0] px-2 text-[12px] font-black leading-4 text-[#245c46]",
   iconButton:
     "inline-flex h-11 min-h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg border border-[#d8e0da] bg-white text-[#18221d] transition hover:bg-[#eef3f0]",
@@ -433,7 +437,7 @@ export function MyPage({
                 <Clock size={22} className="max-[767px]:h-[18px] max-[767px]:w-[18px]" />
               </div>
               <dt>최근 산행</dt>
-              <dd className="truncate text-[17px] max-[767px]:max-w-[72px] max-[767px]:text-[16px]">{recentMountainName}</dd>
+              <dd className="truncate text-[17px] max-[767px]:max-w-[88px] max-[767px]:text-[16px]">{recentMountainName}</dd>
               <p className={cn(pageClass.muted, "text-[12px] max-[767px]:col-start-4 max-[767px]:row-start-1 max-[767px]:min-w-0 max-[767px]:truncate max-[767px]:whitespace-nowrap max-[767px]:text-[13px] max-[767px]:leading-5")}>{recentMountainDescription}</p>
             </div>
           </dl>
@@ -689,18 +693,18 @@ function CompletedMountainsPanel({
                   <p className={cn(pageClass.muted, "font-bold")}>완료 날짜 {formatDate(record.completedAt)}</p>
                   <div className="flex flex-wrap gap-2">
                     {record.mountain ? (
-                      <button className={pageClass.secondaryButton} type="button" onClick={() => onOpenMountain(record.mountain!)}>
+                      <button className={pageClass.compactButton} type="button" onClick={() => onOpenMountain(record.mountain!)}>
                         상세 보기
-                        <ChevronRight size={17} />
+                        <ChevronRight size={15} />
                       </button>
                     ) : null}
                     <button
-                      className={pageClass.dangerButton}
+                      className={pageClass.compactDangerButton}
                       type="button"
                       onClick={() => onRemoveCompleted(record.mountainId)}
                       disabled={removingMountainId === record.mountainId}
                     >
-                      <Trash2 size={17} />
+                      <Trash2 size={15} />
                       {removingMountainId === record.mountainId ? "해제 중" : "완료 해제"}
                     </button>
                   </div>
@@ -777,9 +781,9 @@ function UserReviewsPanel({
                   ) : null}
                 </div>
                 {mountain ? (
-                  <button className={pageClass.secondaryButton} type="button" onClick={() => onOpenMountain(mountain)}>
+                  <button className={pageClass.compactButton} type="button" onClick={() => onOpenMountain(mountain)}>
                     {review.mountainName} 상세페이지
-                    <ChevronRight size={17} />
+                    <ChevronRight size={15} />
                   </button>
                 ) : null}
               </article>
@@ -1059,21 +1063,23 @@ function EditableUserReviewsPanel({
                         <UserRound size={19} aria-hidden="true" />
                       </span>
                     )}
-                    <div className="grid min-w-0 flex-1 gap-1">
-                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pr-8">
-                        <strong className="block max-w-full truncate text-[14px] font-extrabold leading-5 text-[#18221d]">
-                          {review.authorName}
-                        </strong>
-                        <span className="inline-flex min-w-0 max-w-full items-center rounded-full bg-[#e7f3e4] px-2 py-0.5 text-xs font-medium text-[#237a1f]">
-                          <span className="truncate">{review.mountainName}</span>
-                        </span>
-                        <span className="inline-flex min-w-0 max-w-full items-center rounded-full bg-[#eef3f0] px-2 py-0.5 text-xs font-medium text-[#245c46]">
-                          <span className="truncate">{review.routeName}</span>
-                        </span>
-                        <time className="ml-auto block shrink-0 text-right font-numeric text-xs font-bold leading-5 text-[#5d6a62]">
-                          {formatDate(review.createdAt)}
-                        </time>
-                      </div>
+                      <div className="grid min-w-0 flex-1 gap-1">
+                        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+                          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                            <strong className="block max-w-full truncate text-[14px] font-extrabold leading-5 text-[#18221d]">
+                              {review.authorName}
+                            </strong>
+                            <span className="inline-flex min-w-0 max-w-full items-center rounded-full bg-[#e7f3e4] px-2 py-0.5 text-xs font-medium text-[#237a1f]">
+                              <span className="truncate">{review.mountainName}</span>
+                            </span>
+                            <span className="inline-flex min-w-0 max-w-full items-center rounded-full bg-[#eef3f0] px-2 py-0.5 text-xs font-medium text-[#245c46]">
+                              <span className="truncate">{review.routeName}</span>
+                            </span>
+                          </div>
+                          <time className="block shrink-0 text-right font-numeric text-xs font-bold leading-5 text-[#5d6a62]">
+                            {formatDate(review.createdAt)}
+                          </time>
+                        </div>
                       {review.routeStartPoint || review.routeEndPoint ? (
                         <span className="block min-w-0 truncate whitespace-nowrap text-xs font-medium leading-5 text-[#49524d]">
                           {formatRouteEndpoints(review.routeStartPoint, review.routeEndPoint)}
@@ -1099,30 +1105,30 @@ function EditableUserReviewsPanel({
 
                 <MyPageReviewPhotoStrip review={review} onPhotoOpen={openReviewLightbox} />
 
-                <div className="col-span-2 flex flex-wrap gap-2 max-[840px]:col-span-1">
+                <div className="col-span-2 flex flex-wrap items-center gap-2 max-[840px]:col-span-1">
                   {mountain ? (
-                    <button className={pageClass.secondaryButton} type="button" onClick={() => onOpenMountain(mountain)}>
+                    <button className={pageClass.compactButton} type="button" onClick={() => onOpenMountain(mountain)}>
                       {review.mountainName} 상세페이지
-                      <ChevronRight size={17} />
+                      <ChevronRight size={15} />
                     </button>
                   ) : null}
                   <button
-                    className={pageClass.secondaryButton}
+                    className={pageClass.compactButton}
                     type="button"
                     aria-label={`${review.mountainName} 한줄평 수정`}
                     onClick={() => startEditingReview(review)}
                   >
-                    <Edit3 size={17} />
+                    <Edit3 size={15} />
                     수정
                   </button>
                   <button
-                    className={pageClass.dangerButton}
+                    className={pageClass.compactDangerButton}
                     type="button"
                     aria-label={`${review.mountainName} 한줄평 삭제`}
                     disabled={deletingReviewId === review.id}
                     onClick={() => void removeReview(review)}
                   >
-                    <Trash2 size={17} />
+                    <Trash2 size={15} />
                     {deletingReviewId === review.id ? "삭제 중" : "삭제"}
                   </button>
                 </div>
@@ -2143,8 +2149,9 @@ function MyPageReviewEditSheet({
         style={{
           height:
             step === 1
-              ? "min(680px, calc(100dvh - 16px))"
-              : "min(580px, calc(100dvh - 16px))",
+              ? "min(476px, calc(70dvh - 12px))"
+              : "min(406px, calc(70dvh - 12px))",
+          maxHeight: "calc(100dvh - 16px)",
         }}
         role="dialog"
         aria-modal="true"

@@ -177,8 +177,17 @@ export function MountainMap(props: MountainMapProps) {
 
     refreshMapLayout();
 
+    window.addEventListener('resize', refreshMapLayout);
+    window.addEventListener('orientationchange', refreshMapLayout);
+    window.visualViewport?.addEventListener('resize', refreshMapLayout);
+    window.visualViewport?.addEventListener('scroll', refreshMapLayout);
+
     if (typeof ResizeObserver === 'undefined') {
       return () => {
+        window.removeEventListener('resize', refreshMapLayout);
+        window.removeEventListener('orientationchange', refreshMapLayout);
+        window.visualViewport?.removeEventListener('resize', refreshMapLayout);
+        window.visualViewport?.removeEventListener('scroll', refreshMapLayout);
         if (frameId !== null) {
           window.cancelAnimationFrame(frameId);
         }
@@ -190,6 +199,10 @@ export function MountainMap(props: MountainMapProps) {
 
     return () => {
       resizeObserver.disconnect();
+      window.removeEventListener('resize', refreshMapLayout);
+      window.removeEventListener('orientationchange', refreshMapLayout);
+      window.visualViewport?.removeEventListener('resize', refreshMapLayout);
+      window.visualViewport?.removeEventListener('scroll', refreshMapLayout);
       if (frameId !== null) {
         window.cancelAnimationFrame(frameId);
       }

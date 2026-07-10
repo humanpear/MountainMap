@@ -154,7 +154,7 @@ function setBrowserPath(path: string) {
 }
 
 const appClass = {
-  shell: 'grid h-dvh min-h-screen grid-rows-[auto_minmax(0,1fr)] overflow-x-hidden bg-[#f4f7f5] text-[#18221d]',
+  shell: 'grid min-h-screen min-h-dvh grid-rows-[auto_minmax(0,1fr)] overflow-x-hidden bg-[#f4f7f5] text-[#18221d]',
   topbar:
     'z-[4] bg-[#00172b] text-white',
   topbarInner:
@@ -173,38 +173,38 @@ const appClass = {
     'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3.5 text-sm font-extrabold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-55 max-[900px]:min-h-9 max-[900px]:w-9 max-[900px]:border-0 max-[900px]:bg-transparent max-[900px]:px-0 max-[900px]:text-[13px] max-[900px]:hover:bg-transparent',
   accountMenuWrap: 'relative max-[900px]:col-start-4 max-[900px]:row-start-1',
   accountMenu:
-    'absolute right-0 top-[calc(100%+10px)] z-20 grid w-[344px] max-w-[calc(100vw-24px)] origin-top-right gap-2.5 rounded-xl border border-[#d8e0da] bg-[#fbfcfb] p-2.5 text-[#18221d] shadow-[0_18px_56px_rgba(0,0,0,0.16)] max-[560px]:right-[-4px] max-[560px]:w-[calc(100vw-24px)]',
-  accountMenuProfile: 'flex min-w-0 items-center gap-3 px-1.5 pb-1.5 pt-1',
+    'absolute right-0 top-[calc(100%+10px)] z-20 grid w-[344px] max-w-[calc(100vw-24px)] origin-top-right gap-2.5 rounded-xl border border-[#d8e0da] bg-[#fbfcfb] p-2.5 text-[#18221d] shadow-[0_18px_56px_rgba(0,0,0,0.16)] max-[560px]:right-[-4px] max-[560px]:w-[min(70vw,256px)] max-[560px]:gap-1.5 max-[560px]:p-1.5',
+  accountMenuProfile: 'flex min-w-0 items-center gap-3 px-1.5 pb-1.5 pt-1 max-[560px]:gap-2.5 max-[560px]:px-1 max-[560px]:pb-1 max-[560px]:pt-0.5',
   accountMenuAvatar:
-    'h-16 w-16 flex-none rounded-full border-[3px] border-white bg-[#eef3f0] object-cover shadow-[0_0_0_2px_#d8e0da,0_8px_20px_rgba(24,34,29,0.12)]',
-  accountMenuName: 'm-0 truncate text-[17px] font-black leading-[22px] text-[#18221d]',
-  accountMenuMeta: 'm-0 mt-0.5 truncate text-[13px] font-bold leading-[18px] text-[#5d6a62]',
+    'h-16 w-16 flex-none rounded-full border-[3px] border-white bg-[#eef3f0] object-cover shadow-[0_0_0_2px_#d8e0da,0_8px_20px_rgba(24,34,29,0.12)] max-[560px]:h-11 max-[560px]:w-11',
+  accountMenuName: 'm-0 truncate text-[17px] font-black leading-[22px] text-[#18221d] max-[560px]:text-[14px] max-[560px]:leading-[18px]',
+  accountMenuMeta: 'm-0 mt-0.5 truncate text-[13px] font-bold leading-[18px] text-[#5d6a62] max-[560px]:text-[11px] max-[560px]:leading-4',
   accountProgressCard:
-    "relative isolate overflow-hidden rounded-lg border border-[#d8e0da] bg-[linear-gradient(135deg,#ffffff_0%,#f8fbf9_58%,#eef5f1_100%)] p-3.5 shadow-[0_7px_20px_rgba(24,34,29,0.05)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-[url('/my-page/completed-progress-bg-desktop.png')] before:bg-cover before:bg-center before:bg-no-repeat before:opacity-30 max-[560px]:before:bg-[url('/my-page/completed-progress-bg-mobile.png')]",
-  accountCardLabel: 'm-0 text-[13px] font-black leading-[18px] text-[#06442f]',
-  accountProgressValue: 'm-0 mt-2 font-numeric text-[25px] font-black leading-none text-[#092336]',
-  accountProgressCaption: 'm-0 mt-3 text-[13px] font-bold leading-[18px] text-[#5d6a62]',
-  accountProgressRow: 'mt-3 grid w-[80%] grid-cols-[minmax(0,1fr)_26px] items-center gap-2.5',
+    "relative isolate overflow-hidden rounded-lg border border-[#d8e0da] bg-[linear-gradient(135deg,#ffffff_0%,#f8fbf9_58%,#eef5f1_100%)] p-3.5 shadow-[0_7px_20px_rgba(24,34,29,0.05)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-[url('/my-page/completed-progress-bg-desktop.png')] before:bg-cover before:bg-center before:bg-no-repeat before:opacity-30 max-[560px]:p-2.5 max-[560px]:before:bg-[url('/my-page/completed-progress-bg-mobile.png')]",
+  accountCardLabel: 'm-0 text-[13px] font-black leading-[18px] text-[#06442f] max-[560px]:text-[11px] max-[560px]:leading-4',
+  accountProgressValue: 'm-0 mt-2 font-numeric text-[25px] font-black leading-none text-[#092336] max-[560px]:mt-1 max-[560px]:text-[20px]',
+  accountProgressCaption: 'm-0 mt-3 text-[13px] font-bold leading-[18px] text-[#5d6a62] max-[560px]:mt-1 max-[560px]:text-[11px] max-[560px]:leading-4',
+  accountProgressRow: 'mt-3 grid w-[80%] grid-cols-[minmax(0,1fr)_26px] items-center gap-2.5 max-[560px]:mt-1.5 max-[560px]:w-full',
   accountProgressTrack: 'h-2 overflow-hidden rounded-full bg-[#dfe8e2]',
   accountProgressFill: 'h-full rounded-full bg-[#006f43]',
-  accountProgressPercent: 'font-numeric text-[13px] font-black leading-[18px] text-[#06442f]',
+  accountProgressPercent: 'font-numeric text-[13px] font-black leading-[18px] text-[#06442f] max-[560px]:text-[11px] max-[560px]:leading-4',
   accountRecentCard:
-    'grid grid-cols-[minmax(0,1fr)_128px] gap-3 rounded-lg border border-[#d8e0da] bg-white p-3 shadow-[0_7px_20px_rgba(24,34,29,0.05)] max-[560px]:grid-cols-1',
-  accountRecentName: 'm-0 mt-1.5 truncate text-[17px] font-black leading-[22px] text-[#18221d]',
-  accountRecentMeta: 'm-0 mt-2.5 text-[13px] font-bold leading-[18px] text-[#5d6a62]',
+    'grid grid-cols-[minmax(0,1fr)_128px] gap-3 rounded-lg border border-[#d8e0da] bg-white p-3 shadow-[0_7px_20px_rgba(24,34,29,0.05)] max-[560px]:grid-cols-1 max-[560px]:gap-1.5 max-[560px]:p-2',
+  accountRecentName: 'm-0 mt-1.5 truncate text-[17px] font-black leading-[22px] text-[#18221d] max-[560px]:mt-1 max-[560px]:text-[14px] max-[560px]:leading-[18px]',
+  accountRecentMeta: 'm-0 mt-2.5 text-[13px] font-bold leading-[18px] text-[#5d6a62] max-[560px]:mt-1.5 max-[560px]:text-[11px] max-[560px]:leading-4',
   accountRecentImage:
     'h-[76px] w-full rounded-md object-cover shadow-[0_6px_16px_rgba(24,34,29,0.12)] max-[560px]:aspect-[16/9] max-[560px]:h-auto',
   accountMenuActions:
     'grid overflow-hidden rounded-lg border border-[#d8e0da] bg-white shadow-[0_7px_20px_rgba(24,34,29,0.05)]',
   accountMenuAction:
-    'inline-flex min-h-11 w-full cursor-pointer items-center justify-between gap-2.5 border-0 border-b border-[#e3e8e4] bg-white px-3 text-left text-[14px] font-black leading-5 text-[#18221d] transition last:border-b-0 hover:bg-[#f5f8f5]',
+    'inline-flex min-h-11 w-full cursor-pointer items-center justify-between gap-2.5 border-0 border-b border-[#e3e8e4] bg-white px-3 text-left text-[14px] font-semibold leading-5 text-[#18221d] transition last:border-b-0 hover:bg-[#f5f8f5] max-[560px]:min-h-10 max-[560px]:gap-2 max-[560px]:px-2.5 max-[560px]:text-[12px] max-[560px]:leading-4',
   accountMenuActionIcon: 'inline-flex h-6 w-6 items-center justify-center text-[#101820]',
   accountReviewBadge:
-    'mr-1.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#e7f2ec] px-1.5 font-numeric text-[13px] font-black leading-[18px] text-[#245c46]',
+    'mr-1.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#e7f2ec] px-1.5 font-numeric text-[13px] font-black leading-[18px] text-[#245c46] max-[560px]:mr-1 max-[560px]:text-[11px] max-[560px]:leading-4',
   accountMenuDanger:
-    'inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-3 text-center text-[14px] font-black leading-5 text-[#d90d0d] shadow-[0_7px_20px_rgba(24,34,29,0.05)] transition hover:bg-[#fff1ee]',
+    'inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-3 text-center text-[14px] font-semibold leading-5 text-[#d90d0d] shadow-[0_7px_20px_rgba(24,34,29,0.05)] transition hover:bg-[#fff1ee] max-[560px]:min-h-10 max-[560px]:px-2.5 max-[560px]:text-[12px] max-[560px]:leading-4',
   workspace:
-    'relative grid h-full min-h-0 overflow-hidden transition-[grid-template-columns] duration-200 ease-out max-[900px]:grid-cols-1',
+    'relative grid h-full min-h-[calc(100dvh-68px)] overflow-hidden transition-[grid-template-columns] duration-200 ease-out max-[900px]:min-h-[calc(100dvh-56px)] max-[900px]:grid-cols-1',
   mapStage: 'relative h-full min-h-0 min-w-0 overflow-hidden',
   mapControls:
     'absolute left-5 top-5 z-[2] grid justify-items-start gap-3 max-[560px]:left-3 max-[560px]:right-auto max-[560px]:gap-2',
