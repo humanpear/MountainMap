@@ -33,9 +33,19 @@ declare global {
 
   type KakaoMap = {
     relayout(): void;
+    getCenter(): KakaoLatLng;
+    getBounds(): KakaoLatLngBounds;
+    getProjection(): KakaoMapProjection;
     setCenter(position: KakaoLatLng): void;
+    panTo(position: KakaoLatLng): void;
     setLevel(level: number, options?: KakaoMapSetLevelOptions): void;
-    setBounds(bounds: KakaoLatLngBounds): void;
+    setBounds(
+      bounds: KakaoLatLngBounds,
+      paddingTop?: number,
+      paddingRight?: number,
+      paddingBottom?: number,
+      paddingLeft?: number,
+    ): void;
     getLevel(): number;
     setZoomable(zoomable: boolean): void;
     addControl(control: KakaoZoomControl, position: KakaoControlPosition): void;
@@ -43,6 +53,14 @@ declare global {
 
   type KakaoLatLngBounds = {
     extend(position: KakaoLatLng): void;
+    contain(position: KakaoLatLng): boolean;
+  };
+
+  type KakaoPoint = { x: number; y: number };
+
+  type KakaoMapProjection = {
+    pointFromCoords(position: KakaoLatLng): KakaoPoint;
+    coordsFromPoint(point: KakaoPoint): KakaoLatLng;
   };
 
   type KakaoZoomControl = object;

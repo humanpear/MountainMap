@@ -11,13 +11,19 @@ function readText(path) {
 
 function parseMountains() {
   const content = readText(MOUNTAINS_PATH);
-  const match = content.match(/export const mountains: Mountain\[\] = ([\s\S]*);\s*$/);
+  const directExportMatch = content.match(
+    /export const mountains: Mountain\[\] = (\[[\s\S]*\]);\s*$/,
+  );
+  const recordMatch = content.match(
+    /const mountainRecords: Omit<Mountain, 'regionCodes'>\[\] = ([\s\S]*?);\s*\n\s*export const mountains:/,
+  );
+  const serializedMountains = recordMatch?.[1] ?? directExportMatch?.[1];
 
-  if (!match) {
+  if (!serializedMountains) {
     throw new Error(`Could not parse ${MOUNTAINS_PATH}`);
   }
 
-  return JSON.parse(match[1]);
+  return JSON.parse(serializedMountains);
 }
 
 function parseRecord(path, exportName) {

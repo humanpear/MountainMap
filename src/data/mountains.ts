@@ -1,6 +1,109 @@
 ﻿import type { Mountain } from '../types';
 
-export const mountains: Mountain[] = [
+const mountainRegionCodesById: Record<string, Mountain['regionCodes']> = {
+  '0000000002': ['gangwon'], // 가리산
+  '0000000003': ['gangwon'], // 가리왕산
+  '0000000001': ['gyeongbuk', 'gyeongnam'], // 가야산
+  '0000000004': ['gyeongbuk', 'gyeongnam'], // 가지산
+  '0000000005': ['seoul-gyeonggi'], // 감악산
+  '0000000006': ['jeonbuk', 'jeonnam'], // 강천산
+  '0000000007': ['chungnam'], // 계룡산
+  '0000000008': ['gangwon'], // 계방산
+  '0000000009': ['gangwon'], // 공작산
+  '0000000010': ['seoul-gyeonggi'], // 관악산
+  '0000000011': ['chungbuk', 'gyeongbuk'], // 구병산
+  '0000000012': ['gyeongnam'], // 금산
+  '0000000013': ['chungbuk'], // 금수산
+  '0000000014': ['gyeongbuk'], // 금오산
+  '0000000015': ['gyeongnam'], // 금정산
+  '0000000016': ['jeonnam'], // 깃대봉
+  '0000000017': ['gyeongbuk'], // 남산
+  '0000000018': ['gyeongbuk'], // 내연산
+  '0000000019': ['jeonbuk'], // 내장산
+  '0000000020': ['chungnam', 'jeonbuk'], // 대둔산
+  '0000000021': ['gangwon'], // 대암산
+  '0000000022': ['chungbuk', 'gyeongbuk'], // 대야산
+  '0000000023': ['chungnam'], // 덕숭산
+  '0000000024': ['gyeongnam', 'jeonbuk'], // 덕유산
+  '0000000025': ['gangwon'], // 덕항산
+  '0000000026': ['chungbuk'], // 도락산
+  '0000000027': ['seoul-gyeonggi'], // 도봉산
+  '0000000028': ['jeonnam'], // 두륜산
+  '0000000029': ['gangwon'], // 두타산
+  '0000000030': ['seoul-gyeonggi'], // 마니산
+  '0000000031': ['jeonbuk'], // 마이산
+  '0000000032': ['seoul-gyeonggi', 'gangwon'], // 명성산
+  '0000000033': ['seoul-gyeonggi'], // 명지산
+  '0000000034': ['jeonbuk'], // 모악산
+  '0000000035': ['jeonnam'], // 무등산
+  '0000000036': ['gyeongnam'], // 무학산
+  '0000000037': ['gyeongnam'], // 미륵산
+  '0000000038': ['chungbuk', 'gyeongbuk', 'jeonbuk'], // 민주지산
+  '0000000039': ['jeonbuk', 'jeonnam'], // 방장산
+  '0000000040': ['gangwon'], // 방태산
+  '0000000041': ['gangwon'], // 백덕산
+  '0000000042': ['jeonbuk', 'jeonnam'], // 백암산
+  '0000000044': ['jeonnam'], // 백운산(광양)
+  '0000000045': ['gangwon'], // 백운산(정선)
+  '0000000043': ['seoul-gyeonggi', 'gangwon'], // 백운산(포천)
+  '0000000046': ['jeonbuk'], // 변산
+  '0000000047': ['seoul-gyeonggi'], // 북한산
+  '0000000048': ['gyeongbuk'], // 비슬산
+  '0000000049': ['gangwon'], // 삼악산
+  '0000000050': ['chungnam', 'chungbuk'], // 서대산
+  '0000000051': ['jeonbuk'], // 선운산
+  '0000000052': ['gangwon'], // 설악산
+  '0000000053': ['gyeongbuk'], // 성인봉
+  '0000000054': ['chungbuk', 'gyeongbuk'], // 소백산
+  '0000000055': ['seoul-gyeonggi'], // 소요산
+  '0000000056': ['chungbuk', 'gyeongbuk'], // 속리산
+  '0000000057': ['gyeongnam'], // 신불산
+  '0000000058': ['gyeongnam'], // 연화산
+  '0000000059': ['gangwon'], // 오대산
+  '0000000060': ['gangwon'], // 오봉산
+  '0000000061': ['seoul-gyeonggi'], // 용문산
+  '0000000062': ['gangwon'], // 용화산
+  '0000000063': ['gyeongbuk', 'gyeongnam'], // 운문산
+  '0000000064': ['seoul-gyeonggi'], // 운악산
+  '0000000065': ['jeonbuk'], // 운장산
+  '0000000066': ['chungbuk'], // 월악산
+  '0000000067': ['jeonnam'], // 월출산
+  '0000000068': ['seoul-gyeonggi'], // 유명산
+  '0000000069': ['gangwon', 'gyeongbuk'], // 응봉산
+  '0000000070': ['jeonbuk'], // 장안산
+  '0000000071': ['gyeongnam'], // 재약산
+  '0000000072': ['jeonbuk'], // 적상산
+  '0000000073': ['gangwon'], // 점봉산
+  '0000000074': ['jeonnam'], // 조계산
+  '0000000075': ['gyeongbuk'], // 주왕산
+  '0000000076': ['gyeongbuk'], // 주흘산
+  '0000000077': ['gyeongnam', 'jeonbuk', 'jeonnam'], // 지리산
+  '0000000078': ['gyeongnam'], // 지리산(통영)
+  '0000000079': ['jeonnam'], // 천관산
+  '0000000080': ['seoul-gyeonggi'], // 천마산
+  '0000000081': ['gyeongnam'], // 천성산
+  '0000000082': ['chungnam', 'chungbuk'], // 천태산
+  '0000000083': ['gyeongbuk'], // 청량산
+  '0000000084': ['jeonbuk', 'jeonnam'], // 추월산
+  '0000000085': ['seoul-gyeonggi'], // 축령산
+  '0000000086': ['gangwon'], // 치악산
+  '0000000087': ['chungnam'], // 칠갑산
+  '0000000088': ['gangwon', 'gyeongbuk'], // 태백산
+  '0000000089': ['gangwon', 'chungbuk'], // 태화산
+  '0000000090': ['gyeongbuk'], // 팔공산
+  '0000000091': ['gangwon'], // 팔봉산
+  '0000000092': ['jeonnam'], // 팔영산
+  '0000000093': ['jeju'], // 한라산
+  '0000000094': ['seoul-gyeonggi', 'gangwon'], // 화악산
+  '0000000095': ['gyeongnam'], // 화왕산
+  '0000000096': ['gyeongnam'], // 황매산
+  '0000000097': ['gyeongnam'], // 황석산
+  '0000000098': ['gyeongbuk'], // 황악산
+  '0000000099': ['gyeongbuk'], // 황장산
+  '0000000100': ['chungbuk', 'gyeongbuk'], // 희양산
+};
+
+const mountainRecords: Omit<Mountain, 'regionCodes'>[] = [
   {
     "id": "0000000002",
     "name": "가리산",
@@ -1202,3 +1305,16 @@ export const mountains: Mountain[] = [
     "selectionReason": "한국등산트레킹지원센터 100대명산 목록정보 서비스에서 제공하는 100대 명산 기본정보입니다."
   }
 ];
+
+export const mountains: Mountain[] = mountainRecords.map((mountain) => {
+  const regionCodes = mountainRegionCodesById[mountain.id];
+
+  if (!regionCodes) {
+    throw new Error(`Missing region codes for mountain ${mountain.id} (${mountain.name})`);
+  }
+
+  return {
+    ...mountain,
+    regionCodes: [...regionCodes],
+  };
+});

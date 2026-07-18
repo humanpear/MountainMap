@@ -1,5 +1,10 @@
 import { mountains } from "../data/mountains";
-import type { CompletionRecord, Mountain } from "../types";
+import {
+  isMountainReviewDifficulty,
+  type CompletionRecord,
+  type Mountain,
+  type MountainReviewDifficulty,
+} from "../types";
 import { fetchPublicProfiles } from "./profiles";
 import { supabase } from "./supabase";
 
@@ -17,7 +22,7 @@ export type UserReviewSummary = {
   routeEndPoint: string | null;
   authorName: string;
   authorAvatarUrl: string | null;
-  difficulty: string;
+  difficulty: MountainReviewDifficulty;
   durationMinutes: number;
   durationLabel: string;
   body: string;
@@ -40,7 +45,7 @@ type ReviewRow = {
   route_start_point?: string | null;
   route_end_point?: string | null;
   author_name: string | null;
-  difficulty: string;
+  difficulty: unknown;
   duration_minutes: number;
   duration_label: string;
   body: string;
@@ -111,6 +116,12 @@ export async function fetchUserReviews(userId: string): Promise<UserReviewSummar
   const profile = profileMap.get(userId);
 
   return ((data ?? []) as ReviewRow[]).map((row) => {
+    if (!isMountainReviewDifficulty(row.difficulty)) {
+      throw new Error(
+        `Invalid mountain review difficulty for review ${row.id}: ${String(row.difficulty)}`,
+      );
+    }
+
     const mountain = mountains.find((candidate) => candidate.id === row.mountain_id);
     return {
       id: row.id,

@@ -1,5 +1,12 @@
 import { supabase } from "./supabase";
 import { fetchPublicProfiles } from "./profiles";
+import {
+  isMountainReviewDifficulty,
+  type MountainDifficultySummary,
+  type MountainReviewDifficulty,
+} from "../types";
+
+export type { MountainDifficultySummary } from "../types";
 
 export const mountainReviewImageBucket = "mountain-review-images";
 
@@ -12,7 +19,7 @@ export type MountainReview = {
   routeEndPoint?: string | null;
   authorName: string;
   authorAvatarUrl?: string | null;
-  difficulty: string;
+  difficulty: MountainReviewDifficulty;
   durationMinutes: number;
   durationLabel: string;
   body: string;
@@ -29,7 +36,7 @@ type MountainReviewRow = {
   route_start_point?: string | null;
   route_end_point?: string | null;
   author_name: string | null;
-  difficulty: string;
+  difficulty: unknown;
   duration_minutes: number;
   duration_label: string;
   body: string;
@@ -51,7 +58,7 @@ type CreateMountainReviewInput = {
   routeStartPoint?: string | null;
   routeEndPoint?: string | null;
   authorName: string;
-  difficulty: string;
+  difficulty: MountainReviewDifficulty;
   durationMinutes: number;
   durationLabel: string;
   body: string;
@@ -62,7 +69,7 @@ type UpdateMountainReviewInput = {
   id: string;
   userId: string;
   mountainId: string;
-  difficulty: string;
+  difficulty: MountainReviewDifficulty;
   durationMinutes: number;
   durationLabel: string;
   body: string;
@@ -79,6 +86,12 @@ function requireSupabase() {
 }
 
 function mapMountainReview(row: MountainReviewRow): MountainReview {
+  if (!isMountainReviewDifficulty(row.difficulty)) {
+    throw new Error(
+      `Invalid mountain review difficulty for review ${row.id}: ${String(row.difficulty)}`,
+    );
+  }
+
   return {
     id: row.id,
     userId: row.user_id,
@@ -95,6 +108,63 @@ function mapMountainReview(row: MountainReviewRow): MountainReview {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+type MountainDifficultySummaryRow = {
+  mountain_id?: unknown;
+  review_count?: unknown;
+  average_score?: unknown;
+};
+
+function mapMountainDifficultySummary(
+  row: MountainDifficultySummaryRow,
+  index: number,
+): MountainDifficultySummary {
+  if (typeof row.mountain_id !== "string" || row.mountain_id.trim().length === 0) {
+    throw new Error(`Invalid mountain difficulty summary at index ${index}: mountain_id`);
+  }
+
+  if (
+    typeof row.review_count !== "number" ||
+    !Number.isSafeInteger(row.review_count) ||
+    row.review_count < 1
+  ) {
+    throw new Error(`Invalid mountain difficulty summary at index ${index}: review_count`);
+  }
+
+  if (
+    typeof row.average_score !== "number" ||
+    !Number.isFinite(row.average_score) ||
+    row.average_score < 1 ||
+    row.average_score > 5
+  ) {
+    throw new Error(`Invalid mountain difficulty summary at index ${index}: average_score`);
+  }
+
+  return {
+    mountainId: row.mountain_id,
+    reviewCount: row.review_count,
+    averageScore: row.average_score,
+  };
+}
+
+export async function fetchMountainDifficultySummaries(): Promise<
+  MountainDifficultySummary[]
+> {
+  const client = requireSupabase();
+  const { data, error } = await client.rpc("get_mountain_difficulty_summaries");
+
+  if (error) {
+    throw error;
+  }
+
+  if (!Array.isArray(data)) {
+    throw new Error("Invalid mountain difficulty summary response: expected an array");
+  }
+
+  return data.map((row, index) =>
+    mapMountainDifficultySummary(row as MountainDifficultySummaryRow, index),
+  );
 }
 
 export async function fetchMountainReviews(mountainId: string) {

@@ -24,3 +24,8 @@ Key routing rules:
 - Performance regression → invoke /benchmark
 - Documentation → invoke /document-generate or /document-release
 - Resume context → invoke /context-restore
+
+## Health Stack
+
+- typecheck: npm run lint
+- test: npm test

@@ -56,6 +56,7 @@ import {
   updateMountainReview,
   type MountainReview,
 } from "../services/mountainReviews";
+import { mountainReviewDifficulties } from "../types";
 import type {
   ForestTripCourseKind,
   Mountain,
@@ -262,13 +263,7 @@ const difficultyThemeClass: Record<MountainGuideDifficulty, string> = {
   unknown: "border-[#cfd7dc] bg-[#eef2f4] text-[#65717a]",
 };
 
-const difficultyEvaluationOptions = [
-  "쉬움",
-  "보통",
-  "약간 어려움",
-  "어려움",
-  "매우 어려움",
-];
+const difficultyEvaluationOptions = mountainReviewDifficulties;
 
 const difficultyEvaluationIconSrcs = [
   "/course-feedback-icons/difficulty/easy.png",
@@ -2451,6 +2446,7 @@ function ReviewFilterBar({
                 : "border-[#d8e0da] bg-white text-[#18221d] hover:bg-[#f7faf8]",
             )}
             type="button"
+            aria-label={`${option.label} ${option.count}`}
             aria-pressed={isActive}
             onClick={() => onFilterChange(option.kind)}
           >
@@ -3066,7 +3062,7 @@ function ReviewPhotoLightbox({
 
   return (
     <div
-      className="fixed inset-0 z-[90] grid h-screen w-screen place-items-center bg-black/80 p-4"
+      className="fixed inset-0 z-[90] grid h-screen w-screen place-items-center bg-black/85 p-4"
       role="dialog"
       aria-modal="true"
       aria-label={`${review.routeName} 한줄평 사진 확대`}
@@ -4723,7 +4719,7 @@ function EvaluationPicker({
 }: {
   className?: string;
   title: string;
-  options: string[];
+  options: readonly string[];
   activeIndex: number;
   onChange: (index: number) => void;
 }) {

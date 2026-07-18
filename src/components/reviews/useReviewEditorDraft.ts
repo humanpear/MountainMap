@@ -19,7 +19,7 @@ type UseReviewEditorDraftOptions = {
   routes: MountainGuideRoute[];
   defaultRouteName: string;
   manualRouteName: string;
-  difficultyOptions: string[];
+  difficultyOptions: readonly string[];
   difficultyDefaultIndex: Record<MountainGuideDifficulty, number>;
   getDefaultDurationMinutes: (estimatedTime: string) => number;
   getRouteDisplayName: (route: MountainGuideRoute) => string;

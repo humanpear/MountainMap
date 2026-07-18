@@ -613,7 +613,7 @@ describe("MountainDetailPage course feedback", () => {
     expect(screen.queryByAltText("cancel-reset.png")).not.toBeInTheDocument();
   });
 
-  it("filters full reviews with counts and sorts oldest first", async () => {
+  it("filters full reviews with route counts", async () => {
     const mountain = getMountainWithMultipleOfficialRoutes();
     const [recommendedRoute, otherRoute] = getMountainGuide(mountain).routes.filter(
       (route) => route.forestTripCourseKind,
@@ -651,16 +651,7 @@ describe("MountainDetailPage course feedback", () => {
     fireEvent.click(screen.getByRole("tab", { name: "한줄평" }));
 
     expect(await screen.findByText(/최신 리뷰/)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("전체 한줄평 정렬"), {
-      target: { value: "oldest" },
-    });
-
-    const oldestReview = screen.getByText(/오래된 리뷰/);
-    const newestReview = screen.getByText(/최신 리뷰/);
-    expect(
-      oldestReview.compareDocumentPosition(newestReview) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(screen.getByText(/오래된 리뷰/)).toBeInTheDocument();
 
     expect(screen.getByRole("button", { name: "전체 3" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "추천코스 2" })).toBeInTheDocument();

@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Session } from '@supabase/supabase-js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
+import { mountains } from './data/mountains';
 
 const supabaseMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -19,8 +20,32 @@ const myPageMocks = vi.hoisted(() => ({
   fetchUserReviews: vi.fn()
 }));
 
+const mountainReviewMocks = vi.hoisted(() => ({
+  fetchMountainDifficultySummaries: vi.fn()
+}));
+
+const randomSoundMocks = vi.hoisted(() => ({
+  playFanfare: vi.fn(),
+  playRouletteTick: vi.fn()
+}));
+
 vi.mock('./components/MountainMap', () => ({
-  MountainMap: () => <div aria-label="mock-map" />
+  MountainMap: ({
+    mountains: mapMountains,
+    selectedMountainId,
+    fitResultsRevision
+  }: {
+    mountains: Array<{ id: string }>;
+    selectedMountainId?: string;
+    fitResultsRevision: number;
+  }) => (
+    <div
+      aria-label="mock-map"
+      data-mountain-count={mapMountains.length}
+      data-selected-mountain-id={selectedMountainId ?? ''}
+      data-fit-results-revision={fitResultsRevision}
+    />
+  )
 }));
 
 vi.mock('./components/MountainDetailPage', () => ({
@@ -45,6 +70,7 @@ vi.mock('./services/myPage', () => ({
 }));
 
 vi.mock('./services/mountainReviews', () => ({
+  fetchMountainDifficultySummaries: mountainReviewMocks.fetchMountainDifficultySummaries,
   fetchMountainReviews: vi.fn(() => Promise.resolve([]))
 }));
 
@@ -57,8 +83,8 @@ vi.mock('./services/authRedirect', () => ({
 }));
 
 vi.mock('./services/randomSounds', () => ({
-  playFanfare: vi.fn(),
-  playRouletteTick: vi.fn()
+  playFanfare: randomSoundMocks.playFanfare,
+  playRouletteTick: randomSoundMocks.playRouletteTick
 }));
 
 vi.mock('./services/supabase', () => ({
@@ -109,6 +135,10 @@ function mockCompletedMountainsQuery() {
 }
 
 describe('App account menu', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     window.history.replaceState(null, '', '/');
     supabaseMocks.getSession.mockReset();
@@ -118,6 +148,9 @@ describe('App account menu', () => {
     supabaseMocks.from.mockReset();
     profileMocks.fetchOrCreateUserProfile.mockReset();
     myPageMocks.fetchUserReviews.mockReset();
+    mountainReviewMocks.fetchMountainDifficultySummaries.mockReset();
+    randomSoundMocks.playFanfare.mockReset();
+    randomSoundMocks.playRouletteTick.mockReset();
 
     const session = createSession();
     supabaseMocks.getSession.mockResolvedValue({ data: { session } });
@@ -133,6 +166,7 @@ describe('App account menu', () => {
       avatarKind: 'default-1'
     });
     myPageMocks.fetchUserReviews.mockResolvedValue([{ id: 'review-1' }, { id: 'review-2' }]);
+    mountainReviewMocks.fetchMountainDifficultySummaries.mockResolvedValue([]);
     mockCompletedMountainsQuery();
   });
 
@@ -203,5 +237,92 @@ describe('App account menu', () => {
     await waitFor(() => {
       expect(screen.queryByRole('menu', { name: '마이페이지 메뉴' })).not.toBeInTheDocument();
     });
+  });
+
+  it('keeps other filters usable after a difficulty summary error and retries the request', async () => {
+    mountainReviewMocks.fetchMountainDifficultySummaries
+      .mockRejectedValueOnce(new Error('network error'))
+      .mockResolvedValueOnce([
+        { mountainId: '0000000001', reviewCount: 3, averageScore: 2 },
+      ]);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('난이도 정보를 불러오지 못했습니다.');
+    expect(screen.getByLabelText('지역')).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '보통' })).toBeEnabled();
+    });
+    expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(2);
+  });
+
+  it('shares the applied result set with the map and selected detail', async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
+
+    const gangwonMountains = mountains.filter((mountain) => mountain.regionCodes.includes('gangwon'));
+    fireEvent.click(screen.getByRole('button', { name: `${gangwonMountains.length}개 산 보기` }));
+
+    const map = screen.getByLabelText('mock-map');
+    expect(map).toHaveAttribute('data-mountain-count', String(gangwonMountains.length));
+    expect(map).toHaveAttribute('data-fit-results-revision', '1');
+
+    const selected = gangwonMountains[0];
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(selected.name) }));
+    expect(map).toHaveAttribute('data-selected-mountain-id', selected.id);
+    expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
+  });
+
+  it('finishes a random recommendation inside the current filtered results', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'jeju' } });
+
+    const jejuMountains = mountains.filter((mountain) => mountain.regionCodes.includes('jeju'));
+    fireEvent.click(screen.getByRole('button', { name: `${jejuMountains.length}개 산 보기` }));
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole('button', { name: `이 결과 ${jejuMountains.length}개 중 랜덤 추천` }));
+
+    expect(screen.getByRole('complementary', { name: '랜덤 추천 진행 상태' })).toBeInTheDocument();
+    act(() => vi.runAllTimers());
+
+    const selectedId = screen.getByLabelText('mock-map').getAttribute('data-selected-mountain-id');
+    expect(jejuMountains.some((mountain) => mountain.id === selectedId)).toBe(true);
+    expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
+    randomSpy.mockRestore();
+  });
+
+  it('cancels the random timer without opening a stale winner', async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
+    vi.useFakeTimers();
+
+    fireEvent.click(screen.getByRole('button', { name: `이 결과 ${mountains.length}개 중 랜덤 추천` }));
+    fireEvent.click(screen.getByRole('button', { name: '추천 취소' }));
+    act(() => vi.runAllTimers());
+
+    expect(screen.getByRole('complementary', { name: '산 찾기 결과' })).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: '선택한 산 정보' })).not.toBeInTheDocument();
+  });
+
+  it('ignores a duplicate random start while the first timer is running', async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
+    vi.useFakeTimers();
+    const randomButton = screen.getByRole('button', { name: `이 결과 ${mountains.length}개 중 랜덤 추천` });
+
+    fireEvent.click(randomButton);
+    fireEvent.click(randomButton);
+
+    expect(randomSoundMocks.playRouletteTick).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: '추천 취소' }));
   });
 });

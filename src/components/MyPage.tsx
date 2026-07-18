@@ -45,6 +45,7 @@ import {
   updateMountainReview,
   type MountainReview,
 } from "../services/mountainReviews";
+import { mountainReviewDifficulties } from "../types";
 import type { CompletionRecord, Mountain, MountainGuideDifficulty, MountainGuideRoute } from "../types";
 
 type MyPageProps = {
@@ -68,7 +69,7 @@ type MyPageReviewLightboxState = {
 };
 
 const manualCourseRouteName = "코스 직접 입력";
-const difficultyEvaluationOptions = ["쉬움", "보통", "약간 어려움", "어려움", "매우 어려움"];
+const difficultyEvaluationOptions = mountainReviewDifficulties;
 const difficultyEvaluationIconSrcs = [
   "/course-feedback-icons/difficulty/easy.png",
   "/course-feedback-icons/difficulty/normal.png",
@@ -1827,7 +1828,7 @@ function MyPageEvaluationPicker({
 }: {
   className?: string;
   title: string;
-  options: string[];
+  options: readonly string[];
   activeIndex: number;
   onChange: (index: number) => void;
 }) {
