@@ -62,6 +62,8 @@ declare global {
   type KakaoMapProjection = {
     pointFromCoords(position: KakaoLatLng): KakaoPoint;
     coordsFromPoint(point: KakaoPoint): KakaoLatLng;
+    containerPointFromCoords?(position: KakaoLatLng): KakaoPoint;
+    coordsFromContainerPoint?(point: KakaoPoint): KakaoLatLng;
   };
 
   type KakaoZoomControl = object;

@@ -278,7 +278,12 @@ export function MountainMap(props: MountainMapProps) {
     const map = mapRef.current;
     const position = new window.kakao.maps.LatLng(focusedMountain.latitude, focusedMountain.longitude);
     const projection = map.getProjection();
-    const markerPoint = projection.pointFromCoords(position);
+    const usesContainerProjection = Boolean(
+      projection.containerPointFromCoords && projection.coordsFromContainerPoint,
+    );
+    const markerPoint = usesContainerProjection
+      ? projection.containerPointFromCoords!(position)
+      : projection.pointFromCoords(position);
     const containerRect = containerRef.current?.getBoundingClientRect();
     const mapBounds = map.getBounds();
 
@@ -317,7 +322,9 @@ export function MountainMap(props: MountainMapProps) {
       return;
     }
 
-    const centerPoint = projection.pointFromCoords(map.getCenter());
+    const centerPoint = usesContainerProjection
+      ? projection.containerPointFromCoords!(map.getCenter())
+      : projection.pointFromCoords(map.getCenter());
     const nextCenterPoint = window.kakao.maps.Point
       ? new window.kakao.maps.Point(
           centerPoint.x + markerPoint.x - desiredPoint.x,
@@ -327,7 +334,9 @@ export function MountainMap(props: MountainMapProps) {
           x: centerPoint.x + markerPoint.x - desiredPoint.x,
           y: centerPoint.y + markerPoint.y - desiredPoint.y,
         };
-    const nextCenter = projection.coordsFromPoint(nextCenterPoint);
+    const nextCenter = usesContainerProjection
+      ? projection.coordsFromContainerPoint!(nextCenterPoint)
+      : projection.coordsFromPoint(nextCenterPoint);
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
       map.setCenter(nextCenter);
