@@ -5,6 +5,10 @@ type RandomOptions = {
   random?: () => number;
 };
 
+export function getRandomTickDelay(index: number) {
+  return Math.min(40 + Math.max(0, index), 60);
+}
+
 export function pickRandomMountain(options: RandomOptions): RandomResult | null {
   const random = options.random ?? Math.random;
   const candidates = options.mountains;
