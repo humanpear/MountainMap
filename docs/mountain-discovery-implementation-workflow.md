@@ -65,7 +65,7 @@
 | 6 | 지도와 랜덤 추천 연결 | 완료 | 5 | 지도·랜덤 통합 테스트와 전체 테스트 151개 통과 |
 | 7 | 코드 품질 점검 | 완료 | 6 | `$health` 10.0/10, 타입 검사, 전체 테스트 151개, 프로덕션 빌드 통과 |
 | 8 | 브라우저 QA | 완료 | 7 | 데스크톱·375px 핵심 흐름 통과, High 1건 수정·회귀 검증, 전체 152개 테스트 통과 |
-| 9 | 디자인 마감 | 대기 | 8 | `DESIGN.md` 기준 전후 검증 |
+| 9 | 디자인 마감 | 완료 | 8 | `$design-review` 5건 수정·전후 검증, Design B→A, 전체 154개 테스트 통과 |
 | 10 | 병합 전 리뷰 | 대기 | 9 | high/medium 문제 해결된 리뷰 |
 | 11 | PR 준비 | 대기 | 10 | 커밋·푸시·PR·CI 상태 |
 | 12 | 병합·배포·운영 확인 | 대기 | 11 | 프로덕션 URL과 상태 확인 |
@@ -85,6 +85,16 @@
 - 남은 위험: 없으면 `없음`
 - 다음 단계: N+1
 ```
+
+### 2026-07-19 · 단계 9 · 완료
+
+- 범위: `$design-review` diff-aware Standard 검토로 산 찾기 지도, 데스크톱 필터·결과·상세 패널, 375px 모바일 필터·결과·상세, 랜덤 추천 흐름을 `DESIGN.md` 기준으로 점검했다. 낮은 화면의 필터 액션 유실, 선택 산과 지도 위치 불일치, 피드백 버튼의 결과 패널 겹침, 44px 미만 조작 영역, 10초 이상 랜덤 추천 대기 등 5건을 수정했다.
+- 사용 스킬: `$design-review`, 인앱 브라우저. gstack Windows browse 실행 파일의 기존 장애 때문에 실제 화면 조작과 스크린샷은 Codex In-app Browser로 수행했다.
+- 변경 파일: `src/App.tsx`, `src/components/MountainDiscoveryPanel.tsx`, `src/components/MountainMap.tsx`, `src/kakao.d.ts`, `src/game/random.ts`, `src/components/MountainMap.regression-2.test.tsx`, `src/game/randomTiming.regression-1.test.ts`, 디자인 리포트·스크린샷, 이 문서.
+- 검증: 1280×720 필터 하단 액션 노출, 1440×900 결과·감악산 상세와 지도 선택 마커 동기화, 패널 위 피드백 버튼 0개, 375×812 수평 오버플로 0 및 앱 소유 헤더·마커 조작 영역 44px 이상을 확인했다. 랜덤 추천은 10.45초에서 브라우저 약 2.63초, 42단계 타이머 계약 2,310ms로 단축됐다. 수정 후 콘솔 오류·경고 0건, `npm run lint` 통과, `npm test` 23개 파일·154개 통과, `npm run build` 통과.
+- 결정: Kakao 패널 가시 영역 계산은 월드 투영 좌표가 아니라 `containerPointFromCoords`·`coordsFromContainerPoint`를 우선 사용한다. 지도 마커는 외형 36px를 유지하되 실제 버튼 상자를 44px로 분리한다. 산 찾기 패널이 열리면 비핵심 피드백 버튼을 숨기고, 랜덤 추천은 최장 2.5초 이내에 끝낸다. 디자인 점수는 B→A, AI slop 점수는 A→A로 평가했다.
+- 남은 위험: 실제 iOS·Android 기기가 아닌 브라우저 뷰포트 검증이다. 인증 계정의 등정 필터 조합은 8단계와 동일하게 브라우저에서 직접 검증하지 못했다. 프로덕션 JavaScript 청크 약 2.21MB(압축 약 480KB)의 Vite 500KB 경고가 남는다.
+- 다음 단계: 10단계 `$review` 병합 전 리뷰.
 
 ### 2026-07-19 · 단계 8 · 완료
 
