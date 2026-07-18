@@ -18,7 +18,10 @@ const kakaoMocks = vi.hoisted(() => {
   const boundsExtend = vi.fn();
   const setZoomable = vi.fn();
   const addControl = vi.fn();
-  const overlayInstances: Array<{ setMap: ReturnType<typeof vi.fn> }> = [];
+  const overlayInstances: Array<{
+    setMap: ReturnType<typeof vi.fn>;
+    setZIndex: ReturnType<typeof vi.fn>;
+  }> = [];
   const mapInstance = {
     relayout,
     getCenter: vi.fn(() => ({ latitude: 36.4, longitude: 127.8 })),
@@ -36,7 +39,7 @@ const kakaoMocks = vi.hoisted(() => {
     return mapInstance;
   });
   const CustomOverlay = vi.fn(function () {
-    const overlay = { setMap: vi.fn() };
+    const overlay = { setMap: vi.fn(), setZIndex: vi.fn() };
     overlayInstances.push(overlay);
     return overlay;
   });
@@ -132,6 +135,7 @@ const mountains: Mountain[] = [
 type MountainMapTestProps = {
   mountains?: readonly Mountain[];
   focusedMountainId?: string;
+  highlightedId?: string;
   fitResultsRevision?: number;
   layoutKey?: string;
 };
@@ -141,6 +145,7 @@ function renderMountainMap(overrides: MountainMapTestProps = {}) {
     <MountainMap
       mountains={overrides.mountains ?? mountains}
       focusedMountainId={overrides.focusedMountainId}
+      highlightedId={overrides.highlightedId}
       fitResultsRevision={overrides.fitResultsRevision ?? 0}
       layoutKey={overrides.layoutKey}
       completedIds={new Set()}
@@ -320,6 +325,27 @@ describe('MountainMap', () => {
 
     expect(kakaoMocks.CustomOverlay).toHaveBeenCalledTimes(2);
     expect(kakaoMocks.setBounds).not.toHaveBeenCalled();
+  });
+
+  it('updates random recommendation highlighting without recreating overlays', async () => {
+    const { rerender } = renderMountainMap({ highlightedId: 'm-1' });
+    await waitFor(() => expect(kakaoMocks.CustomOverlay).toHaveBeenCalledTimes(2));
+
+    kakaoMocks.overlayInstances.forEach((overlay) => overlay.setZIndex.mockClear());
+    rerender(
+      <MountainMap
+        mountains={mountains}
+        highlightedId="m-2"
+        fitResultsRevision={0}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    expect(kakaoMocks.CustomOverlay).toHaveBeenCalledTimes(2);
+    expect(kakaoMocks.overlayInstances[0].setZIndex).toHaveBeenLastCalledWith(1);
+    expect(kakaoMocks.overlayInstances[1].setZIndex).toHaveBeenLastCalledWith(10);
   });
 
   it('fits all result markers only when fitResultsRevision increases', async () => {

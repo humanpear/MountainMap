@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useMemo, useReducer, useRef } from 'react';
+import { useCallback, useMemo, useReducer, useRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createInitialDiscoveryState,
@@ -91,7 +91,7 @@ function DiscoveryHarness({
     }),
     state.sort,
   );
-  const onAction = (action: DiscoveryAction) => dispatch(action);
+  const onAction = useCallback((action: DiscoveryAction) => dispatch(action), []);
 
   return (
     <div>
@@ -306,6 +306,51 @@ describe('MountainDiscoveryPanel', () => {
       expect(screen.queryByRole('dialog', { name: '조건으로 찾기' })).not.toBeInTheDocument();
       expect(trigger).toHaveFocus();
     });
+  });
+
+  it('keeps focus on the mobile filter control while its value changes', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({
+      matches: true,
+      media: '(max-width: 900px)',
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+    render(<DiscoveryHarness />);
+
+    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    const regionSelect = await screen.findByLabelText('지역');
+    regionSelect.focus();
+    fireEvent.change(regionSelect, { target: { value: 'gangwon' } });
+
+    expect(regionSelect).toHaveFocus();
+  });
+
+  it('returns to mobile results when nested filter editing is cancelled', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({
+      matches: true,
+      media: '(max-width: 900px)',
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+    render(<DiscoveryHarness />);
+
+    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
+    expect(await screen.findByRole('dialog', { name: '산 찾기 결과' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '필터 수정' }));
+    expect(await screen.findByRole('dialog', { name: '조건으로 찾기' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+
+    expect(await screen.findByRole('dialog', { name: '산 찾기 결과' })).toBeInTheDocument();
   });
 
   it('treats the mobile result sheet as a modal and restores trigger focus', async () => {

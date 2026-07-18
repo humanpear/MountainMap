@@ -328,7 +328,10 @@ describe('App account menu', () => {
       .mockResolvedValueOnce([
         { mountainId: mountains[0].id, reviewCount: 3, averageScore: 2 },
       ])
-      .mockRejectedValueOnce(new Error('background refresh failed'));
+      .mockRejectedValueOnce(new Error('background refresh failed'))
+      .mockResolvedValueOnce([
+        { mountainId: mountains[0].id, reviewCount: 4, averageScore: 2 },
+      ]);
     window.history.replaceState(null, '', `/mountains/${mountains[0].id}`);
     render(<App />);
 
@@ -339,6 +342,14 @@ describe('App account menu', () => {
     fireEvent.click(screen.getByRole('button', { name: '상세에서 지도 복귀' }));
     await waitFor(() => {
       expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(2);
+    });
+
+    fireEvent.change(screen.getByLabelText('산 이름 검색'), { target: { value: mountains[1].name } });
+    fireEvent.submit(screen.getByRole('search'));
+    expect(await screen.findByText('산 상세')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '상세에서 지도 복귀' }));
+    await waitFor(() => {
+      expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(3);
     });
 
     fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
@@ -387,6 +398,19 @@ describe('App account menu', () => {
     fireEvent.click(screen.getByRole('button', { name: new RegExp(selected.name) }));
     expect(map).toHaveAttribute('data-selected-mountain-id', selected.id);
     expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
+  });
+
+  it('keeps mobile discovery results open when Back only removes a nested sheet layer', async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
+    expect(screen.getByRole('complementary', { name: '산 찾기 결과' })).toBeInTheDocument();
+
+    fireEvent.popState(window, {
+      state: { __mountainMapDiscoverySheet: 'panel' },
+    });
+
+    expect(screen.getByRole('complementary', { name: '산 찾기 결과' })).toBeInTheDocument();
   });
 
   it('returns to updated results when a completion change removes the selected mountain', async () => {

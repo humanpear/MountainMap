@@ -16,6 +16,16 @@ type MountainMapProps = {
   onMountainSelect: (mountain: Mountain) => void;
 };
 
+type KakaoMarkerOverlayEntry = {
+  mountain: Mountain;
+  element: HTMLButtonElement;
+  overlay: KakaoCustomOverlay;
+  triangleBack: HTMLSpanElement;
+  triangleFront: HTMLSpanElement;
+  medals: HTMLSpanElement;
+  label: HTMLSpanElement;
+};
+
 const KOREA_BOUNDS = {
   minLat: 33,
   maxLat: 39,
@@ -72,7 +82,8 @@ const markerClass = {
 export function MountainMap(props: MountainMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<KakaoMap | null>(null);
-  const overlaysRef = useRef<KakaoCustomOverlay[]>([]);
+  const overlaysRef = useRef<KakaoMarkerOverlayEntry[]>([]);
+  const onMountainSelectRef = useRef(props.onMountainSelect);
   const lastFitResultsRevisionRef = useRef(0);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -85,6 +96,7 @@ export function MountainMap(props: MountainMapProps) {
     () => props.mountains.map((mountain) => mountain.id).sort().join('|'),
     [props.mountains],
   );
+  onMountainSelectRef.current = props.onMountainSelect;
 
   useEffect(() => {
     if (!isKakaoMapConfigured || !containerRef.current) {
@@ -115,7 +127,7 @@ export function MountainMap(props: MountainMapProps) {
       });
     return () => {
       isActive = false;
-      overlaysRef.current.forEach((overlay) => overlay.setMap(null));
+      overlaysRef.current.forEach(({ overlay }) => overlay.setMap(null));
       overlaysRef.current = [];
       mapRef.current = null;
     };
@@ -126,17 +138,17 @@ export function MountainMap(props: MountainMapProps) {
       return;
     }
 
-    overlaysRef.current.forEach((overlay) => overlay.setMap(null));
+    overlaysRef.current.forEach(({ overlay }) => overlay.setMap(null));
     const nextOverlays = props.mountains.map((mountain) => {
       const element = document.createElement('button');
       element.type = 'button';
       element.className = getMarkerClass(mountain, props, true);
       element.setAttribute('aria-label', `${mountain.name} 선택`);
-      appendMarkerGlyph(element, getMarkerTone(mountain, props));
-      appendMedals(element, props.completionCounts.get(mountain.id) ?? 0);
-      appendLabel(element, mountain.name, isMarkerActive(mountain, props));
+      const [triangleBack, triangleFront] = appendMarkerGlyph(element, getMarkerTone(mountain, props));
+      const medals = appendMedals(element, props.completionCounts.get(mountain.id) ?? 0);
+      const label = appendLabel(element, mountain.name, isMarkerActive(mountain, props));
       element.addEventListener('click', () => {
-        props.onMountainSelect(mountain);
+        onMountainSelectRef.current(mountain);
       });
 
       const overlay = new window.kakao.maps.CustomOverlay({
@@ -146,16 +158,38 @@ export function MountainMap(props: MountainMapProps) {
         zIndex: props.highlightedId === mountain.id ? 10 : 1
       });
       overlay.setMap(mapRef.current);
-      return overlay;
+      return { mountain, element, overlay, triangleBack, triangleFront, medals, label };
     });
     overlaysRef.current = nextOverlays;
 
     return () => {
-      nextOverlays.forEach((overlay) => overlay.setMap(null));
+      nextOverlays.forEach(({ overlay }) => overlay.setMap(null));
       if (overlaysRef.current === nextOverlays) {
         overlaysRef.current = [];
       }
     };
+  }, [
+    mapReady,
+    mountainIdsKey,
+  ]);
+
+  useEffect(() => {
+    if (!mapReady) {
+      return;
+    }
+
+    overlaysRef.current.forEach(({ mountain, element, overlay, triangleBack, triangleFront, medals, label }) => {
+      const active = isMarkerActive(mountain, props);
+      const tone = getMarkerTone(mountain, props);
+      const completionCount = props.completionCounts.get(mountain.id) ?? 0;
+
+      element.className = getMarkerClass(mountain, props, true);
+      triangleBack.className = cn(markerClass.triangleBack, tone.back);
+      triangleFront.className = cn(markerClass.triangleFront, tone.front);
+      medals.className = cn(markerClass.medals, completionCount === 0 && 'hidden');
+      label.className = cn(markerClass.name, active && markerClass.selectedName);
+      overlay.setZIndex?.(active ? 10 : 1);
+    });
   }, [
     mapReady,
     mountainIdsKey,
@@ -402,22 +436,21 @@ function MarkerMedals({ count }: { count: number }) {
   );
 }
 
-function appendMarkerGlyph(element: HTMLElement, tone: MarkerTone) {
-  for (const className of [cn(markerClass.triangleBack, tone.back), cn(markerClass.triangleFront, tone.front)]) {
+function appendMarkerGlyph(element: HTMLElement, tone: MarkerTone): [HTMLSpanElement, HTMLSpanElement] {
+  const shapes = [cn(markerClass.triangleBack, tone.back), cn(markerClass.triangleFront, tone.front)].map((className) => {
     const shape = document.createElement('span');
     shape.className = className;
     shape.setAttribute('aria-hidden', 'true');
     element.appendChild(shape);
-  }
+    return shape;
+  });
+
+  return [shapes[0], shapes[1]];
 }
 
 function appendMedals(element: HTMLElement, count: number) {
-  if (count === 0) {
-    return;
-  }
-
   const medals = document.createElement('span');
-  medals.className = markerClass.medals;
+  medals.className = cn(markerClass.medals, count === 0 && 'hidden');
   medals.setAttribute('aria-hidden', 'true');
 
   const medal = document.createElement('span');
@@ -425,6 +458,7 @@ function appendMedals(element: HTMLElement, count: number) {
   medals.appendChild(medal);
 
   element.appendChild(medals);
+  return medals;
 }
 
 function appendLabel(element: HTMLElement, name: string, active: boolean) {
@@ -432,6 +466,7 @@ function appendLabel(element: HTMLElement, name: string, active: boolean) {
   label.className = cn(markerClass.name, active && markerClass.selectedName);
   label.textContent = name;
   element.appendChild(label);
+  return label;
 }
 
 type MarkerTone = {

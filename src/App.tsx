@@ -24,7 +24,11 @@ import {
   X
 } from 'lucide-react';
 import { MountainDetailPage } from './components/MountainDetailPage';
-import { MountainDiscoveryControls, MountainDiscoveryPanel } from './components/MountainDiscoveryPanel';
+import {
+  MountainDiscoveryControls,
+  MountainDiscoveryPanel,
+  isMobileDiscoveryHistoryState
+} from './components/MountainDiscoveryPanel';
 import { MountainMap } from './components/MountainMap';
 import { MountainNameWithHanja } from './components/MountainNameWithHanja';
 import { MyPage } from './components/MyPage';
@@ -465,20 +469,21 @@ export default function App() {
     try {
       const summaries = await fetchMountainDifficultySummaries();
       if (requestId !== difficultyRequestIdRef.current) {
-        return;
+        return false;
       }
 
       updateDifficultySummaryState({
         status: 'ready',
         summaries: new Map(summaries.map((summary) => [summary.mountainId, summary]))
       });
+      return true;
     } catch (error) {
       if (requestId !== difficultyRequestIdRef.current) {
-        return;
+        return false;
       }
 
       if (preserveReadyState && difficultySummaryStateRef.current.status === 'ready') {
-        return;
+        return false;
       }
 
       dispatchDiscovery({ type: 'DIFFICULTY_SUMMARIES_UNAVAILABLE' });
@@ -486,6 +491,7 @@ export default function App() {
         status: 'error',
         message: error instanceof Error ? error.message : '난이도 정보를 불러오지 못했습니다.'
       });
+      return false;
     }
   }, [updateDifficultySummaryState]);
 
@@ -499,7 +505,11 @@ export default function App() {
     }
 
     reviewSummaryDirtyRef.current = false;
-    void loadDifficultySummaries(true);
+    void loadDifficultySummaries(true).then((didRefresh) => {
+      if (!didRefresh) {
+        reviewSummaryDirtyRef.current = true;
+      }
+    });
   }, [loadDifficultySummaries]);
 
   useEffect(() => {
@@ -616,9 +626,13 @@ export default function App() {
   }, [isMobileSearchOpen]);
 
   useEffect(() => {
-    const syncDetailRoute = () => {
-    setDetailMountainId(getMountainDetailRouteId());
-    setIsMyPageOpen(getIsMyPageRoute());
+    const syncDetailRoute = (event: PopStateEvent) => {
+      if (isMobileDiscoveryHistoryState(event.state)) {
+        return;
+      }
+
+      setDetailMountainId(getMountainDetailRouteId());
+      setIsMyPageOpen(getIsMyPageRoute());
       setMyPageTab(getMyPageTabRoute());
       setIsAccountMenuOpen(false);
       setIsMobileSearchOpen(false);

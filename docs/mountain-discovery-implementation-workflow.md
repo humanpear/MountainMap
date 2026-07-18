@@ -98,14 +98,14 @@
 
 ### 2026-07-19 · 단계 11 · 진행 중
 
-- 범위: `$ship`으로 `origin/main`을 병합하고 전체 검증, 구현 계획 감사, 테스트 커버리지 감사, 적대적 코드 리뷰를 수행했다. 리뷰에서 확인한 등정 데이터 로딩 중 오분류, 결과 집합 변경 뒤 남는 상세·지도 범위, 모바일 브라우저 뒤로가기, 하단 안전 영역, 난이도 집계의 알 수 없는·중복 산 ID 수용 문제를 수정했다.
+- 범위: `$ship`을 두 차례 실행해 `origin/main` 병합, 전체 검증, 구현 계획 감사, 테스트 커버리지 감사와 적대적 코드 리뷰를 수행했다. 첫 리뷰의 등정 데이터 로딩·결과 집합·모바일 시트·난이도 집계 문제에 이어 두 번째 리뷰에서 발견한 필터 포커스 초기화, 중첩 모바일 시트 뒤로가기 경쟁 조건, 랜덤 추천 중 Kakao overlay 반복 생성, 난이도 백그라운드 갱신 실패 후 재시도 누락을 수정했다.
 - 사용 스킬: `$ship`. 사용자 결정에 따라 telemetry와 GBrain 동기화는 비활성 상태를 유지했다.
-- 변경 파일: `src/App.tsx`, `src/components/MountainDiscoveryPanel.tsx`, `src/services/mountainReviews.ts`, `supabase/mountain_reviews.sql`, 관련 테스트, 이 문서와 10단계부터 남아 있던 리뷰 수정 파일.
-- 검증: `origin/main` 병합 성공, `npm run lint` 통과, `npm test` 23개 파일·170개 테스트 통과, `npm run build` 통과, `npm run audit:guides` 정책 위반 0건, `git diff --check` 통과. 계획 감사 48개 항목 중 모바일 브라우저 뒤로가기 미구현 1건을 포함한 잔여 항목을 재검토했고 이번 수정으로 해당 요구를 구현했다. 테스트 커버리지 감사는 83%로 목표 80%를 넘었다.
-- 결정: 로그인 사용자의 완료·미등정 필터는 등정 기록 조회가 `ready`일 때만 활성화한다. 결과 구성원이 바뀌어 선택한 산이 제외되면 결과 목록으로 복귀하고 지도를 새 결과에 맞춘다. 모바일 필터·결과·상세 시트는 같은 임시 history 항목을 공유해 시스템 뒤로가기로 먼저 닫힌다. 난이도 집계 응답은 100대 명산에 없는 ID와 중복 ID를 거부하며 DB도 `0000000001`~`0000000100`만 저장하도록 제약한다.
+- 변경 파일: `src/App.tsx`, `src/components/MountainDiscoveryPanel.tsx`, `src/components/MountainMap.tsx`, `src/kakao.d.ts`, `src/services/mountainReviews.ts`, `supabase/mountain_reviews.sql`, 관련 테스트, 이 문서와 10단계부터 남아 있던 리뷰 수정 파일.
+- 검증: `origin/main` 병합 성공, `npm run lint` 통과, `npm test` 23개 파일·174개 테스트 통과, `npm run build` 통과, `npm run audit:guides` 정책 위반 0건. 계획 감사 48개 항목은 45개 완료·1개 변경·2개 부분 완료로 평가됐고, 테스트 커버리지 감사는 90%(27/30)였다. 적대적 리뷰의 medium 3건과 low 1건을 모두 수정하고 각 회귀 테스트를 추가했다.
+- 결정: 로그인 사용자의 완료·미등정 필터는 등정 기록 조회가 `ready`일 때만 활성화한다. 결과 구성원이 바뀌어 선택한 산이 제외되면 결과 목록으로 복귀하고 지도를 새 결과에 맞춘다. 모바일 필터·결과·상세 시트는 필터와 패널을 구분한 임시 history layer를 사용하며, 중첩 필터의 적용·취소 action은 `popstate` 도착 시 실행해 아래 결과·상세 시트를 유지한다. Kakao overlay는 표시 산 집합이 바뀔 때만 생성하고 선택·랜덤 강조·등정 표시는 기존 DOM과 z-index만 갱신한다. 난이도 백그라운드 갱신 실패 시 dirty 상태를 복구해 다음 지도 복귀에서 다시 조회한다. 난이도 집계 응답은 100대 명산에 없는 ID와 중복 ID를 거부하며 DB도 `0000000001`~`0000000100`만 저장하도록 제약한다.
 - 중단 사유: `$ship` 규칙상 리뷰 단계에서 수정이 발생하면 수정 파일을 커밋한 뒤 이번 실행을 종료해야 한다. 따라서 버전·CHANGELOG·푸시·PR 생성은 다음 `$ship` 실행으로 넘긴다.
-- 남은 위험: 새 `mountain_reviews_mountain_id_check` 제약을 운영 Supabase에 다시 적용해야 한다. 사용자가 앞서 선택한 `0.1.0.0`은 npm이 허용하는 SemVer가 아니므로 다음 실행에서 유효한 버전(`0.1.0` 유지 권장)을 확정해야 한다. 프로덕션 JavaScript 청크 약 2.22MB(압축 약 481KB)의 Vite 500KB 경고가 남는다.
-- 다음 단계: 최신 `supabase/mountain_reviews.sql` 적용을 확인한 뒤 11단계 `$ship`을 다시 실행해 버전·CHANGELOG·푸시·PR 준비를 완료한다.
+- 남은 위험: 최신 `supabase/mountain_reviews.sql`은 사용자가 운영 Supabase에 재적용 완료했다. 계획 감사에서 결과 행의 평가 인원 직접 표기와 일부 비동기 조합 테스트가 부분 완료로 남았으나 현재 확정 범위와 핵심 흐름을 막지는 않는다. 프로덕션 JavaScript 청크 약 2.22MB(압축 약 482KB)의 Vite 500KB 경고가 남는다.
+- 다음 단계: 11단계 `$ship`을 다시 실행해 `0.1.0` 버전 유지, CHANGELOG, 푸시와 PR 준비를 완료한다.
 
 ### 2026-07-19 · 단계 9 · 완료
 

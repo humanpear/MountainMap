@@ -2,6 +2,7 @@ import {
   type FormEvent,
   type ReactNode,
   type RefObject,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -107,26 +108,48 @@ function useMobileDiscoveryLayout() {
   return isMobile;
 }
 
-const mobileDiscoveryHistoryKey = '__mountainMapDiscoverySheet';
+export const mobileDiscoveryHistoryKey = '__mountainMapDiscoverySheet';
+type MobileDiscoveryHistoryLayer = 'filters' | 'panel';
 
-function hasMobileDiscoveryHistoryEntry() {
-  return Boolean(window.history.state?.[mobileDiscoveryHistoryKey]);
+function getMobileDiscoveryHistoryLayer(state: unknown = window.history.state) {
+  if (!state || typeof state !== 'object') {
+    return null;
+  }
+
+  const layer = (state as Record<string, unknown>)[mobileDiscoveryHistoryKey];
+  return layer === 'filters' || layer === 'panel' ? layer : null;
 }
 
-function pushMobileDiscoveryHistoryEntry() {
-  if (hasMobileDiscoveryHistoryEntry()) {
+export function isMobileDiscoveryHistoryState(state: unknown) {
+  return getMobileDiscoveryHistoryLayer(state) !== null;
+}
+
+function pushMobileDiscoveryHistoryEntry(
+  layer: MobileDiscoveryHistoryLayer,
+  forceLayer = false,
+) {
+  const currentLayer = getMobileDiscoveryHistoryLayer();
+  if (currentLayer === layer || (currentLayer && !forceLayer)) {
     return;
   }
 
   window.history.pushState(
-    { ...window.history.state, [mobileDiscoveryHistoryKey]: true },
+    { ...window.history.state, [mobileDiscoveryHistoryKey]: layer },
     '',
     window.location.href,
   );
 }
 
-function dismissMobileDiscoveryHistoryEntry() {
-  if (hasMobileDiscoveryHistoryEntry()) {
+function replaceMobileDiscoveryHistoryLayer(layer: MobileDiscoveryHistoryLayer) {
+  window.history.replaceState(
+    { ...window.history.state, [mobileDiscoveryHistoryKey]: layer },
+    '',
+    window.location.href,
+  );
+}
+
+function dismissMobileDiscoveryHistoryEntry(layer: MobileDiscoveryHistoryLayer) {
+  if (getMobileDiscoveryHistoryLayer() === layer) {
     window.history.back();
   }
 }
@@ -159,31 +182,40 @@ export function MountainDiscoveryControls({
   onRequestLogin,
 }: MountainDiscoveryControlsProps) {
   const filterPanelRef = useRef<HTMLElement | null>(null);
+  const pendingMobileFilterActionRef = useRef<DiscoveryAction | null>(null);
   const isMobile = useMobileDiscoveryLayout();
   const isFilterOpen = state.view.kind === 'filters';
+  const filterReturnViewKind = state.view.kind === 'filters' ? state.view.returnView.kind : 'closed';
 
   useEffect(() => {
     if (!isFilterOpen || !isMobile) {
       return;
     }
 
-    pushMobileDiscoveryHistoryEntry();
+    pushMobileDiscoveryHistoryEntry('filters', filterReturnViewKind !== 'closed');
     const handlePopState = () => {
-      onAction({ type: 'CANCEL_FILTERS' });
-      window.requestAnimationFrame(() => triggerRef.current?.focus());
+      const pendingAction = pendingMobileFilterActionRef.current;
+      pendingMobileFilterActionRef.current = null;
+      onAction(pendingAction ?? { type: 'CANCEL_FILTERS' });
+      if (filterReturnViewKind === 'closed') {
+        window.requestAnimationFrame(() => triggerRef.current?.focus());
+      }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isFilterOpen, isMobile, onAction, triggerRef]);
+  }, [filterReturnViewKind, isFilterOpen, isMobile, onAction, triggerRef]);
 
-  const dismissFilters = () => {
-    onAction({ type: 'CANCEL_FILTERS' });
-    if (isMobile) {
-      dismissMobileDiscoveryHistoryEntry();
+  const dismissFilters = useCallback(() => {
+    if (isMobile && getMobileDiscoveryHistoryLayer() === 'filters') {
+      pendingMobileFilterActionRef.current = { type: 'CANCEL_FILTERS' };
+      window.history.back();
+      return;
     }
+
+    onAction({ type: 'CANCEL_FILTERS' });
     window.requestAnimationFrame(() => triggerRef.current?.focus());
-  };
+  }, [isMobile, onAction, triggerRef]);
 
   useEffect(() => {
     if (!isFilterOpen) {
@@ -246,6 +278,23 @@ export function MountainDiscoveryControls({
 
   const applyFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!isMobile) {
+      onAction({ type: 'APPLY_FILTERS' });
+      return;
+    }
+
+    if (filterReturnViewKind === 'closed') {
+      replaceMobileDiscoveryHistoryLayer('panel');
+      onAction({ type: 'APPLY_FILTERS' });
+      return;
+    }
+
+    if (getMobileDiscoveryHistoryLayer() === 'filters') {
+      pendingMobileFilterActionRef.current = { type: 'APPLY_FILTERS' };
+      window.history.back();
+      return;
+    }
+
     onAction({ type: 'APPLY_FILTERS' });
   };
 
@@ -513,7 +562,7 @@ export function MountainDiscoveryPanel({
       return;
     }
 
-    pushMobileDiscoveryHistoryEntry();
+    pushMobileDiscoveryHistoryEntry('panel');
     const handlePopState = () => {
       onAction({ type: 'CLOSE_DISCOVERY' });
       window.requestAnimationFrame(() => triggerRef.current?.focus());
@@ -523,13 +572,13 @@ export function MountainDiscoveryPanel({
     return () => window.removeEventListener('popstate', handlePopState);
   }, [isMobile, isOpen, onAction, triggerRef]);
 
-  const dismissPanel = () => {
+  const dismissPanel = useCallback(() => {
     onAction({ type: 'CLOSE_DISCOVERY' });
     if (isMobile) {
-      dismissMobileDiscoveryHistoryEntry();
+      dismissMobileDiscoveryHistoryEntry('panel');
     }
     window.requestAnimationFrame(() => triggerRef.current?.focus());
-  };
+  }, [isMobile, onAction, triggerRef]);
 
   useEffect(() => {
     if (isResults && listRef.current) {

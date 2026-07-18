@@ -78,6 +78,7 @@ declare global {
 
   type KakaoCustomOverlay = {
     setMap(map: KakaoMap | null): void;
+    setZIndex?(zIndex: number): void;
   };
 
   type KakaoMarkerOptions = {
