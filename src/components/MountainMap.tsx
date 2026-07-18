@@ -51,9 +51,9 @@ const markerClass = {
   label:
     'absolute bottom-[92px] left-5 max-w-[300px] rounded-lg border border-[#d8e0da] bg-white/90 px-3 py-2.5 text-[13px] leading-[18px] text-[#627168] max-[560px]:left-3 max-[560px]:right-3 max-[560px]:max-w-none',
   marker:
-    'absolute block h-9 w-9 -translate-x-1/2 -translate-y-1/2 overflow-visible rounded-full border-2 border-[#2f6b4f] bg-white p-0 text-[#2f6b4f] shadow-[0_8px_20px_rgba(24,34,29,0.18)] transition-[transform,box-shadow,background,border-color] duration-150 ease-out',
+    "absolute block h-9 w-9 -translate-x-1/2 -translate-y-1/2 overflow-visible rounded-full border-2 border-[#2f6b4f] bg-white p-0 text-[#2f6b4f] shadow-[0_8px_20px_rgba(24,34,29,0.18)] transition-[transform,box-shadow,background,border-color] duration-150 ease-out after:absolute after:-inset-1 after:rounded-full after:content-['']",
   kakaoMarker:
-    'relative block h-9 w-9 overflow-visible rounded-full border-2 border-[#2f6b4f] bg-white p-0 text-[#2f6b4f] shadow-[0_8px_20px_rgba(24,34,29,0.18)] transition-[transform,box-shadow,background,border-color] duration-150 ease-out',
+    "relative block h-9 w-9 overflow-visible rounded-full border-2 border-[#2f6b4f] bg-white p-0 text-[#2f6b4f] shadow-[0_8px_20px_rgba(24,34,29,0.18)] transition-[transform,box-shadow,background,border-color] duration-150 ease-out after:absolute after:-inset-1 after:rounded-full after:content-['']",
   selected:
     'z-[6] scale-105 border-[#d7922b] bg-[#fff9ed] shadow-[0_0_0_4px_rgba(255,255,255,0.94),0_0_0_9px_rgba(215,146,43,0.42),0_12px_28px_rgba(24,34,29,0.2)]',
   kakaoSelected:

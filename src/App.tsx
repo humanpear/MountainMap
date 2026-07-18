@@ -218,13 +218,13 @@ const appClass = {
   topbar:
     'z-[4] bg-[#00172b] text-white',
   topbarInner:
-    'mx-auto grid h-[68px] w-[1180px] max-w-[calc(100%-60px)] grid-cols-[minmax(230px,1fr)_auto] items-center gap-4 max-[900px]:h-auto max-[900px]:w-full max-[900px]:max-w-none max-[900px]:grid-cols-[minmax(0,max-content)_minmax(72px,1fr)_36px_36px] max-[900px]:gap-x-1 max-[900px]:gap-y-2 max-[900px]:px-4 max-[900px]:py-2.5',
+    'mx-auto grid h-[68px] w-[1180px] max-w-[calc(100%-60px)] grid-cols-[minmax(230px,1fr)_auto] items-center gap-4 max-[900px]:h-auto max-[900px]:w-full max-[900px]:max-w-none max-[900px]:grid-cols-[minmax(0,max-content)_minmax(72px,1fr)_44px_44px] max-[900px]:gap-x-1 max-[900px]:gap-y-2 max-[900px]:px-4 max-[900px]:py-1.5',
   topbarActions:
     'flex min-w-0 items-center justify-end gap-2.5 max-[900px]:contents',
   brand:
-    'inline-flex min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent text-[20px] font-black text-white max-[900px]:col-start-1 max-[900px]:row-start-1 max-[900px]:justify-start max-[900px]:gap-1.5 max-[900px]:text-[16px] [&_span]:truncate [&_svg]:text-white',
+    'inline-flex min-h-11 min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent text-[20px] font-black text-white max-[900px]:col-start-1 max-[900px]:row-start-1 max-[900px]:justify-start max-[900px]:gap-1.5 max-[900px]:text-[16px] [&_span]:truncate [&_svg]:text-white',
   search:
-    'relative grid min-h-9 w-[252px] grid-cols-[minmax(0,1fr)_40px] rounded-[9px] bg-white transition-[opacity,transform] duration-200 ease-out max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:ml-1 max-[900px]:min-h-9 max-[900px]:w-full max-[900px]:origin-right max-[900px]:grid-cols-1',
+    'relative grid min-h-11 w-[252px] grid-cols-[minmax(0,1fr)_44px] rounded-[9px] bg-white transition-[opacity,transform] duration-200 ease-out max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:ml-1 max-[900px]:min-h-11 max-[900px]:w-full max-[900px]:origin-right max-[900px]:grid-cols-1',
   searchInput:
     'min-w-0 rounded-l-[9px] border-0 px-4 text-[13px] text-[#18221d] outline-none placeholder:text-[#627168] max-[900px]:rounded-[9px] max-[900px]:text-base',
   searchButton: 'inline-flex cursor-pointer items-center justify-center rounded-r-[9px] border-0 bg-white text-[#00172b]',
@@ -235,9 +235,9 @@ const appClass = {
   searchSuggestionName: 'whitespace-nowrap text-[12px] font-semibold leading-4 text-[#18221d] max-[900px]:text-[13px]',
   searchSuggestionMeta: 'truncate text-[12px] font-bold leading-4 text-[#627168] max-[900px]:text-[13px]',
   mobileSearchToggle:
-    'hidden h-9 min-h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-white transition hover:bg-transparent max-[900px]:col-start-3 max-[900px]:row-start-1 max-[900px]:inline-flex',
+    'hidden h-11 min-h-11 w-11 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-white transition hover:bg-transparent max-[900px]:col-start-3 max-[900px]:row-start-1 max-[900px]:inline-flex',
   authButton:
-    'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3.5 text-sm font-extrabold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-55 max-[900px]:min-h-9 max-[900px]:w-9 max-[900px]:border-0 max-[900px]:bg-transparent max-[900px]:px-0 max-[900px]:text-[13px] max-[900px]:hover:bg-transparent',
+    'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3.5 text-sm font-extrabold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-55 max-[900px]:w-11 max-[900px]:border-0 max-[900px]:bg-transparent max-[900px]:px-0 max-[900px]:text-[13px] max-[900px]:hover:bg-transparent',
   accountMenuWrap: 'relative max-[900px]:col-start-4 max-[900px]:row-start-1',
   accountMenu:
     'absolute right-0 top-[calc(100%+10px)] z-20 grid w-[344px] max-w-[calc(100vw-24px)] origin-top-right gap-2.5 rounded-xl border border-[#d8e0da] bg-[#fbfcfb] p-2.5 text-[#18221d] shadow-[0_18px_56px_rgba(0,0,0,0.16)] max-[560px]:right-[-4px] max-[560px]:w-[min(70vw,256px)] max-[560px]:gap-1.5 max-[560px]:p-1.5',
