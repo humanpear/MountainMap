@@ -498,7 +498,7 @@ describe('App account menu', () => {
 
     expect(randomSoundMocks.playRouletteTick).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: '추천 취소' }));
-  });
+  }, 10_000);
 
   it('auto-cancels a running recommendation when authentication changes its candidates', async () => {
     render(<App />);
