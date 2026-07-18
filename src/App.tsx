@@ -1364,8 +1364,7 @@ export default function App() {
       <button
         className={cn(
           appClass.feedbackButton,
-          (isMyPageOpen || detailMountain) && 'hidden',
-          isDiscoveryPanelOpen && !detailMountain && 'max-[900px]:hidden',
+          (isMyPageOpen || detailMountain || isDiscoveryPanelOpen) && 'hidden',
         )}
         type="button"
         onClick={() => setIsFeedbackOpen(true)}
