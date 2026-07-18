@@ -318,10 +318,16 @@ export function MountainMap(props: MountainMapProps) {
     }
 
     const centerPoint = projection.pointFromCoords(map.getCenter());
-    const nextCenter = projection.coordsFromPoint({
-      x: centerPoint.x + markerPoint.x - desiredPoint.x,
-      y: centerPoint.y + markerPoint.y - desiredPoint.y,
-    });
+    const nextCenterPoint = window.kakao.maps.Point
+      ? new window.kakao.maps.Point(
+          centerPoint.x + markerPoint.x - desiredPoint.x,
+          centerPoint.y + markerPoint.y - desiredPoint.y,
+        )
+      : {
+          x: centerPoint.x + markerPoint.x - desiredPoint.x,
+          y: centerPoint.y + markerPoint.y - desiredPoint.y,
+        };
+    const nextCenter = projection.coordsFromPoint(nextCenterPoint);
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
       map.setCenter(nextCenter);

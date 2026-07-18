@@ -6,6 +6,7 @@ declare global {
       maps: {
         load(callback: () => void): void;
         LatLng: new (latitude: number, longitude: number) => KakaoLatLng;
+        Point?: new (x: number, y: number) => KakaoPoint;
         Map: new (container: HTMLElement, options: KakaoMapOptions) => KakaoMap;
         CustomOverlay: new (options: KakaoCustomOverlayOptions) => KakaoCustomOverlay;
         Marker: new (options: KakaoMarkerOptions) => KakaoMarker;
