@@ -51,21 +51,21 @@ const markerClass = {
   label:
     'absolute bottom-[92px] left-5 max-w-[300px] rounded-lg border border-[#d8e0da] bg-white/90 px-3 py-2.5 text-[13px] leading-[18px] text-[#627168] max-[560px]:left-3 max-[560px]:right-3 max-[560px]:max-w-none',
   marker:
-    "absolute block h-9 w-9 -translate-x-1/2 -translate-y-1/2 overflow-visible rounded-full border-2 border-[#2f6b4f] bg-white p-0 text-[#2f6b4f] shadow-[0_8px_20px_rgba(24,34,29,0.18)] transition-[transform,box-shadow,background,border-color] duration-150 ease-out after:absolute after:-inset-1 after:rounded-full after:content-['']",
+    "absolute block h-11 w-11 -translate-x-1/2 -translate-y-1/2 overflow-visible border-0 bg-transparent p-0 text-[#2f6b4f] transition-transform duration-150 ease-out before:absolute before:inset-1 before:rounded-full before:border-2 before:border-[#2f6b4f] before:bg-white before:shadow-[0_8px_20px_rgba(24,34,29,0.18)] before:content-['']",
   kakaoMarker:
-    "relative block h-9 w-9 overflow-visible rounded-full border-2 border-[#2f6b4f] bg-white p-0 text-[#2f6b4f] shadow-[0_8px_20px_rgba(24,34,29,0.18)] transition-[transform,box-shadow,background,border-color] duration-150 ease-out after:absolute after:-inset-1 after:rounded-full after:content-['']",
+    "relative block h-11 w-11 overflow-visible border-0 bg-transparent p-0 text-[#2f6b4f] transition-transform duration-150 ease-out before:absolute before:inset-1 before:rounded-full before:border-2 before:border-[#2f6b4f] before:bg-white before:shadow-[0_8px_20px_rgba(24,34,29,0.18)] before:content-['']",
   selected:
-    'z-[6] scale-105 border-[#d7922b] bg-[#fff9ed] shadow-[0_0_0_4px_rgba(255,255,255,0.94),0_0_0_9px_rgba(215,146,43,0.42),0_12px_28px_rgba(24,34,29,0.2)]',
+    'z-[6] scale-105 before:border-[#d7922b] before:bg-[#fff9ed] before:shadow-[0_0_0_4px_rgba(255,255,255,0.94),0_0_0_9px_rgba(215,146,43,0.42),0_12px_28px_rgba(24,34,29,0.2)]',
   kakaoSelected:
-    'z-[6] scale-110 border-[#d7922b] bg-[#fff9ed] shadow-[0_0_0_4px_rgba(255,255,255,0.94),0_0_0_9px_rgba(215,146,43,0.42),0_12px_28px_rgba(24,34,29,0.2)]',
-  completed: 'border-[#1f8a5b]',
-  triangleBack: 'absolute bottom-[7px] left-1 z-[2] h-0 w-0 border-x-8 border-b-[14px] border-x-transparent',
-  triangleFront: 'absolute bottom-[7px] left-2 z-[1] h-0 w-0 border-x-[10px] border-b-[20px] border-x-transparent',
-  medals: 'pointer-events-none absolute -top-[11px] left-1/2 z-[4] flex -translate-x-1/2 items-center justify-center gap-px',
+    'z-[6] scale-110 before:border-[#d7922b] before:bg-[#fff9ed] before:shadow-[0_0_0_4px_rgba(255,255,255,0.94),0_0_0_9px_rgba(215,146,43,0.42),0_12px_28px_rgba(24,34,29,0.2)]',
+  completed: 'before:border-[#1f8a5b]',
+  triangleBack: 'absolute bottom-[11px] left-2 z-[2] h-0 w-0 border-x-8 border-b-[14px] border-x-transparent',
+  triangleFront: 'absolute bottom-[11px] left-3 z-[1] h-0 w-0 border-x-[10px] border-b-[20px] border-x-transparent',
+  medals: 'pointer-events-none absolute -top-[7px] left-1/2 z-[4] flex -translate-x-1/2 items-center justify-center gap-px',
   medal:
     'relative h-[11px] w-[11px] rounded-full border border-[#9b6a16] bg-[linear-gradient(135deg,#ffe08a_0%,#d7922b_72%)] shadow-[0_1px_3px_rgba(24,34,29,0.22)] before:absolute before:left-px before:top-[7px] before:h-[7px] before:w-[5px] before:rotate-[14deg] before:bg-[#c95345] before:content-[\'\'] after:absolute after:right-px after:top-[7px] after:h-[7px] after:w-[5px] after:-rotate-[14deg] after:bg-[#c95345] after:content-[\'\']',
   name:
-    'pointer-events-none absolute left-1/2 top-[37px] z-[3] max-w-[84px] -translate-x-1/2 overflow-hidden text-ellipsis whitespace-nowrap rounded-full border border-[#d8e0da]/90 bg-white/95 px-1.5 py-0.5 text-[11px] font-extrabold leading-[14px] text-[#18221d] shadow-[0_4px_10px_rgba(24,34,29,0.12)]',
+    'pointer-events-none absolute left-1/2 top-[41px] z-[3] max-w-[84px] -translate-x-1/2 overflow-hidden text-ellipsis whitespace-nowrap rounded-full border border-[#d8e0da]/90 bg-white/95 px-1.5 py-0.5 text-[11px] font-extrabold leading-[14px] text-[#18221d] shadow-[0_4px_10px_rgba(24,34,29,0.12)]',
   selectedName: 'border-[#d7922b]/75 bg-[#fff7e8] text-[#1f4e39] shadow-[0_7px_16px_rgba(24,34,29,0.18)]'
 };
 
@@ -142,7 +142,7 @@ export function MountainMap(props: MountainMapProps) {
       const overlay = new window.kakao.maps.CustomOverlay({
         position: new window.kakao.maps.LatLng(mountain.latitude, mountain.longitude),
         content: element,
-        yAnchor: 0.9,
+        yAnchor: 0.83,
         zIndex: props.highlightedId === mountain.id ? 10 : 1
       });
       overlay.setMap(mapRef.current);
