@@ -974,7 +974,7 @@ export default function App() {
     playRouletteTick(0);
 
     let index = 0;
-    let delay = 34;
+    let delay = 40;
 
     const tick = () => {
       index += 1;
@@ -989,7 +989,7 @@ export default function App() {
 
       playRouletteTick(index);
       dispatchDiscovery({ type: 'RANDOM_TICK', highlightedId: nextMountain.id });
-      delay = Math.min(delay + 10 + Math.floor(index * 0.45), 310);
+      delay = Math.min(delay + 1, 60);
       randomTimerRef.current = window.setTimeout(tick, delay);
     };
 
