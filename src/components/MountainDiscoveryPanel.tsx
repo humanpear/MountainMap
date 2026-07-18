@@ -217,7 +217,7 @@ export function MountainDiscoveryControls({
           <section
             ref={filterPanelRef}
             id="mountain-discovery-filters"
-            className="absolute left-5 top-[84px] z-[6] w-[min(420px,calc(100%-40px))] overflow-y-auto rounded-xl border border-[#d8e0da] bg-white p-5 shadow-[0_20px_70px_rgba(24,34,29,0.2)] max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:top-auto max-[900px]:w-auto max-[900px]:max-h-[78vh] max-[900px]:rounded-b-none max-[900px]:rounded-t-2xl max-[900px]:border-x-0 max-[900px]:border-b-0 max-[900px]:p-4 max-[900px]:pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            className="absolute left-5 top-[84px] z-[6] max-h-[calc(100%-104px)] w-[min(420px,calc(100%-40px))] overflow-y-auto rounded-xl border border-[#d8e0da] bg-white p-5 shadow-[0_20px_70px_rgba(24,34,29,0.2)] max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:top-auto max-[900px]:w-auto max-[900px]:max-h-[78vh] max-[900px]:rounded-b-none max-[900px]:rounded-t-2xl max-[900px]:border-x-0 max-[900px]:border-b-0 max-[900px]:p-4 max-[900px]:pb-[calc(1rem+env(safe-area-inset-bottom))]"
             role="dialog"
             aria-labelledby="mountain-discovery-filter-title"
           >
