@@ -1,7 +1,12 @@
 create table if not exists public.mountain_reviews (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  mountain_id text not null,
+  mountain_id text not null constraint mountain_reviews_mountain_id_check check (
+    case
+      when mountain_id ~ '^[0-9]{10}$' then mountain_id::bigint between 1 and 100
+      else false
+    end
+  ),
   route_name text not null,
   route_start_point text,
   route_end_point text,
@@ -44,6 +49,38 @@ $$;
 
 alter table public.mountain_reviews
   validate constraint mountain_reviews_difficulty_check;
+
+-- Before applying this migration to existing data, this audit query must return no rows:
+-- select mountain_id, count(*)
+-- from public.mountain_reviews
+-- where not (
+--   case
+--     when mountain_id ~ '^[0-9]{10}$' then mountain_id::bigint between 1 and 100
+--     else false
+--   end
+-- )
+-- group by mountain_id;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'mountain_reviews_mountain_id_check'
+      and conrelid = 'public.mountain_reviews'::regclass
+  ) then
+    alter table public.mountain_reviews
+      add constraint mountain_reviews_mountain_id_check check (
+        case
+          when mountain_id ~ '^[0-9]{10}$' then mountain_id::bigint between 1 and 100
+          else false
+        end
+      ) not valid;
+  end if;
+end;
+$$;
+
+alter table public.mountain_reviews
+  validate constraint mountain_reviews_mountain_id_check;
 
 create index if not exists mountain_reviews_mountain_created_idx
   on public.mountain_reviews (mountain_id, created_at desc);
@@ -133,8 +170,7 @@ as $$
     '매우 어려움'
   )
   group by mountain_reviews.mountain_id
-  order by mountain_reviews.mountain_id
-  limit 100;
+  order by mountain_reviews.mountain_id;
 $$;
 
 revoke all on function public.get_mountain_difficulty_summaries() from public;

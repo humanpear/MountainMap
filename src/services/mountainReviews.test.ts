@@ -141,6 +141,29 @@ describe("fetchMountainDifficultySummaries", () => {
 
     await expect(fetchMountainDifficultySummaries()).rejects.toThrow(message);
   });
+
+  it("rejects summaries for an unknown mountain id", async () => {
+    supabaseMock.rpc.mockResolvedValue({
+      data: [{ mountain_id: "9999999999", review_count: 1, average_score: 3 }],
+      error: null,
+    });
+    const { fetchMountainDifficultySummaries } = await import("./mountainReviews");
+
+    await expect(fetchMountainDifficultySummaries()).rejects.toThrow("unknown mountain_id");
+  });
+
+  it("rejects duplicate summaries instead of silently overwriting one", async () => {
+    supabaseMock.rpc.mockResolvedValue({
+      data: [
+        { mountain_id: "0000000002", review_count: 1, average_score: 2 },
+        { mountain_id: "0000000002", review_count: 2, average_score: 4 },
+      ],
+      error: null,
+    });
+    const { fetchMountainDifficultySummaries } = await import("./mountainReviews");
+
+    await expect(fetchMountainDifficultySummaries()).rejects.toThrow("duplicate mountain_id");
+  });
 });
 
 describe("updateMountainReview", () => {

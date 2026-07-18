@@ -74,6 +74,7 @@ type MountainDetailPageProps = {
   isCompleted: boolean;
   session?: Session | null;
   onBack: () => void;
+  onReviewDataChange?: () => void;
   onShowOnMap: (mountain: Mountain) => void;
   onToggleCompleted: (mountain: Mountain) => void;
 };
@@ -516,6 +517,7 @@ export function MountainDetailPage({
   isCompleted,
   session = null,
   onBack,
+  onReviewDataChange,
   onShowOnMap,
   onToggleCompleted,
 }: MountainDetailPageProps) {
@@ -562,6 +564,7 @@ export function MountainDetailPage({
       isCompleted={isCompleted}
       session={session}
       onBack={onBack}
+      onReviewDataChange={onReviewDataChange}
       onShowOnMap={onShowOnMap}
       onToggleCompleted={onToggleCompleted}
       onRouteOpen={(route) => setActiveRouteName(route.name)}
@@ -581,6 +584,7 @@ function MountainMainDetailView({
   isCompleted,
   session,
   onBack,
+  onReviewDataChange,
   onShowOnMap,
   onToggleCompleted,
   onRouteOpen,
@@ -596,6 +600,7 @@ function MountainMainDetailView({
   isCompleted: boolean;
   session: Session | null;
   onBack: () => void;
+  onReviewDataChange?: () => void;
   onShowOnMap: (mountain: Mountain) => void;
   onToggleCompleted: (mountain: Mountain) => void;
   onRouteOpen: (route: MountainGuideRoute) => void;
@@ -882,6 +887,7 @@ function MountainMainDetailView({
               session={session}
               mode={mainTab === "reviews" ? "full" : "preview"}
               onShowAllReviews={() => setMainTab("reviews")}
+              onReviewDataChange={onReviewDataChange}
               onRouteDifficultyLabelsChange={handleRouteDifficultyLabelsChange}
             />
           }
@@ -1270,6 +1276,7 @@ function CourseFeedbackSection({
   session,
   mode,
   onShowAllReviews,
+  onReviewDataChange,
   onRouteDifficultyLabelsChange,
 }: {
   mountain: Mountain;
@@ -1277,6 +1284,7 @@ function CourseFeedbackSection({
   session: Session | null;
   mode: "preview" | "full";
   onShowAllReviews: () => void;
+  onReviewDataChange?: () => void;
   onRouteDifficultyLabelsChange?: (difficultyLabels: RouteDifficultyLabelMap) => void;
 }) {
   const feedbackRoutes = useMemo(
@@ -1550,6 +1558,7 @@ function CourseFeedbackSection({
       setIsFullReviewFormOpen(false);
       setMobileReviewStep(1);
       setReviewState("ready");
+      onReviewDataChange?.();
     } catch (error) {
       setFormMessage(getReviewErrorMessage(error, editingReview ? "update" : "save"));
     } finally {
@@ -1580,6 +1589,7 @@ function CourseFeedbackSection({
       if (editingReviewId === review.id) {
         resetReviewForm();
       }
+      onReviewDataChange?.();
     } catch (error) {
       setListMessage(getReviewErrorMessage(error, "delete"));
     } finally {

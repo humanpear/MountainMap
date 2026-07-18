@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useMemo, useReducer, useRef } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createInitialDiscoveryState,
   discoveryReducer,
@@ -51,11 +51,13 @@ const readyDifficultyState: DifficultySummaryState = {
 function DiscoveryHarness({
   difficultySummaryState = readyDifficultyState,
   isAuthenticated = true,
+  completionDataStatus = isAuthenticated ? 'ready' : 'signed-out',
   onRetryDifficultySummaries = vi.fn(),
   onRandomRecommend = vi.fn(),
 }: {
   difficultySummaryState?: DifficultySummaryState;
   isAuthenticated?: boolean;
+  completionDataStatus?: 'signed-out' | 'loading' | 'ready' | 'error';
   onRetryDifficultySummaries?: () => void;
   onRandomRecommend?: () => void;
 }) {
@@ -99,6 +101,7 @@ function DiscoveryHarness({
         appliedResultCount={results.length}
         difficultySummaryState={difficultySummaryState}
         isAuthenticated={isAuthenticated}
+        completionDataStatus={completionDataStatus}
         triggerRef={triggerRef}
         onAction={onAction}
         onRetryDifficultySummaries={onRetryDifficultySummaries}
@@ -110,6 +113,8 @@ function DiscoveryHarness({
         difficultySummaryState={difficultySummaryState}
         completedIds={completedIds}
         isAuthenticated={isAuthenticated}
+        completionDataStatus={completionDataStatus}
+        triggerRef={triggerRef}
         detailContent={<div>선택한 산 상세정보</div>}
         onAction={onAction}
         onSelectMountain={(mountain) =>
@@ -122,6 +127,11 @@ function DiscoveryHarness({
 }
 
 describe('MountainDiscoveryPanel', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    window.history.replaceState(null, '', '/');
+  });
+
   it('keeps draft filters separate until they are applied', () => {
     render(<DiscoveryHarness />);
 
@@ -189,6 +199,23 @@ describe('MountainDiscoveryPanel', () => {
     expect(screen.getByText('등정 기록 필터는 로그인이 필요합니다.')).toBeInTheDocument();
   });
 
+  it('disables completion filters until authenticated completion data is ready', () => {
+    const { rerender } = render(
+      <DiscoveryHarness isAuthenticated completionDataStatus="loading" />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    expect(screen.getByRole('button', { name: '등정 완료' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '미등정' })).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent('등정 기록을 불러오는 중입니다.');
+
+    rerender(<DiscoveryHarness isAuthenticated completionDataStatus="error" />);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '등정 기록을 불러오지 못해 완료·미등정 필터를 사용할 수 없습니다.',
+    );
+    expect(screen.getByRole('button', { name: '등정 완료' })).toBeDisabled();
+  });
+
   it('returns from detail to the same result list and restores its scroll position', async () => {
     render(<DiscoveryHarness />);
 
@@ -218,6 +245,154 @@ describe('MountainDiscoveryPanel', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: '조건으로 찾기' })).not.toBeInTheDocument();
+      expect(trigger).toHaveFocus();
+    });
+  });
+
+  it('wraps focus inside the mobile filter dialog and closes from the backdrop', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({
+      matches: true,
+      media: '(max-width: 900px)',
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+    render(<DiscoveryHarness />);
+    const trigger = screen.getByRole('button', { name: '산 찾기' });
+
+    fireEvent.click(trigger);
+    const dialog = await screen.findByRole('dialog', { name: '조건으로 찾기' });
+    const closeButtons = screen.getAllByRole('button', { name: '조건으로 찾기 닫기' });
+    const backdrop = closeButtons[0];
+    const closeButton = closeButtons[1];
+    const applyButton = screen.getByRole('button', { name: '2개 산 보기' });
+
+    closeButton.focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(applyButton).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(closeButton).toHaveFocus();
+
+    fireEvent.click(backdrop);
+    await waitFor(() => {
+      expect(dialog).not.toBeInTheDocument();
+      expect(trigger).toHaveFocus();
+    });
+  });
+
+  it('closes the mobile filter dialog when browser Back emits popstate', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({
+      matches: true,
+      media: '(max-width: 900px)',
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+    render(<DiscoveryHarness />);
+    const trigger = screen.getByRole('button', { name: '산 찾기' });
+
+    fireEvent.click(trigger);
+    expect(await screen.findByRole('dialog', { name: '조건으로 찾기' })).toBeInTheDocument();
+    fireEvent.popState(window);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: '조건으로 찾기' })).not.toBeInTheDocument();
+      expect(trigger).toHaveFocus();
+    });
+  });
+
+  it('treats the mobile result sheet as a modal and restores trigger focus', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({
+      matches: true,
+      media: '(max-width: 900px)',
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+    render(<DiscoveryHarness />);
+    const trigger = screen.getByRole('button', { name: '산 찾기' });
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
+
+    const dialog = await screen.findByRole('dialog', { name: '산 찾기 결과' });
+    await waitFor(() => {
+      expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    });
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: '산 찾기 결과' })).not.toBeInTheDocument();
+      expect(trigger).toHaveFocus();
+    });
+  });
+
+  it('wraps focus inside the mobile result sheet and closes from the backdrop', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({
+      matches: true,
+      media: '(max-width: 900px)',
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+    render(<DiscoveryHarness />);
+    const trigger = screen.getByRole('button', { name: '산 찾기' });
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
+    const dialog = await screen.findByRole('dialog', { name: '산 찾기 결과' });
+    const closeButton = screen.getByRole('button', { name: '산 찾기 결과 닫기' });
+    const lastResult = screen.getByRole('button', { name: /경기산/ });
+
+    closeButton.focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(lastResult).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(closeButton).toHaveFocus();
+
+    fireEvent.click(screen.getByRole('button', { name: '산 찾기 패널 닫기' }));
+    await waitFor(() => {
+      expect(dialog).not.toBeInTheDocument();
+      expect(trigger).toHaveFocus();
+    });
+  });
+
+  it('closes the mobile result sheet when browser Back emits popstate', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({
+      matches: true,
+      media: '(max-width: 900px)',
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+    render(<DiscoveryHarness />);
+    const trigger = screen.getByRole('button', { name: '산 찾기' });
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
+    expect(await screen.findByRole('dialog', { name: '산 찾기 결과' })).toBeInTheDocument();
+    fireEvent.popState(window);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: '산 찾기 결과' })).not.toBeInTheDocument();
       expect(trigger).toHaveFocus();
     });
   });

@@ -71,6 +71,8 @@ type AccountSummaryState =
   | { status: 'ready'; profile: UserProfile; reviewCount: number }
   | { status: 'error'; profile: null; reviewCount: number };
 
+type CompletionDataStatus = 'signed-out' | 'loading' | 'ready' | 'error';
+
 function getLatestReviewPhotos(reviews: MountainReview[]) {
   return reviews
     .flatMap((review) =>
@@ -322,6 +324,8 @@ export default function App() {
   const [isMyPageOpen, setIsMyPageOpen] = useState(() => getIsMyPageRoute());
   const [myPageTab, setMyPageTab] = useState<MyPageTab>(() => getMyPageTabRoute());
   const [completionRecords, setCompletionRecords] = useState<CompletionRecord[]>([]);
+  const [completionDataStatus, setCompletionDataStatus] = useState<CompletionDataStatus>('signed-out');
+  const [resultDataRevision, setResultDataRevision] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -341,6 +345,9 @@ export default function App() {
   });
   const accountMenuCloseTimerRef = useRef<number | null>(null);
   const difficultyRequestIdRef = useRef(0);
+  const completionRequestIdRef = useRef(0);
+  const difficultySummaryStateRef = useRef<DifficultySummaryState>({ status: 'idle' });
+  const reviewSummaryDirtyRef = useRef(false);
   const randomTimerRef = useRef<number | null>(null);
   const discoveryTriggerRef = useRef<HTMLButtonElement | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
@@ -444,9 +451,16 @@ export default function App() {
     };
   }, []);
 
-  const loadDifficultySummaries = useCallback(async () => {
+  const updateDifficultySummaryState = useCallback((nextState: DifficultySummaryState) => {
+    difficultySummaryStateRef.current = nextState;
+    setDifficultySummaryState(nextState);
+  }, []);
+
+  const loadDifficultySummaries = useCallback(async (preserveReadyState = false) => {
     const requestId = ++difficultyRequestIdRef.current;
-    setDifficultySummaryState({ status: 'loading' });
+    if (!(preserveReadyState && difficultySummaryStateRef.current.status === 'ready')) {
+      updateDifficultySummaryState({ status: 'loading' });
+    }
 
     try {
       const summaries = await fetchMountainDifficultySummaries();
@@ -454,7 +468,7 @@ export default function App() {
         return;
       }
 
-      setDifficultySummaryState({
+      updateDifficultySummaryState({
         status: 'ready',
         summaries: new Map(summaries.map((summary) => [summary.mountainId, summary]))
       });
@@ -463,16 +477,33 @@ export default function App() {
         return;
       }
 
+      if (preserveReadyState && difficultySummaryStateRef.current.status === 'ready') {
+        return;
+      }
+
       dispatchDiscovery({ type: 'DIFFICULTY_SUMMARIES_UNAVAILABLE' });
-      setDifficultySummaryState({
+      updateDifficultySummaryState({
         status: 'error',
         message: error instanceof Error ? error.message : '난이도 정보를 불러오지 못했습니다.'
       });
     }
+  }, [updateDifficultySummaryState]);
+
+  const markReviewDataChanged = useCallback(() => {
+    reviewSummaryDirtyRef.current = true;
   }, []);
 
+  const refreshChangedReviewSummaries = useCallback(() => {
+    if (!reviewSummaryDirtyRef.current) {
+      return;
+    }
+
+    reviewSummaryDirtyRef.current = false;
+    void loadDifficultySummaries(true);
+  }, [loadDifficultySummaries]);
+
   useEffect(() => {
-    void loadDifficultySummaries();
+    void loadDifficultySummaries(false);
     return () => {
       difficultyRequestIdRef.current += 1;
     };
@@ -592,11 +623,12 @@ export default function App() {
       setIsAccountMenuOpen(false);
       setIsMobileSearchOpen(false);
       dispatchDiscovery({ type: 'CLOSE_DISCOVERY' });
+      refreshChangedReviewSummaries();
     };
 
     window.addEventListener('popstate', syncDetailRoute);
     return () => window.removeEventListener('popstate', syncDetailRoute);
-  }, []);
+  }, [refreshChangedReviewSummaries]);
 
   useEffect(() => {
     let isActive = true;
@@ -702,17 +734,33 @@ export default function App() {
   }, [closeAccountMenu, isAccountMenuOpen]);
 
   useEffect(() => {
-    if (!supabase || !session?.user.id) {
+    const userId = session?.user.id;
+    if (!supabase || !userId) {
+      completionRequestIdRef.current += 1;
       setCompletionRecords([]);
+      setCompletionDataStatus('signed-out');
       return;
     }
 
-    supabase
-      .from('completed_mountains')
-      .select('id, mountain_id, completed_at')
-      .eq('user_id', session.user.id)
-      .then(({ data, error }) => {
+    const requestId = ++completionRequestIdRef.current;
+    setCompletionRecords([]);
+    setCompletionDataStatus('loading');
+    dispatchDiscovery({ type: 'AUTHENTICATION_CHANGED', isAuthenticated: false });
+
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('completed_mountains')
+          .select('id, mountain_id, completed_at')
+          .eq('user_id', userId);
+
+        if (requestId !== completionRequestIdRef.current) {
+          return;
+        }
+
         if (error) {
+          setCompletionDataStatus('error');
+          dispatchDiscovery({ type: 'AUTHENTICATION_CHANGED', isAuthenticated: false });
           setMessage(getCompletionErrorMessage(error, 'load'));
           return;
         }
@@ -724,12 +772,36 @@ export default function App() {
             completedAt: row.completed_at
           }))
         );
-      });
+        setCompletionDataStatus('ready');
+      } catch (error) {
+        if (requestId !== completionRequestIdRef.current) {
+          return;
+        }
+
+        setCompletionDataStatus('error');
+        dispatchDiscovery({ type: 'AUTHENTICATION_CHANGED', isAuthenticated: false });
+        setMessage(
+          getCompletionErrorMessage(
+            error instanceof Error ? { message: error.message } : {},
+            'load'
+          )
+        );
+      }
+    })();
+
+    return () => {
+      completionRequestIdRef.current += 1;
+    };
   }, [session?.user.id]);
 
   const toggleCompleted = async (mountain: Mountain) => {
     if (!session?.user.id || !supabase) {
       setMessage('등반 기록을 저장하려면 Google로 로그인하세요.');
+      return;
+    }
+
+    if (completionDataStatus !== 'ready') {
+      setMessage('등정 기록을 불러온 뒤 다시 시도해 주세요.');
       return;
     }
 
@@ -800,6 +872,7 @@ export default function App() {
     setMyPageTab('profile');
     setIsAccountMenuOpen(false);
     setIsMobileSearchOpen(false);
+    refreshChangedReviewSummaries();
   };
 
   const navigateHome = () => {
@@ -810,6 +883,7 @@ export default function App() {
     setIsAccountMenuOpen(false);
     setIsMobileSearchOpen(false);
     handleDiscoveryAction({ type: 'CLOSE_DISCOVERY' });
+    refreshChangedReviewSummaries();
   };
 
   const openSearchMountain = (match: Mountain) => {
@@ -885,7 +959,9 @@ export default function App() {
     setMyPageTab('profile');
     setIsAccountMenuOpen(false);
     setIsMobileSearchOpen(false);
+    handleDiscoveryAction({ type: 'RESET_FILTERS' });
     dispatchDiscovery({ type: 'SELECT_MOUNTAIN', mountainId: mountain.id });
+    refreshChangedReviewSummaries();
   };
 
   const signInWithGoogle = async () => {
@@ -1005,11 +1081,21 @@ export default function App() {
     }
 
     previousResultMountainIdsKeyRef.current = resultMountainIdsKey;
-    if (discoveryState.view.kind === 'random-running') {
+    setResultDataRevision((revision) => revision + 1);
+    const currentView = discoveryState.view;
+    if (currentView.kind === 'random-running') {
       clearRandomTimer();
       dispatchDiscovery({ type: 'CANCEL_RANDOM' });
+      return;
     }
-  }, [clearRandomTimer, discoveryState.view.kind, resultMountainIdsKey]);
+
+    if (
+      currentView.kind === 'detail' &&
+      !resultMountains.some((mountain) => mountain.id === currentView.mountainId)
+    ) {
+      dispatchDiscovery({ type: 'BACK_TO_RESULTS' });
+    }
+  }, [clearRandomTimer, discoveryState.view, resultMountainIdsKey, resultMountains]);
 
   return (
     <main className={appClass.shell}>
@@ -1216,6 +1302,7 @@ export default function App() {
           completionRecords={completionRecords}
           onCompletionRecordsChange={setCompletionRecords}
           onProfileChange={syncAccountProfile}
+          onReviewDataChange={markReviewDataChanged}
           onTabChange={openMyPageTab}
           onBackToMap={navigateHome}
           onOpenMountain={openMountainDetail}
@@ -1227,6 +1314,7 @@ export default function App() {
           isCompleted={completedIds.has(detailMountain.id)}
           session={session}
           onBack={closeMountainDetail}
+          onReviewDataChange={markReviewDataChanged}
           onShowOnMap={showMountainOnMap}
           onToggleCompleted={toggleCompleted}
         />
@@ -1243,7 +1331,7 @@ export default function App() {
               mountains={resultMountains}
               selectedMountainId={selectedMountain?.id}
               focusedMountainId={selectedMountain?.id}
-              fitResultsRevision={discoveryState.appliedRevision}
+              fitResultsRevision={discoveryState.appliedRevision + resultDataRevision}
               layoutKey={isDetailPanelOpen ? 'with-detail-panel' : 'full-map'}
               completedIds={completedIds}
               completionCounts={completionCounts}
@@ -1257,9 +1345,10 @@ export default function App() {
               appliedResultCount={resultMountains.length}
               difficultySummaryState={difficultySummaryState}
               isAuthenticated={Boolean(session?.user)}
+              completionDataStatus={completionDataStatus}
               triggerRef={discoveryTriggerRef}
               onAction={handleDiscoveryAction}
-              onRetryDifficultySummaries={loadDifficultySummaries}
+              onRetryDifficultySummaries={() => void loadDifficultySummaries(false)}
               onRequestLogin={() => void signInWithGoogle()}
             />
           </div>
@@ -1269,6 +1358,8 @@ export default function App() {
               difficultySummaryState={difficultySummaryState}
               completedIds={completedIds}
               isAuthenticated={Boolean(session?.user)}
+              completionDataStatus={completionDataStatus}
+              triggerRef={discoveryTriggerRef}
               onAction={handleDiscoveryAction}
               onSelectMountain={selectMountain}
               onRandomRecommend={runRandomPick}

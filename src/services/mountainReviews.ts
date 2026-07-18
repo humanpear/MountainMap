@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { fetchPublicProfiles } from "./profiles";
+import { mountains } from "../data/mountains";
 import {
   isMountainReviewDifficulty,
   type MountainDifficultySummary,
@@ -9,6 +10,7 @@ import {
 export type { MountainDifficultySummary } from "../types";
 
 export const mountainReviewImageBucket = "mountain-review-images";
+const knownMountainIds = new Set(mountains.map((mountain) => mountain.id));
 
 export type MountainReview = {
   id: string;
@@ -162,9 +164,26 @@ export async function fetchMountainDifficultySummaries(): Promise<
     throw new Error("Invalid mountain difficulty summary response: expected an array");
   }
 
-  return data.map((row, index) =>
+  const summaries = data.map((row, index) =>
     mapMountainDifficultySummary(row as MountainDifficultySummaryRow, index),
   );
+  const seenMountainIds = new Set<string>();
+
+  for (const summary of summaries) {
+    if (!knownMountainIds.has(summary.mountainId)) {
+      throw new Error(
+        `Invalid mountain difficulty summary: unknown mountain_id ${summary.mountainId}`,
+      );
+    }
+    if (seenMountainIds.has(summary.mountainId)) {
+      throw new Error(
+        `Invalid mountain difficulty summary: duplicate mountain_id ${summary.mountainId}`,
+      );
+    }
+    seenMountainIds.add(summary.mountainId);
+  }
+
+  return summaries;
 }
 
 export async function fetchMountainReviews(mountainId: string) {

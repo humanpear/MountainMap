@@ -4,6 +4,7 @@ import {
   type RefObject,
   useEffect,
   useRef,
+  useState,
 } from 'react';
 import { ArrowLeft, Check, ListFilter, RotateCcw, Shuffle, SlidersHorizontal, X } from 'lucide-react';
 import { getMountainGuide } from '../data/mountainDetails';
@@ -84,12 +85,61 @@ function getFocusableElements(container: HTMLElement) {
   );
 }
 
+function useMobileDiscoveryLayout() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 900px)').matches
+      : false,
+  );
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(max-width: 900px)');
+    const update = () => setIsMobile(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener?.('change', update);
+    return () => mediaQuery.removeEventListener?.('change', update);
+  }, []);
+
+  return isMobile;
+}
+
+const mobileDiscoveryHistoryKey = '__mountainMapDiscoverySheet';
+
+function hasMobileDiscoveryHistoryEntry() {
+  return Boolean(window.history.state?.[mobileDiscoveryHistoryKey]);
+}
+
+function pushMobileDiscoveryHistoryEntry() {
+  if (hasMobileDiscoveryHistoryEntry()) {
+    return;
+  }
+
+  window.history.pushState(
+    { ...window.history.state, [mobileDiscoveryHistoryKey]: true },
+    '',
+    window.location.href,
+  );
+}
+
+function dismissMobileDiscoveryHistoryEntry() {
+  if (hasMobileDiscoveryHistoryEntry()) {
+    window.history.back();
+  }
+}
+
+type CompletionDataStatus = 'signed-out' | 'loading' | 'ready' | 'error';
+
 type MountainDiscoveryControlsProps = {
   state: DiscoveryState;
   draftResultCount: number;
   appliedResultCount: number;
   difficultySummaryState: DifficultySummaryState;
   isAuthenticated: boolean;
+  completionDataStatus: CompletionDataStatus;
   triggerRef: RefObject<HTMLButtonElement | null>;
   onAction: (action: DiscoveryAction) => void;
   onRetryDifficultySummaries: () => void;
@@ -102,13 +152,38 @@ export function MountainDiscoveryControls({
   appliedResultCount,
   difficultySummaryState,
   isAuthenticated,
+  completionDataStatus,
   triggerRef,
   onAction,
   onRetryDifficultySummaries,
   onRequestLogin,
 }: MountainDiscoveryControlsProps) {
   const filterPanelRef = useRef<HTMLElement | null>(null);
+  const isMobile = useMobileDiscoveryLayout();
   const isFilterOpen = state.view.kind === 'filters';
+
+  useEffect(() => {
+    if (!isFilterOpen || !isMobile) {
+      return;
+    }
+
+    pushMobileDiscoveryHistoryEntry();
+    const handlePopState = () => {
+      onAction({ type: 'CANCEL_FILTERS' });
+      window.requestAnimationFrame(() => triggerRef.current?.focus());
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isFilterOpen, isMobile, onAction, triggerRef]);
+
+  const dismissFilters = () => {
+    onAction({ type: 'CANCEL_FILTERS' });
+    if (isMobile) {
+      dismissMobileDiscoveryHistoryEntry();
+    }
+    window.requestAnimationFrame(() => triggerRef.current?.focus());
+  };
 
   useEffect(() => {
     if (!isFilterOpen) {
@@ -122,16 +197,14 @@ export function MountainDiscoveryControls({
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (!panel?.contains(target) && !triggerRef.current?.contains(target)) {
-        onAction({ type: 'CANCEL_FILTERS' });
-        triggerRef.current?.focus();
+        dismissFilters();
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onAction({ type: 'CANCEL_FILTERS' });
-        triggerRef.current?.focus();
+        dismissFilters();
         return;
       }
 
@@ -165,11 +238,10 @@ export function MountainDiscoveryControls({
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isFilterOpen, onAction, triggerRef]);
+  }, [dismissFilters, isFilterOpen, triggerRef]);
 
   const closeFilters = () => {
-    onAction({ type: 'CANCEL_FILTERS' });
-    window.requestAnimationFrame(() => triggerRef.current?.focus());
+    dismissFilters();
   };
 
   const applyFilters = (event: FormEvent<HTMLFormElement>) => {
@@ -219,6 +291,7 @@ export function MountainDiscoveryControls({
             id="mountain-discovery-filters"
             className="absolute left-5 top-[84px] z-[6] max-h-[calc(100%-104px)] w-[min(420px,calc(100%-40px))] overflow-y-auto rounded-xl border border-[#d8e0da] bg-white p-5 shadow-[0_20px_70px_rgba(24,34,29,0.2)] max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:top-auto max-[900px]:w-auto max-[900px]:max-h-[78vh] max-[900px]:rounded-b-none max-[900px]:rounded-t-2xl max-[900px]:border-x-0 max-[900px]:border-b-0 max-[900px]:p-4 max-[900px]:pb-[calc(1rem+env(safe-area-inset-bottom))]"
             role="dialog"
+            aria-modal={isMobile || undefined}
             aria-labelledby="mountain-discovery-filter-title"
           >
             <div className="flex items-start justify-between gap-4">
@@ -313,6 +386,8 @@ export function MountainDiscoveryControls({
                     ['incomplete', '미등정'],
                   ] as const).map(([value, label]) => {
                     const requiresLogin = value !== 'all' && !isAuthenticated;
+                    const completionDataUnavailable =
+                      value !== 'all' && (requiresLogin || completionDataStatus !== 'ready');
                     return (
                       <button
                         key={value}
@@ -321,10 +396,10 @@ export function MountainDiscoveryControls({
                           state.draftFilters.completion === value
                             ? 'border-[#245c46] bg-[#245c46] text-white'
                             : 'border-[#d8e0da] bg-white text-[#18221d]',
-                          requiresLogin && 'cursor-not-allowed opacity-45',
+                          completionDataUnavailable && 'cursor-not-allowed opacity-45',
                         )}
                         type="button"
-                        disabled={requiresLogin}
+                        disabled={completionDataUnavailable}
                         onClick={() =>
                           onAction({
                             type: 'UPDATE_DRAFT_FILTERS',
@@ -349,6 +424,14 @@ export function MountainDiscoveryControls({
                       로그인
                     </button>
                   </div>
+                ) : completionDataStatus === 'loading' ? (
+                  <p className="m-0 rounded-lg bg-[#eef3f0] p-3 text-base font-bold text-[#5d6a62]" role="status">
+                    등정 기록을 불러오는 중입니다.
+                  </p>
+                ) : completionDataStatus === 'error' ? (
+                  <p className="m-0 rounded-lg border border-[#e7c8c1] bg-[#fff4f1] p-3 text-base font-bold text-[#6d3028]" role="alert">
+                    등정 기록을 불러오지 못해 완료·미등정 필터를 사용할 수 없습니다.
+                  </p>
                 ) : null}
               </fieldset>
 
@@ -381,6 +464,8 @@ type MountainDiscoveryPanelProps = {
   difficultySummaryState: DifficultySummaryState;
   completedIds: ReadonlySet<string>;
   isAuthenticated: boolean;
+  completionDataStatus: CompletionDataStatus;
+  triggerRef: RefObject<HTMLButtonElement | null>;
   detailContent?: ReactNode;
   onAction: (action: DiscoveryAction) => void;
   onSelectMountain: (mountain: Mountain) => void;
@@ -408,22 +493,99 @@ export function MountainDiscoveryPanel({
   difficultySummaryState,
   completedIds,
   isAuthenticated,
+  completionDataStatus,
+  triggerRef,
   detailContent,
   onAction,
   onSelectMountain,
   onRandomRecommend,
 }: MountainDiscoveryPanelProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
+  const isMobile = useMobileDiscoveryLayout();
   const isResults = state.view.kind === 'results';
   const isDetail = state.view.kind === 'detail';
   const isRandomRunning = state.view.kind === 'random-running';
   const isOpen = isResults || isDetail || isRandomRunning;
 
   useEffect(() => {
+    if (!isOpen || !isMobile) {
+      return;
+    }
+
+    pushMobileDiscoveryHistoryEntry();
+    const handlePopState = () => {
+      onAction({ type: 'CLOSE_DISCOVERY' });
+      window.requestAnimationFrame(() => triggerRef.current?.focus());
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMobile, isOpen, onAction, triggerRef]);
+
+  const dismissPanel = () => {
+    onAction({ type: 'CLOSE_DISCOVERY' });
+    if (isMobile) {
+      dismissMobileDiscoveryHistoryEntry();
+    }
+    window.requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
+  useEffect(() => {
     if (isResults && listRef.current) {
       listRef.current.scrollTop = state.resultScrollTop;
     }
   }, [isResults, state.resultScrollTop]);
+
+  useEffect(() => {
+    if (!isOpen || !isMobile) {
+      return;
+    }
+
+    const panel = panelRef.current;
+    const frameId = window.requestAnimationFrame(() => {
+      const currentPanel = panelRef.current;
+      if (currentPanel) {
+        getFocusableElements(currentPanel)[0]?.focus();
+      }
+    });
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        dismissPanel();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !panel) {
+        return;
+      }
+
+      const focusable = getFocusableElements(panel);
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (!first || !last) {
+        return;
+      }
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [dismissPanel, isMobile, isOpen, state.view.kind, triggerRef]);
+
+  const closePanel = () => {
+    dismissPanel();
+  };
 
   if (!isOpen) {
     return null;
@@ -435,10 +597,13 @@ export function MountainDiscoveryPanel({
         className="fixed inset-0 z-[5] hidden cursor-default border-0 bg-black/85 p-0 max-[900px]:block"
         type="button"
         aria-label="산 찾기 패널 닫기"
-        onClick={() => onAction({ type: 'CLOSE_DISCOVERY' })}
+        onClick={closePanel}
       />
       <aside
+        ref={panelRef}
         className="z-[6] flex min-h-0 flex-col overflow-hidden border-l border-[#d8e0da] bg-white max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:max-h-[78vh] max-[900px]:rounded-t-2xl max-[900px]:border-l-0 max-[900px]:border-t max-[900px]:shadow-[0_-18px_60px_rgba(0,0,0,0.24)]"
+        role={isMobile ? 'dialog' : undefined}
+        aria-modal={isMobile || undefined}
         aria-label={isResults ? '산 찾기 결과' : isRandomRunning ? '랜덤 추천 진행 상태' : '선택한 산 정보'}
       >
         {isResults ? (
@@ -453,7 +618,7 @@ export function MountainDiscoveryPanel({
               <button
                 className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-lg border border-[#d8e0da] bg-[#eef3f0]"
                 type="button"
-                onClick={() => onAction({ type: 'CLOSE_DISCOVERY' })}
+                onClick={closePanel}
                 aria-label="산 찾기 결과 닫기"
               >
                 <X size={19} />
@@ -504,7 +669,7 @@ export function MountainDiscoveryPanel({
             </div>
 
             {resultMountains.length === 0 ? (
-              <div className="grid min-h-0 flex-1 place-items-center overflow-y-auto p-6 text-center">
+              <div className="grid min-h-0 flex-1 place-items-center overflow-y-auto p-6 text-center max-[900px]:pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                 <div>
                   <SlidersHorizontal className="mx-auto text-[#5d6a62]" size={28} />
                   <h3 className="m-0 mt-3 text-xl font-black text-[#18221d]">조건에 맞는 산이 없어요</h3>
@@ -530,7 +695,7 @@ export function MountainDiscoveryPanel({
             ) : (
               <div
                 ref={listRef}
-                className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain max-[900px]:pb-[env(safe-area-inset-bottom)]"
                 onScroll={(event) =>
                   onAction({
                     type: 'SET_RESULT_SCROLL_TOP',
@@ -562,7 +727,7 @@ export function MountainDiscoveryPanel({
                         <span>{mountain.province}</span>
                         <span aria-hidden="true">·</span>
                         <span>{getMountainDifficultyLabel(mountain.id, difficultySummaryState)}</span>
-                        {isAuthenticated ? (
+                        {isAuthenticated && completionDataStatus === 'ready' ? (
                           <>
                             <span aria-hidden="true">·</span>
                             <span className={completedIds.has(mountain.id) ? 'text-[#237a1f]' : undefined}>
@@ -610,13 +775,13 @@ export function MountainDiscoveryPanel({
               <button
                 className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-lg border border-[#d8e0da] bg-[#eef3f0]"
                 type="button"
-                onClick={() => onAction({ type: 'CLOSE_DISCOVERY' })}
+                onClick={closePanel}
                 aria-label="선택한 산 정보 닫기"
               >
                 <X size={19} />
               </button>
             </header>
-            <div className="min-h-0 flex-1 overflow-y-auto p-5 max-[560px]:p-4">
+            <div className="min-h-0 flex-1 overflow-y-auto p-5 max-[900px]:pb-[calc(1.25rem+env(safe-area-inset-bottom))] max-[560px]:p-4 max-[560px]:pb-[calc(1rem+env(safe-area-inset-bottom))]">
               {detailContent}
             </div>
           </>

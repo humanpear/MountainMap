@@ -54,6 +54,7 @@ type MyPageProps = {
   completionRecords: CompletionRecord[];
   onCompletionRecordsChange: (records: CompletionRecord[]) => void;
   onProfileChange?: (profile: UserProfile) => void;
+  onReviewDataChange?: () => void;
   onTabChange?: (tab: MyPageTab) => void;
   onBackToMap: () => void;
   onOpenMountain: (mountain: Mountain) => void;
@@ -192,6 +193,7 @@ export function MyPage({
   completionRecords,
   onCompletionRecordsChange,
   onProfileChange,
+  onReviewDataChange,
   onTabChange,
   onBackToMap,
   onOpenMountain,
@@ -395,6 +397,7 @@ export function MyPage({
       reviews={reviews}
       currentUserId={session.user.id}
       onReviewsChange={setReviews}
+      onReviewDataChange={onReviewDataChange}
       onOpenMountain={onOpenMountain}
       onStatusMessage={setMessage}
     />
@@ -825,12 +828,14 @@ function EditableUserReviewsPanel({
   reviews,
   currentUserId,
   onReviewsChange,
+  onReviewDataChange,
   onOpenMountain,
   onStatusMessage,
 }: {
   reviews: UserReviewSummary[];
   currentUserId: string;
   onReviewsChange: (reviews: UserReviewSummary[]) => void;
+  onReviewDataChange?: () => void;
   onOpenMountain: (mountain: Mountain) => void;
   onStatusMessage: (message: string | null) => void;
 }) {
@@ -961,6 +966,7 @@ function EditableUserReviewsPanel({
       const nextReview = toUserReviewSummary(updatedReview, editingReview);
 
       onReviewsChange(reviews.map((review) => (review.id === nextReview.id ? nextReview : review)));
+      onReviewDataChange?.();
       closeEditor();
       onStatusMessage("한줄평을 수정했습니다.");
     } catch (error) {
@@ -986,6 +992,7 @@ function EditableUserReviewsPanel({
     try {
       await deleteMountainReview(toMountainReview(review));
       onReviewsChange(reviews.filter((currentReview) => currentReview.id !== review.id));
+      onReviewDataChange?.();
       if (editingReview?.id === review.id) {
         closeEditor();
       }

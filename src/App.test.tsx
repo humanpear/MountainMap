@@ -49,7 +49,24 @@ vi.mock('./components/MountainMap', () => ({
 }));
 
 vi.mock('./components/MountainDetailPage', () => ({
-  MountainDetailPage: () => <div>산 상세</div>
+  MountainDetailPage: ({
+    mountain,
+    onBack,
+    onReviewDataChange,
+    onShowOnMap,
+  }: {
+    mountain: (typeof mountains)[number];
+    onBack: () => void;
+    onReviewDataChange?: () => void;
+    onShowOnMap: (mountain: (typeof mountains)[number]) => void;
+  }) => (
+    <div>
+      산 상세
+      <button type="button" onClick={onReviewDataChange}>한줄평 변경</button>
+      <button type="button" onClick={onBack}>상세에서 지도 복귀</button>
+      <button type="button" onClick={() => onShowOnMap(mountain)}>지도에서 보기</button>
+    </div>
+  )
 }));
 
 vi.mock('./components/MyPage', () => ({
@@ -260,6 +277,100 @@ describe('App account menu', () => {
     expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(2);
   });
 
+  it('reuses the cached difficulty summaries while filters and sorting change', async () => {
+    render(<App />);
+    await waitFor(() => {
+      expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
+    fireEvent.click(screen.getByRole('button', { name: /개 산 보기/ }));
+    fireEvent.change(screen.getByLabelText('결과 정렬'), { target: { value: 'elevation-desc' } });
+    fireEvent.click(screen.getByRole('button', { name: '필터 수정' }));
+
+    expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes once after review changes and ignores an older pending response', async () => {
+    let resolveFirst!: (value: Array<{ mountainId: string; reviewCount: number; averageScore: number }>) => void;
+    let resolveSecond!: (value: Array<{ mountainId: string; reviewCount: number; averageScore: number }>) => void;
+    mountainReviewMocks.fetchMountainDifficultySummaries
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveSecond = resolve; }));
+    window.history.replaceState(null, '', `/mountains/${mountains[0].id}`);
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(1);
+    });
+    fireEvent.click(screen.getByRole('button', { name: '한줄평 변경' }));
+    fireEvent.click(screen.getByRole('button', { name: '상세에서 지도 복귀' }));
+    await waitFor(() => {
+      expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(2);
+    });
+
+    await act(async () => {
+      resolveSecond([{ mountainId: mountains[0].id, reviewCount: 2, averageScore: 5 }]);
+    });
+    await act(async () => {
+      resolveFirst([{ mountainId: mountains[0].id, reviewCount: 2, averageScore: 1 }]);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '매우 어려움' }));
+    fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
+    expect(screen.getByRole('heading', { name: '결과 1개' })).toBeInTheDocument();
+  });
+
+  it('keeps ready difficulty summaries usable when a background refresh fails', async () => {
+    mountainReviewMocks.fetchMountainDifficultySummaries
+      .mockResolvedValueOnce([
+        { mountainId: mountains[0].id, reviewCount: 3, averageScore: 2 },
+      ])
+      .mockRejectedValueOnce(new Error('background refresh failed'));
+    window.history.replaceState(null, '', `/mountains/${mountains[0].id}`);
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(1);
+    });
+    fireEvent.click(screen.getByRole('button', { name: '한줄평 변경' }));
+    fireEvent.click(screen.getByRole('button', { name: '상세에서 지도 복귀' }));
+    await waitFor(() => {
+      expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(2);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '보통' }));
+    fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
+    expect(screen.getByRole('heading', { name: '결과 1개' })).toBeInTheDocument();
+  });
+
+  it('keeps completion filters disabled when completion records fail to load', async () => {
+    let resolveCompletionQuery!: (value: { data: null; error: { code: string } }) => void;
+    supabaseMocks.from.mockReturnValue({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => new Promise((resolve) => { resolveCompletionQuery = resolve; })),
+      })),
+    });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    expect(await screen.findByText('등정 기록을 불러오는 중입니다.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '등정 완료' })).toBeDisabled();
+
+    await act(async () => {
+      resolveCompletionQuery({ data: null, error: { code: 'PGRST001' } });
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '등정 기록을 불러오지 못해 완료·미등정 필터를 사용할 수 없습니다.',
+    );
+    expect(screen.getByRole('button', { name: '미등정' })).toBeDisabled();
+  });
+
   it('shares the applied result set with the map and selected detail', async () => {
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
@@ -270,12 +381,75 @@ describe('App account menu', () => {
 
     const map = screen.getByLabelText('mock-map');
     expect(map).toHaveAttribute('data-mountain-count', String(gangwonMountains.length));
-    expect(map).toHaveAttribute('data-fit-results-revision', '1');
+    expect(map).toHaveAttribute('data-fit-results-revision', '2');
 
     const selected = gangwonMountains[0];
     fireEvent.click(screen.getByRole('button', { name: new RegExp(selected.name) }));
     expect(map).toHaveAttribute('data-selected-mountain-id', selected.id);
     expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
+  });
+
+  it('returns to updated results when a completion change removes the selected mountain', async () => {
+    const completedMountain = mountains.find((mountain) => mountain.id === '0000000001')!;
+    const completionQuery = {
+      select: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({
+          data: [
+            { id: 'completion-1', mountain_id: '0000000001', completed_at: '2026-06-01T00:00:00.000Z' },
+          ],
+          error: null,
+        })),
+      })),
+    };
+    const deleteChain = {
+      eq: vi.fn(),
+    };
+    deleteChain.eq
+      .mockReturnValueOnce(deleteChain)
+      .mockResolvedValueOnce({ error: null });
+    const deleteQuery = {
+      delete: vi.fn(() => deleteChain),
+    };
+    supabaseMocks.from
+      .mockReturnValueOnce(completionQuery)
+      .mockReturnValueOnce(deleteQuery);
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    const completedFilter = screen.getByRole('button', { name: '등정 완료' });
+    await waitFor(() => expect(completedFilter).toBeEnabled());
+    fireEvent.click(completedFilter);
+    fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(completedMountain.name) }));
+    expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: `${completedMountain.name} 등반 완료 표시` }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('complementary', { name: '산 찾기 결과' })).toBeInTheDocument();
+      expect(screen.getByLabelText('mock-map')).toHaveAttribute('data-selected-mountain-id', '');
+      expect(screen.getByLabelText('mock-map')).toHaveAttribute('data-fit-results-revision', '3');
+    });
+  });
+
+  it('resets filters before showing a detail-page mountain on the map', async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
+    const gangwonMountains = mountains.filter((mountain) => mountain.regionCodes.includes('gangwon'));
+    fireEvent.click(screen.getByRole('button', { name: `${gangwonMountains.length}개 산 보기` }));
+
+    const target = mountains.find((mountain) => mountain.regionCodes.includes('jeju'))!;
+    fireEvent.change(screen.getByLabelText('산 이름 검색'), { target: { value: target.name } });
+    fireEvent.submit(screen.getByRole('search'));
+    expect(await screen.findByText('산 상세')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '지도에서 보기' }));
+
+    const map = await screen.findByLabelText('mock-map');
+    expect(map).toHaveAttribute('data-mountain-count', String(mountains.length));
+    expect(map).toHaveAttribute('data-selected-mountain-id', target.id);
+    expect(map).toHaveAttribute('data-fit-results-revision', '4');
   });
 
   it('finishes a random recommendation inside the current filtered results', async () => {
@@ -324,5 +498,29 @@ describe('App account menu', () => {
 
     expect(randomSoundMocks.playRouletteTick).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: '추천 취소' }));
+  });
+
+  it('auto-cancels a running recommendation when authentication changes its candidates', async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    const completedFilter = screen.getByRole('button', { name: '등정 완료' });
+    await waitFor(() => expect(completedFilter).toBeEnabled());
+    fireEvent.click(completedFilter);
+    fireEvent.click(await screen.findByRole('button', { name: '2개 산 보기' }));
+    vi.useFakeTimers();
+
+    fireEvent.click(screen.getByRole('button', { name: '이 결과 2개 중 랜덤 추천' }));
+    expect(screen.getByRole('complementary', { name: '랜덤 추천 진행 상태' })).toBeInTheDocument();
+
+    const authChangeHandler = supabaseMocks.onAuthStateChange.mock.calls[0]?.[0] as (
+      event: string,
+      nextSession: Session | null,
+    ) => void;
+    act(() => authChangeHandler('SIGNED_OUT', null));
+
+    expect(screen.getByRole('complementary', { name: '산 찾기 결과' })).toBeInTheDocument();
+    act(() => vi.runAllTimers());
+    expect(screen.queryByRole('complementary', { name: '선택한 산 정보' })).not.toBeInTheDocument();
+    expect(randomSoundMocks.playFanfare).not.toHaveBeenCalled();
   });
 });
