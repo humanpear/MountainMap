@@ -329,7 +329,7 @@ export function MountainDiscoveryControls({
       {isFilterOpen ? (
         <>
           <button
-            className="fixed inset-0 z-[5] hidden cursor-default border-0 bg-black/85 p-0 max-[900px]:block"
+            className="fixed inset-0 z-[5] hidden cursor-default border-0 bg-black/85 p-0 max-[900px]:block max-[900px]:animate-[filter-backdrop-in_180ms_ease-out_both] motion-reduce:animate-none"
             type="button"
             aria-label="조건으로 찾기 닫기"
             onClick={closeFilters}
@@ -337,7 +337,7 @@ export function MountainDiscoveryControls({
           <section
             ref={filterPanelRef}
             id="mountain-discovery-filters"
-            className="absolute left-5 top-[76px] z-[6] max-h-[calc(100%-92px)] w-[min(336px,calc(100%-40px))] overflow-y-auto rounded-xl border border-[#d8e0da] bg-white p-3 shadow-[0_18px_56px_rgba(24,34,29,0.18)] max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:top-auto max-[900px]:w-auto max-[900px]:max-h-[68vh] max-[900px]:rounded-b-none max-[900px]:rounded-t-2xl max-[900px]:border-x-0 max-[900px]:border-b-0 max-[900px]:p-3 max-[900px]:pb-[calc(.75rem+env(safe-area-inset-bottom))]"
+            className="absolute left-5 top-5 z-[6] max-h-[calc(100%-40px)] w-[min(336px,calc(100%-40px))] origin-top-left overflow-y-auto rounded-xl border border-[#d8e0da] bg-white p-3 shadow-[0_18px_56px_rgba(24,34,29,0.18)] animate-[filter-panel-expand_250ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none max-[560px]:left-3 max-[560px]:top-3 max-[560px]:max-h-[calc(100%-24px)] max-[560px]:w-[min(336px,calc(100%-24px))]"
             role="dialog"
             aria-modal={isMobile || undefined}
             aria-labelledby="mountain-discovery-filter-title"
@@ -346,7 +346,7 @@ export function MountainDiscoveryControls({
               조건으로 찾기
             </h2>
 
-            <form className="grid gap-3" onSubmit={applyFilters}>
+            <form className="grid gap-3 animate-[filter-content-reveal_150ms_ease-out_90ms_both] motion-reduce:animate-none" onSubmit={applyFilters}>
               <label
                 className="group grid min-h-[82px] cursor-pointer grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[#e2e7e3] bg-white p-2 shadow-[0_8px_24px_rgba(24,34,29,0.08)]"
                 data-filter-card="region"
@@ -358,7 +358,7 @@ export function MountainDiscoveryControls({
                   <span className="block text-sm font-black text-[#18221d]">지역</span>
                   <span className="relative mt-0.5 block">
                     <select
-                      className="min-h-11 w-full cursor-pointer appearance-none rounded-md border-0 bg-transparent p-0 pr-7 text-base font-medium text-[#34423a] outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[#7da08f]"
+                      className="h-8 w-full cursor-pointer appearance-none rounded-md border-0 bg-transparent p-0 pr-7 text-base font-medium text-[#34423a] outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[#7da08f]"
                       value={state.draftFilters.region}
                       onChange={(event) =>
                         onAction({
@@ -380,16 +380,16 @@ export function MountainDiscoveryControls({
               </label>
 
               <div
-                className="group grid min-h-[82px] grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[#e2e7e3] bg-white p-2 shadow-[0_8px_24px_rgba(24,34,29,0.08)]"
+                className="group relative grid min-h-[82px] grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[#e2e7e3] bg-white p-2 shadow-[0_8px_24px_rgba(24,34,29,0.08)]"
                 data-filter-card="difficulty"
               >
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#fff2df] text-[#e38322]" aria-hidden="true">
                   <MountainIcon size={23} strokeWidth={2.1} />
                 </span>
                 <span className="min-w-0">
-                  <label className="block text-sm font-black text-[#18221d]" htmlFor="mountain-discovery-difficulty">
+                  <span className="block text-sm font-black text-[#18221d]">
                     체감 난이도
-                  </label>
+                  </span>
                   {difficultySummaryState.status === 'loading' || difficultySummaryState.status === 'idle' ? (
                     <span className="mt-0.5 block text-base font-medium text-[#5d6a62]" role="status">
                       난이도 정보를 불러오는 중입니다.
@@ -406,45 +406,50 @@ export function MountainDiscoveryControls({
                       </button>
                     </span>
                   ) : (
-                    <span className="relative mt-0.5 block">
-                      <select
-                        id="mountain-discovery-difficulty"
-                        className="min-h-11 w-full cursor-pointer appearance-none rounded-md border-0 bg-transparent p-0 pr-7 text-base font-medium text-[#34423a] outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[#7da08f]"
-                        value={state.draftFilters.difficulty}
-                        onChange={(event) =>
-                          onAction({
-                            type: 'UPDATE_DRAFT_FILTERS',
-                            filters: { difficulty: event.target.value as MountainDifficultyFilter },
-                          })
-                        }
-                      >
-                        {difficultyFilterLabels.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="pointer-events-none absolute right-0 top-1/2 [transform:translateY(-50%)] text-[#4f5d55] transition-transform group-focus-within:[transform:translateY(-50%)_rotate(180deg)]" size={18} />
-                    </span>
+                    <>
+                      <label className="absolute inset-0 z-[1] cursor-pointer" htmlFor="mountain-discovery-difficulty">
+                        <span className="sr-only">체감 난이도</span>
+                      </label>
+                      <span className="relative z-[2] mt-0.5 block">
+                        <select
+                          id="mountain-discovery-difficulty"
+                          className="h-8 w-full cursor-pointer appearance-none rounded-md border-0 bg-transparent p-0 pr-7 text-base font-medium text-[#34423a] outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[#7da08f]"
+                          value={state.draftFilters.difficulty}
+                          onChange={(event) =>
+                            onAction({
+                              type: 'UPDATE_DRAFT_FILTERS',
+                              filters: { difficulty: event.target.value as MountainDifficultyFilter },
+                            })
+                          }
+                        >
+                          {difficultyFilterLabels.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-0 top-1/2 [transform:translateY(-50%)] text-[#4f5d55] transition-transform group-focus-within:[transform:translateY(-50%)_rotate(180deg)]" size={18} />
+                      </span>
+                    </>
                   )}
                 </span>
               </div>
 
-              <div
-                className="group grid min-h-[82px] grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[#e2e7e3] bg-white p-2 shadow-[0_8px_24px_rgba(24,34,29,0.08)]"
+              <label
+                className="group grid min-h-[82px] cursor-pointer grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[#e2e7e3] bg-white p-2 shadow-[0_8px_24px_rgba(24,34,29,0.08)]"
                 data-filter-card="completion"
               >
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#edf3ff] text-[#3d78d4]" aria-hidden="true">
                   <Flag size={22} fill="currentColor" strokeWidth={1.8} />
                 </span>
                 <span className="min-w-0">
-                  <label className="block text-sm font-black text-[#18221d]" htmlFor="mountain-discovery-completion">
+                  <span className="block text-sm font-black text-[#18221d]">
                     등정 상태
-                  </label>
+                  </span>
                   <span className="relative mt-0.5 block">
                     <select
                       id="mountain-discovery-completion"
-                      className="min-h-11 w-full cursor-pointer appearance-none rounded-md border-0 bg-transparent p-0 pr-7 text-base font-medium text-[#34423a] outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[#7da08f]"
+                      className="h-8 w-full cursor-pointer appearance-none rounded-md border-0 bg-transparent p-0 pr-7 text-base font-medium text-[#34423a] outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[#7da08f]"
                       value={state.draftFilters.completion}
                       onChange={(event) =>
                         onAction({
@@ -475,7 +480,7 @@ export function MountainDiscoveryControls({
                     <ChevronDown className="pointer-events-none absolute right-0 top-1/2 [transform:translateY(-50%)] text-[#4f5d55] transition-transform group-focus-within:[transform:translateY(-50%)_rotate(180deg)]" size={18} />
                   </span>
                 </span>
-              </div>
+              </label>
               <div className="empty:hidden">
                 {!isAuthenticated ? (
                   <div className="flex items-center justify-between gap-2 rounded-lg bg-[#eef3f0] px-3 py-2 text-base text-[#5d6a62]">

@@ -152,6 +152,11 @@ describe('MountainDiscoveryPanel', () => {
 
     const dialog = screen.getByRole('dialog', { name: '조건으로 찾기' });
     expect(dialog).toHaveClass('w-[min(336px,calc(100%-40px))]');
+    expect(dialog).toHaveClass(
+      'top-5',
+      'origin-top-left',
+      'animate-[filter-panel-expand_250ms_cubic-bezier(0.22,1,0.36,1)_both]',
+    );
     expect(screen.getByLabelText('지역').closest('[data-filter-card]')).toHaveAttribute(
       'data-filter-card',
       'region',
@@ -164,6 +169,9 @@ describe('MountainDiscoveryPanel', () => {
       'data-filter-card',
       'completion',
     );
+    expect(screen.getByLabelText('지역')).toHaveClass('h-8');
+    expect(screen.getByLabelText('체감 난이도')).toHaveClass('h-8');
+    expect(screen.getByLabelText('등정 상태')).toHaveClass('h-8');
     expect(screen.queryByText('전체 산 · 2개')).not.toBeInTheDocument();
   });
 
