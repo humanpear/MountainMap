@@ -465,18 +465,18 @@ export function MountainDiscoveryControls({
       >
         <div
           className={cn(
-            'sticky left-0 top-0 z-[3] flex h-11 items-center bg-[#245c46] transition-[border-radius] duration-300 motion-reduce:transition-none',
-            isFilterOpen ? 'w-full rounded-t-xl' : 'w-[81px] rounded-lg',
+            'sticky left-0 top-0 z-[3] flex h-11 items-center rounded-none bg-[#245c46]',
+            isFilterOpen ? 'w-full' : 'w-[81px]',
           )}
           data-filter-header={isFilterOpen ? 'expanded' : 'compact'}
         >
           <button
             ref={triggerRef}
             className={cn(
-              'inline-flex h-full min-w-0 items-center border-0 bg-transparent text-white disabled:opacity-100',
+              'inline-flex h-full min-w-0 items-center border-0 bg-transparent text-sm font-bold text-white disabled:opacity-100',
               isFilterOpen
                 ? 'flex-1 cursor-default justify-start gap-3 px-4 text-left'
-                : 'w-full cursor-pointer justify-center gap-2 px-3.5 text-sm font-bold',
+                : 'w-full cursor-pointer justify-center gap-2 px-3.5',
             )}
             type="button"
             onClick={() => onAction({ type: 'OPEN_FILTERS' })}
@@ -485,8 +485,8 @@ export function MountainDiscoveryControls({
             aria-controls="mountain-discovery-filters"
             disabled={isFilterOpen}
           >
-            <SlidersHorizontal size={isFilterOpen ? 21 : 18} aria-hidden="true" />
-            <span className={isFilterOpen ? 'truncate text-base font-black' : undefined}>
+            <SlidersHorizontal size={18} aria-hidden="true" />
+            <span className={isFilterOpen ? 'truncate' : undefined}>
               {isFilterOpen ? '조건으로 산 찾기' : '필터'}
             </span>
           </button>
@@ -661,7 +661,7 @@ export function MountainDiscoveryControls({
                 ) : null}
               </FilterAccordionCard>
 
-              <div className="sticky bottom-0 grid grid-cols-[72px_minmax(0,1fr)] gap-2.5 bg-[#f5f7f4] pt-1">
+              <div className="sticky bottom-0 grid grid-cols-[72px_minmax(0,1fr)] gap-2.5 bg-[#f5f7f4]">
                 <button
                   className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-sm font-bold text-[#18221d]"
                   type="button"
@@ -670,7 +670,7 @@ export function MountainDiscoveryControls({
                   취소
                 </button>
                 <button
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-4 text-sm font-bold text-white shadow-[0_7px_18px_rgba(36,92,70,0.2)]"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-[#245c46] px-4 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#245c46]"
                   type="submit"
                 >
                   <Search size={18} />

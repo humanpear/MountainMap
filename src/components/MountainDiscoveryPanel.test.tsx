@@ -159,7 +159,14 @@ describe('MountainDiscoveryPanel', () => {
     expect(dialog).toHaveClass('w-[min(388px,calc(100%-40px))]');
     expect(screen.getByText('조건으로 산 찾기')).toBeInTheDocument();
     expect(screen.queryByText(/선택 \d+/)).not.toBeInTheDocument();
-    expect(dialog.querySelector('[data-filter-header="expanded"]')).toBeInTheDocument();
+    const expandedHeader = dialog.querySelector('[data-filter-header="expanded"]');
+    expect(expandedHeader).toHaveClass('h-11', 'rounded-none');
+    expect(expandedHeader?.querySelector('button')).toHaveClass('text-sm', 'font-bold');
+    expect(dialog.querySelector('#mountain-discovery-filters')).toHaveClass(
+      'opacity-0',
+      'animate-[filter-content-fade_120ms_ease-out_160ms_forwards]',
+    );
+    expect(screen.getByRole('button', { name: '2개 산 보기' })).toHaveClass('border-0');
 
     const regionCard = screen.getByRole('button', { name: /지역 필터/ });
     const difficultyCard = screen.getByRole('button', { name: /체감 난이도 필터/ });
