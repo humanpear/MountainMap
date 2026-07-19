@@ -348,6 +348,7 @@ export default function App() {
     reviewCount: 0
   });
   const accountMenuCloseTimerRef = useRef<number | null>(null);
+  const detailMountainIdRef = useRef(detailMountainId);
   const difficultyRequestIdRef = useRef(0);
   const completionRequestIdRef = useRef(0);
   const difficultySummaryStateRef = useRef<DifficultySummaryState>({ status: 'idle' });
@@ -356,6 +357,7 @@ export default function App() {
   const discoveryTriggerRef = useRef<HTMLButtonElement | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  detailMountainIdRef.current = detailMountainId;
 
   const clearRandomTimer = useCallback(() => {
     if (randomTimerRef.current !== null) {
@@ -627,11 +629,20 @@ export default function App() {
 
   useEffect(() => {
     const syncDetailRoute = (event: PopStateEvent) => {
+      const nextDetailMountainId = getMountainDetailRouteId();
       if (isMobileDiscoveryHistoryState(event.state)) {
+        if (detailMountainIdRef.current !== nextDetailMountainId) {
+          setDetailMountainId(nextDetailMountainId);
+          setIsMyPageOpen(getIsMyPageRoute());
+          setMyPageTab(getMyPageTabRoute());
+          setIsAccountMenuOpen(false);
+          setIsMobileSearchOpen(false);
+          refreshChangedReviewSummaries();
+        }
         return;
       }
 
-      setDetailMountainId(getMountainDetailRouteId());
+      setDetailMountainId(nextDetailMountainId);
       setIsMyPageOpen(getIsMyPageRoute());
       setMyPageTab(getMyPageTabRoute());
       setIsAccountMenuOpen(false);

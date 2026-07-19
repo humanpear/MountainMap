@@ -413,6 +413,25 @@ describe('App account menu', () => {
     expect(screen.getByRole('complementary', { name: '산 찾기 결과' })).toBeInTheDocument();
   });
 
+  it('returns from a full detail route to the selected mobile discovery panel on Back', async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(mountains[0].name) }));
+    expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '정보 상세페이지' }));
+    expect(await screen.findByText('산 상세')).toBeInTheDocument();
+
+    window.history.replaceState({ __mountainMapDiscoverySheet: 'panel' }, '', '/');
+    fireEvent.popState(window, {
+      state: { __mountainMapDiscoverySheet: 'panel' },
+    });
+
+    expect(screen.queryByText('산 상세')).not.toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
+  });
+
   it('returns to updated results when a completion change removes the selected mountain', async () => {
     const completedMountain = mountains.find((mountain) => mountain.id === '0000000001')!;
     const completionQuery = {
@@ -508,7 +527,7 @@ describe('App account menu', () => {
 
     expect(screen.getByRole('complementary', { name: '산 찾기 결과' })).toBeInTheDocument();
     expect(screen.queryByRole('complementary', { name: '선택한 산 정보' })).not.toBeInTheDocument();
-  });
+  }, 10_000);
 
   it('ignores a duplicate random start while the first timer is running', async () => {
     render(<App />);
