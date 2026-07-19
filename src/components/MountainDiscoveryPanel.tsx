@@ -394,8 +394,10 @@ export function MountainDiscoveryControls({
                 </select>
               </label>
 
-              <fieldset className="m-0 grid gap-2 border-0 p-0">
-                <legend className="mb-1.5 text-sm font-black text-[#18221d]">체감 난이도</legend>
+              <div className="grid gap-1.5">
+                <label className="text-sm font-black text-[#18221d]" htmlFor="mountain-discovery-difficulty">
+                  체감 난이도
+                </label>
                 {difficultySummaryState.status === 'loading' || difficultySummaryState.status === 'idle' ? (
                   <p className="m-0 rounded-lg bg-[#eef3f0] p-3 text-base font-bold text-[#5d6a62]" role="status">
                     난이도 정보를 불러오는 중입니다.
@@ -412,35 +414,41 @@ export function MountainDiscoveryControls({
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
+                  <select
+                    id="mountain-discovery-difficulty"
+                    className="min-h-11 w-full rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
+                    value={state.draftFilters.difficulty}
+                    onChange={(event) =>
+                      onAction({
+                        type: 'UPDATE_DRAFT_FILTERS',
+                        filters: { difficulty: event.target.value as MountainDifficultyFilter },
+                      })
+                    }
+                  >
                     {difficultyFilterLabels.map((option) => (
-                      <button
-                        key={option.value}
-                        className={cn(
-                          'inline-flex min-h-11 items-center justify-center rounded-lg border px-3 text-sm font-bold',
-                          state.draftFilters.difficulty === option.value
-                            ? 'border-[#245c46] bg-[#245c46] text-white'
-                            : 'border-[#d8e0da] bg-white text-[#18221d]',
-                        )}
-                        type="button"
-                        onClick={() =>
-                          onAction({
-                            type: 'UPDATE_DRAFT_FILTERS',
-                            filters: { difficulty: option.value },
-                          })
-                        }
-                        aria-pressed={state.draftFilters.difficulty === option.value}
-                      >
+                      <option key={option.value} value={option.value}>
                         {option.label}
-                      </button>
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 )}
-              </fieldset>
+              </div>
 
-              <fieldset className="m-0 grid gap-2 border-0 p-0">
-                <legend className="mb-1.5 text-sm font-black text-[#18221d]">등정 상태</legend>
-                <div className="grid grid-cols-3 gap-2">
+              <div className="grid gap-1.5">
+                <label className="text-sm font-black text-[#18221d]" htmlFor="mountain-discovery-completion">
+                  등정 상태
+                </label>
+                <select
+                  id="mountain-discovery-completion"
+                  className="min-h-11 w-full rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
+                  value={state.draftFilters.completion}
+                  onChange={(event) =>
+                    onAction({
+                      type: 'UPDATE_DRAFT_FILTERS',
+                      filters: { completion: event.target.value as DiscoveryState['draftFilters']['completion'] },
+                    })
+                  }
+                >
                   {([
                     ['all', '전체'],
                     ['completed', '등정 완료'],
@@ -450,30 +458,16 @@ export function MountainDiscoveryControls({
                     const completionDataUnavailable =
                       value !== 'all' && (requiresLogin || completionDataStatus !== 'ready');
                     return (
-                      <button
+                      <option
                         key={value}
-                        className={cn(
-                          'inline-flex min-h-11 items-center justify-center rounded-lg border px-2 text-sm font-bold',
-                          state.draftFilters.completion === value
-                            ? 'border-[#245c46] bg-[#245c46] text-white'
-                            : 'border-[#d8e0da] bg-white text-[#18221d]',
-                          completionDataUnavailable && 'cursor-not-allowed opacity-45',
-                        )}
-                        type="button"
+                        value={value}
                         disabled={completionDataUnavailable}
-                        onClick={() =>
-                          onAction({
-                            type: 'UPDATE_DRAFT_FILTERS',
-                            filters: { completion: value },
-                          })
-                        }
-                        aria-pressed={state.draftFilters.completion === value}
                       >
                         {label}
-                      </button>
+                      </option>
                     );
                   })}
-                </div>
+                </select>
                 {!isAuthenticated ? (
                   <div className="flex items-center justify-between gap-3 rounded-lg bg-[#eef3f0] p-3 text-base text-[#5d6a62]">
                     <span>등정 기록 필터는 로그인이 필요합니다.</span>
@@ -494,7 +488,7 @@ export function MountainDiscoveryControls({
                     등정 기록을 불러오지 못해 완료·미등정 필터를 사용할 수 없습니다.
                   </p>
                 ) : null}
-              </fieldset>
+              </div>
 
               <div className="sticky bottom-0 grid grid-cols-[minmax(0,1fr)_2fr] gap-2 bg-white pt-1">
                 <button

@@ -184,7 +184,7 @@ describe('MountainDiscoveryPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('난이도 정보를 불러오지 못했습니다.');
-    expect(screen.queryByRole('button', { name: '평가 전' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: '평가 전' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
@@ -194,8 +194,8 @@ describe('MountainDiscoveryPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
 
-    expect(screen.getByRole('button', { name: '등정 완료' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '미등정' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: '등정 완료' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: '미등정' })).toBeDisabled();
     expect(screen.getByText('등정 기록 필터는 로그인이 필요합니다.')).toBeInTheDocument();
   });
 
@@ -205,15 +205,15 @@ describe('MountainDiscoveryPanel', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
-    expect(screen.getByRole('button', { name: '등정 완료' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '미등정' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: '등정 완료' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: '미등정' })).toBeDisabled();
     expect(screen.getByRole('status')).toHaveTextContent('등정 기록을 불러오는 중입니다.');
 
     rerender(<DiscoveryHarness isAuthenticated completionDataStatus="error" />);
     expect(screen.getByRole('alert')).toHaveTextContent(
       '등정 기록을 불러오지 못해 완료·미등정 필터를 사용할 수 없습니다.',
     );
-    expect(screen.getByRole('button', { name: '등정 완료' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: '등정 완료' })).toBeDisabled();
   });
 
   it('returns from detail to the same result list and restores its scroll position', async () => {
