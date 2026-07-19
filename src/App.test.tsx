@@ -276,7 +276,7 @@ describe('App account menu', () => {
       ]);
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('난이도 정보를 불러오지 못했습니다.');
     expect(screen.getByLabelText('지역')).toBeEnabled();
@@ -295,7 +295,7 @@ describe('App account menu', () => {
       expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(1);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
     fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
     fireEvent.click(screen.getByRole('button', { name: /개 산 보기/ }));
     fireEvent.change(screen.getByLabelText('결과 정렬'), { target: { value: 'elevation-desc' } });
@@ -329,7 +329,7 @@ describe('App account menu', () => {
       resolveFirst([{ mountainId: mountains[0].id, reviewCount: 2, averageScore: 1 }]);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
     fireEvent.change(await screen.findByRole('combobox', { name: '체감 난이도' }), {
       target: { value: '매우 어려움' },
     });
@@ -366,7 +366,7 @@ describe('App account menu', () => {
       expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(3);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole('combobox', { name: '체감 난이도' }), {
       target: { value: '보통' },
@@ -384,7 +384,7 @@ describe('App account menu', () => {
     });
     render(<App />);
 
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     expect(await screen.findByText('등정 기록을 불러오는 중입니다.')).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '등정 완료' })).toBeDisabled();
 
@@ -400,7 +400,7 @@ describe('App account menu', () => {
 
   it('shares the applied result set with the map and selected detail', async () => {
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
 
     const gangwonMountains = mountains.filter((mountain) => mountain.regionCodes.includes('gangwon'));
@@ -418,7 +418,7 @@ describe('App account menu', () => {
 
   it('keeps mobile discovery results open when Back only removes a nested sheet layer', async () => {
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
     expect(screen.getByRole('complementary', { name: '산 찾기 결과' })).toBeInTheDocument();
 
@@ -441,7 +441,7 @@ describe('App account menu', () => {
       dispatchEvent: vi.fn(),
     })));
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
     expect(screen.getByRole('dialog', { name: '산 찾기 결과' })).toBeInTheDocument();
 
@@ -464,7 +464,7 @@ describe('App account menu', () => {
 
   it('returns from a full detail route to the selected mobile discovery panel on Back', async () => {
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
     fireEvent.click(screen.getByRole('button', { name: new RegExp(mountains[0].name) }));
     expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
@@ -494,7 +494,7 @@ describe('App account menu', () => {
 
   it('returns from a full detail route to the selected desktop discovery panel on Back', async () => {
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
     fireEvent.click(screen.getByRole('button', { name: new RegExp(mountains[0].name) }));
     fireEvent.click(screen.getByRole('button', { name: '정보 상세페이지' }));
@@ -526,7 +526,7 @@ describe('App account menu', () => {
       .mockReturnValueOnce({ delete: vi.fn(() => deleteChain) });
     render(<App />);
 
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     const completedFilter = screen.getByRole('option', { name: '등정 완료' });
     await waitFor(() => expect(completedFilter).toBeEnabled());
     fireEvent.change(screen.getByRole('combobox', { name: '등정 상태' }), {
@@ -573,7 +573,7 @@ describe('App account menu', () => {
       .mockReturnValueOnce(deleteQuery);
     render(<App />);
 
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     const completedFilter = screen.getByRole('option', { name: '등정 완료' });
     await waitFor(() => expect(completedFilter).toBeEnabled());
     fireEvent.change(screen.getByRole('combobox', { name: '등정 상태' }), {
@@ -594,7 +594,7 @@ describe('App account menu', () => {
 
   it('resets filters before showing a detail-page mountain on the map', async () => {
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
     const gangwonMountains = mountains.filter((mountain) => mountain.regionCodes.includes('gangwon'));
     fireEvent.click(screen.getByRole('button', { name: `${gangwonMountains.length}개 산 보기` }));
@@ -615,7 +615,7 @@ describe('App account menu', () => {
   it('finishes a random recommendation inside the current filtered results', async () => {
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'jeju' } });
 
     const jejuMountains = mountains.filter((mountain) => mountain.regionCodes.includes('jeju'));
@@ -645,7 +645,7 @@ describe('App account menu', () => {
 
   it('cancels the random timer without opening a stale winner', async () => {
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
     vi.useFakeTimers();
 
@@ -659,7 +659,7 @@ describe('App account menu', () => {
 
   it('ignores a duplicate random start while the first timer is running', async () => {
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
     vi.useFakeTimers();
     const randomButton = screen.getByRole('button', { name: `이 결과 ${mountains.length}개 중 랜덤 추천` });
@@ -673,7 +673,7 @@ describe('App account menu', () => {
 
   it('auto-cancels a running recommendation when authentication changes its candidates', async () => {
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     const completedFilter = screen.getByRole('option', { name: '등정 완료' });
     await waitFor(() => expect(completedFilter).toBeEnabled());
     fireEvent.change(screen.getByRole('combobox', { name: '등정 상태' }), {

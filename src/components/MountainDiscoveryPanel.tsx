@@ -8,7 +8,20 @@ import {
   useRef,
   useState,
 } from 'react';
-import { ArrowLeft, Check, ListFilter, RotateCcw, Shuffle, SlidersHorizontal, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  Flag,
+  ListFilter,
+  MapPin,
+  Mountain as MountainIcon,
+  RotateCcw,
+  Search,
+  Shuffle,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react';
 import { getMountainGuide } from '../data/mountainDetails';
 import {
   getDifficultyFromAverage,
@@ -299,7 +312,7 @@ export function MountainDiscoveryControls({
           aria-controls="mountain-discovery-filters"
         >
           <SlidersHorizontal size={18} />
-          산 찾기
+          필터
         </button>
         {hasAppliedFilters(state) ? (
           <button
@@ -329,120 +342,143 @@ export function MountainDiscoveryControls({
             aria-modal={isMobile || undefined}
             aria-labelledby="mountain-discovery-filter-title"
           >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 id="mountain-discovery-filter-title" className="m-0 text-base font-black text-[#18221d]">
-                  조건으로 찾기
-                </h2>
-              </div>
-              <button
-                className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-lg border-0 bg-transparent text-[#18221d] transition-colors hover:bg-[#eef3f0]"
-                type="button"
-                onClick={closeFilters}
-                aria-label="조건으로 찾기 닫기"
-              >
-                <X size={19} />
-              </button>
-            </div>
+            <h2 id="mountain-discovery-filter-title" className="sr-only">
+              조건으로 찾기
+            </h2>
 
-            <form className="mt-3 grid gap-2.5" onSubmit={applyFilters}>
-              <label className="grid min-h-11 grid-cols-[88px_minmax(0,1fr)] items-center gap-2 text-sm font-black text-[#18221d]">
-                지역
-                <select
-                  className="min-h-11 w-full rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
-                  value={state.draftFilters.region}
-                  onChange={(event) =>
-                    onAction({
-                      type: 'UPDATE_DRAFT_FILTERS',
-                      filters: { region: event.target.value as 'all' | MountainRegionCode },
-                    })
-                  }
-                >
-                  <option value="all">전체 지역</option>
-                  {mountainRegionCodes.map((region) => (
-                    <option key={region} value={region}>
-                      {regionLabels[region]}
-                    </option>
-                  ))}
-                </select>
+            <form className="grid gap-3" onSubmit={applyFilters}>
+              <label
+                className="group grid min-h-[82px] cursor-pointer grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[#e2e7e3] bg-white p-2 shadow-[0_8px_24px_rgba(24,34,29,0.08)]"
+                data-filter-card="region"
+              >
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#eaf5ee] text-[#2f7a58]" aria-hidden="true">
+                  <MapPin size={23} strokeWidth={2.1} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-black text-[#18221d]">지역</span>
+                  <span className="relative mt-0.5 block">
+                    <select
+                      className="min-h-11 w-full cursor-pointer appearance-none rounded-md border-0 bg-transparent p-0 pr-7 text-base font-medium text-[#34423a] outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[#7da08f]"
+                      value={state.draftFilters.region}
+                      onChange={(event) =>
+                        onAction({
+                          type: 'UPDATE_DRAFT_FILTERS',
+                          filters: { region: event.target.value as 'all' | MountainRegionCode },
+                        })
+                      }
+                    >
+                      <option value="all">전체 지역</option>
+                      {mountainRegionCodes.map((region) => (
+                        <option key={region} value={region}>
+                          {regionLabels[region]}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-0 top-1/2 [transform:translateY(-50%)] text-[#4f5d55] transition-transform group-focus-within:[transform:translateY(-50%)_rotate(180deg)]" size={18} />
+                  </span>
+                </span>
               </label>
 
-              <div className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-x-2 gap-y-2">
-                <label className="text-sm font-black text-[#18221d]" htmlFor="mountain-discovery-difficulty">
-                  체감 난이도
-                </label>
-                {difficultySummaryState.status === 'loading' || difficultySummaryState.status === 'idle' ? (
-                  <p className="m-0 rounded-lg bg-[#eef3f0] p-2 text-base font-bold text-[#5d6a62]" role="status">
-                    난이도 정보를 불러오는 중입니다.
-                  </p>
-                ) : difficultySummaryState.status === 'error' ? (
-                  <div className="rounded-lg border border-[#e7c8c1] bg-[#fff4f1] p-2 text-base text-[#6d3028]" role="alert">
-                    <p className="m-0 font-bold">난이도 정보를 불러오지 못했습니다.</p>
-                    <button
-                      className="mt-2 inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b14a3d] bg-white px-3 text-sm font-bold text-[#8c382e]"
-                      type="button"
-                      onClick={onRetryDifficultySummaries}
-                    >
-                      다시 시도
-                    </button>
-                  </div>
-                ) : (
-                  <select
-                    id="mountain-discovery-difficulty"
-                    className="min-h-11 w-full rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
-                    value={state.draftFilters.difficulty}
-                    onChange={(event) =>
-                      onAction({
-                        type: 'UPDATE_DRAFT_FILTERS',
-                        filters: { difficulty: event.target.value as MountainDifficultyFilter },
-                      })
-                    }
-                  >
-                    {difficultyFilterLabels.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
+              <div
+                className="group grid min-h-[82px] grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[#e2e7e3] bg-white p-2 shadow-[0_8px_24px_rgba(24,34,29,0.08)]"
+                data-filter-card="difficulty"
+              >
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#fff2df] text-[#e38322]" aria-hidden="true">
+                  <MountainIcon size={23} strokeWidth={2.1} />
+                </span>
+                <span className="min-w-0">
+                  <label className="block text-sm font-black text-[#18221d]" htmlFor="mountain-discovery-difficulty">
+                    체감 난이도
+                  </label>
+                  {difficultySummaryState.status === 'loading' || difficultySummaryState.status === 'idle' ? (
+                    <span className="mt-0.5 block text-base font-medium text-[#5d6a62]" role="status">
+                      난이도 정보를 불러오는 중입니다.
+                    </span>
+                  ) : difficultySummaryState.status === 'error' ? (
+                    <span className="mt-0.5 flex items-center justify-between gap-2 text-base text-[#8c382e]" role="alert">
+                      <span>난이도 정보를 불러오지 못했습니다.</span>
+                      <button
+                        className="min-h-11 flex-none border-0 bg-transparent px-2 text-sm font-bold text-[#8c382e]"
+                        type="button"
+                        onClick={onRetryDifficultySummaries}
+                      >
+                        다시 시도
+                      </button>
+                    </span>
+                  ) : (
+                    <span className="relative mt-0.5 block">
+                      <select
+                        id="mountain-discovery-difficulty"
+                        className="min-h-11 w-full cursor-pointer appearance-none rounded-md border-0 bg-transparent p-0 pr-7 text-base font-medium text-[#34423a] outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[#7da08f]"
+                        value={state.draftFilters.difficulty}
+                        onChange={(event) =>
+                          onAction({
+                            type: 'UPDATE_DRAFT_FILTERS',
+                            filters: { difficulty: event.target.value as MountainDifficultyFilter },
+                          })
+                        }
+                      >
+                        {difficultyFilterLabels.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-0 top-1/2 [transform:translateY(-50%)] text-[#4f5d55] transition-transform group-focus-within:[transform:translateY(-50%)_rotate(180deg)]" size={18} />
+                    </span>
+                  )}
+                </span>
               </div>
 
-              <div className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-x-2 gap-y-2">
-                <label className="text-sm font-black text-[#18221d]" htmlFor="mountain-discovery-completion">
-                  등정 상태
-                </label>
-                <select
-                  id="mountain-discovery-completion"
-                  className="min-h-11 w-full rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
-                  value={state.draftFilters.completion}
-                  onChange={(event) =>
-                    onAction({
-                      type: 'UPDATE_DRAFT_FILTERS',
-                      filters: { completion: event.target.value as DiscoveryState['draftFilters']['completion'] },
-                    })
-                  }
-                >
-                  {([
-                    ['all', '전체'],
-                    ['completed', '등정 완료'],
-                    ['incomplete', '미등정'],
-                  ] as const).map(([value, label]) => {
-                    const requiresLogin = value !== 'all' && !isAuthenticated;
-                    const completionDataUnavailable =
-                      value !== 'all' && (requiresLogin || completionDataStatus !== 'ready');
-                    return (
-                      <option
-                        key={value}
-                        value={value}
-                        disabled={completionDataUnavailable}
-                      >
-                        {label}
-                      </option>
-                    );
-                  })}
-                </select>
+              <div
+                className="group grid min-h-[82px] grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[#e2e7e3] bg-white p-2 shadow-[0_8px_24px_rgba(24,34,29,0.08)]"
+                data-filter-card="completion"
+              >
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#edf3ff] text-[#3d78d4]" aria-hidden="true">
+                  <Flag size={22} fill="currentColor" strokeWidth={1.8} />
+                </span>
+                <span className="min-w-0">
+                  <label className="block text-sm font-black text-[#18221d]" htmlFor="mountain-discovery-completion">
+                    등정 상태
+                  </label>
+                  <span className="relative mt-0.5 block">
+                    <select
+                      id="mountain-discovery-completion"
+                      className="min-h-11 w-full cursor-pointer appearance-none rounded-md border-0 bg-transparent p-0 pr-7 text-base font-medium text-[#34423a] outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[#7da08f]"
+                      value={state.draftFilters.completion}
+                      onChange={(event) =>
+                        onAction({
+                          type: 'UPDATE_DRAFT_FILTERS',
+                          filters: { completion: event.target.value as DiscoveryState['draftFilters']['completion'] },
+                        })
+                      }
+                    >
+                      {([
+                        ['all', '전체'],
+                        ['completed', '등정 완료'],
+                        ['incomplete', '미등정'],
+                      ] as const).map(([value, label]) => {
+                        const requiresLogin = value !== 'all' && !isAuthenticated;
+                        const completionDataUnavailable =
+                          value !== 'all' && (requiresLogin || completionDataStatus !== 'ready');
+                        return (
+                          <option
+                            key={value}
+                            value={value}
+                            disabled={completionDataUnavailable}
+                          >
+                            {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-0 top-1/2 [transform:translateY(-50%)] text-[#4f5d55] transition-transform group-focus-within:[transform:translateY(-50%)_rotate(180deg)]" size={18} />
+                  </span>
+                </span>
+              </div>
+              <div className="empty:hidden">
                 {!isAuthenticated ? (
-                  <div className="col-span-2 flex items-center justify-between gap-2 rounded-lg bg-[#eef3f0] p-2 text-base text-[#5d6a62]">
+                  <div className="flex items-center justify-between gap-2 rounded-lg bg-[#eef3f0] px-3 py-2 text-base text-[#5d6a62]">
                     <span>등정 기록 필터는 로그인이 필요합니다.</span>
                     <button
                       className="min-h-11 flex-none rounded-lg border border-[#245c46] bg-white px-2.5 text-sm font-bold text-[#245c46]"
@@ -453,17 +489,17 @@ export function MountainDiscoveryControls({
                     </button>
                   </div>
                 ) : completionDataStatus === 'loading' ? (
-                  <p className="col-span-2 m-0 rounded-lg bg-[#eef3f0] p-2 text-base font-bold text-[#5d6a62]" role="status">
+                  <p className="m-0 rounded-lg bg-[#eef3f0] px-3 py-2 text-base font-bold text-[#5d6a62]" role="status">
                     등정 기록을 불러오는 중입니다.
                   </p>
                 ) : completionDataStatus === 'error' ? (
-                  <p className="col-span-2 m-0 rounded-lg border border-[#e7c8c1] bg-[#fff4f1] p-2 text-base font-bold text-[#6d3028]" role="alert">
+                  <p className="m-0 rounded-lg border border-[#e7c8c1] bg-[#fff4f1] px-3 py-2 text-base font-bold text-[#6d3028]" role="alert">
                     등정 기록을 불러오지 못해 완료·미등정 필터를 사용할 수 없습니다.
                   </p>
                 ) : null}
               </div>
 
-              <div className="sticky bottom-0 grid grid-cols-[minmax(0,1fr)_2fr] gap-2 bg-white pt-1">
+              <div className="sticky bottom-0 grid grid-cols-[72px_minmax(0,1fr)] gap-2.5 bg-white pt-1">
                 <button
                   className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-sm font-bold text-[#18221d]"
                   type="button"
@@ -472,9 +508,10 @@ export function MountainDiscoveryControls({
                   취소
                 </button>
                 <button
-                  className="min-h-11 rounded-lg border border-[#245c46] bg-[#245c46] px-4 text-sm font-bold text-white"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-4 text-sm font-bold text-white shadow-[0_7px_18px_rgba(36,92,70,0.2)]"
                   type="submit"
                 >
+                  <Search size={18} />
                   {draftResultCount.toLocaleString()}개 산 보기
                 </button>
               </div>

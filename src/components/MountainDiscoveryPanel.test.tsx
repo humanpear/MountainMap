@@ -134,7 +134,7 @@ describe('MountainDiscoveryPanel', () => {
   it('keeps draft filters separate until they are applied', () => {
     render(<DiscoveryHarness />);
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
     fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
 
     fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
@@ -145,21 +145,24 @@ describe('MountainDiscoveryPanel', () => {
     expect(screen.queryByText('강원도 · 1개')).not.toBeInTheDocument();
   });
 
-  it('lays out compact filter labels and dropdowns in matching rows', () => {
+  it('renders the three dropdowns as icon filter cards', () => {
     render(<DiscoveryHarness />);
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
 
     const dialog = screen.getByRole('dialog', { name: '조건으로 찾기' });
     expect(dialog).toHaveClass('w-[min(336px,calc(100%-40px))]');
-    expect(screen.getByLabelText('지역').parentElement).toHaveClass(
-      'grid-cols-[88px_minmax(0,1fr)]',
+    expect(screen.getByLabelText('지역').closest('[data-filter-card]')).toHaveAttribute(
+      'data-filter-card',
+      'region',
     );
-    expect(screen.getByLabelText('체감 난이도').parentElement).toHaveClass(
-      'grid-cols-[88px_minmax(0,1fr)]',
+    expect(screen.getByLabelText('체감 난이도').closest('[data-filter-card]')).toHaveAttribute(
+      'data-filter-card',
+      'difficulty',
     );
-    expect(screen.getByLabelText('등정 상태').parentElement).toHaveClass(
-      'grid-cols-[88px_minmax(0,1fr)]',
+    expect(screen.getByLabelText('등정 상태').closest('[data-filter-card]')).toHaveAttribute(
+      'data-filter-card',
+      'completion',
     );
     expect(screen.queryByText('전체 산 · 2개')).not.toBeInTheDocument();
   });
@@ -167,7 +170,7 @@ describe('MountainDiscoveryPanel', () => {
   it('shows the approved empty state and can reset all filters', () => {
     render(<DiscoveryHarness />);
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
     fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'jeju' } });
     fireEvent.click(screen.getByRole('button', { name: '0개 산 보기' }));
 
@@ -181,7 +184,7 @@ describe('MountainDiscoveryPanel', () => {
     const onRandomRecommend = vi.fn();
     render(<DiscoveryHarness onRandomRecommend={onRandomRecommend} />);
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
     fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
     fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
     fireEvent.click(screen.getByRole('button', { name: '이 결과 1개 중 랜덤 추천' }));
@@ -198,7 +201,7 @@ describe('MountainDiscoveryPanel', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('난이도 정보를 불러오지 못했습니다.');
     expect(screen.queryByRole('option', { name: '평가 전' })).not.toBeInTheDocument();
@@ -209,7 +212,7 @@ describe('MountainDiscoveryPanel', () => {
   it('disables completion filters for signed-out users', () => {
     render(<DiscoveryHarness isAuthenticated={false} />);
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
 
     expect(screen.getByRole('option', { name: '등정 완료' })).toBeDisabled();
     expect(screen.getByRole('option', { name: '미등정' })).toBeDisabled();
@@ -221,7 +224,7 @@ describe('MountainDiscoveryPanel', () => {
       <DiscoveryHarness isAuthenticated completionDataStatus="loading" />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
     expect(screen.getByRole('option', { name: '등정 완료' })).toBeDisabled();
     expect(screen.getByRole('option', { name: '미등정' })).toBeDisabled();
     expect(screen.getByRole('status')).toHaveTextContent('등정 기록을 불러오는 중입니다.');
@@ -236,7 +239,7 @@ describe('MountainDiscoveryPanel', () => {
   it('returns from detail to the same result list and restores its scroll position', async () => {
     render(<DiscoveryHarness />);
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
     fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
     const resultButton = screen.getByRole('button', { name: /강원산/ });
     const list = resultButton.parentElement as HTMLDivElement;
@@ -255,7 +258,7 @@ describe('MountainDiscoveryPanel', () => {
 
   it('closes filters with Escape and returns focus to the trigger', async () => {
     render(<DiscoveryHarness />);
-    const trigger = screen.getByRole('button', { name: '산 찾기' });
+    const trigger = screen.getByRole('button', { name: '필터' });
 
     fireEvent.click(trigger);
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -278,21 +281,20 @@ describe('MountainDiscoveryPanel', () => {
       dispatchEvent: vi.fn(),
     })));
     render(<DiscoveryHarness />);
-    const trigger = screen.getByRole('button', { name: '산 찾기' });
+    const trigger = screen.getByRole('button', { name: '필터' });
 
     fireEvent.click(trigger);
     const dialog = await screen.findByRole('dialog', { name: '조건으로 찾기' });
-    const closeButtons = screen.getAllByRole('button', { name: '조건으로 찾기 닫기' });
-    const backdrop = closeButtons[0];
-    const closeButton = closeButtons[1];
+    const backdrop = screen.getByRole('button', { name: '조건으로 찾기 닫기' });
+    const firstFilter = screen.getByLabelText('지역');
     const applyButton = screen.getByRole('button', { name: '2개 산 보기' });
 
-    closeButton.focus();
+    firstFilter.focus();
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
     expect(applyButton).toHaveFocus();
 
     fireEvent.keyDown(document, { key: 'Tab' });
-    expect(closeButton).toHaveFocus();
+    expect(firstFilter).toHaveFocus();
 
     fireEvent.click(backdrop);
     await waitFor(() => {
@@ -313,7 +315,7 @@ describe('MountainDiscoveryPanel', () => {
       dispatchEvent: vi.fn(),
     })));
     render(<DiscoveryHarness />);
-    const trigger = screen.getByRole('button', { name: '산 찾기' });
+    const trigger = screen.getByRole('button', { name: '필터' });
 
     fireEvent.click(trigger);
     expect(await screen.findByRole('dialog', { name: '조건으로 찾기' })).toBeInTheDocument();
@@ -338,7 +340,7 @@ describe('MountainDiscoveryPanel', () => {
     })));
     render(<DiscoveryHarness />);
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
     const regionSelect = await screen.findByLabelText('지역');
     regionSelect.focus();
     fireEvent.change(regionSelect, { target: { value: 'gangwon' } });
@@ -359,7 +361,7 @@ describe('MountainDiscoveryPanel', () => {
     })));
     render(<DiscoveryHarness />);
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
     fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
     expect(await screen.findByRole('dialog', { name: '산 찾기 결과' })).toBeInTheDocument();
 
@@ -383,7 +385,7 @@ describe('MountainDiscoveryPanel', () => {
     })));
     render(<DiscoveryHarness />);
 
-    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터' }));
     fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
     fireEvent.click(screen.getByRole('button', { name: '필터 수정' }));
     expect(await screen.findByRole('dialog', { name: '조건으로 찾기' })).toBeInTheDocument();
@@ -413,7 +415,7 @@ describe('MountainDiscoveryPanel', () => {
       dispatchEvent: vi.fn(),
     })));
     render(<DiscoveryHarness />);
-    const trigger = screen.getByRole('button', { name: '산 찾기' });
+    const trigger = screen.getByRole('button', { name: '필터' });
 
     fireEvent.click(trigger);
     fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
@@ -443,7 +445,7 @@ describe('MountainDiscoveryPanel', () => {
       dispatchEvent: vi.fn(),
     })));
     render(<DiscoveryHarness />);
-    const trigger = screen.getByRole('button', { name: '산 찾기' });
+    const trigger = screen.getByRole('button', { name: '필터' });
 
     fireEvent.click(trigger);
     fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
@@ -477,7 +479,7 @@ describe('MountainDiscoveryPanel', () => {
       dispatchEvent: vi.fn(),
     })));
     render(<DiscoveryHarness />);
-    const trigger = screen.getByRole('button', { name: '산 찾기' });
+    const trigger = screen.getByRole('button', { name: '필터' });
 
     fireEvent.click(trigger);
     fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
