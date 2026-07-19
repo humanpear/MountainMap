@@ -29,3 +29,15 @@ Key routing rules:
 
 - typecheck: npm run lint
 - test: npm test
+
+## Project documentation
+
+- [`AGENTS.md`](./AGENTS.md): workspace agent instructions
+- [`CHANGELOG.md`](./CHANGELOG.md): release history
+- [`DESIGN.md`](./DESIGN.md): product design system and responsive rules
+- [`PROJECT_DATA_NOTES.md`](./PROJECT_DATA_NOTES.md): source and runtime data policies
+- [`GSTACK_CODEX_USAGE.md`](./GSTACK_CODEX_USAGE.md): local gstack usage guide
+- [`pibma-nogit-design-20260506-165651.md`](./pibma-nogit-design-20260506-165651.md): original random-centered MVP design record
+- [`docs/mountain-guide-data-workflow.md`](./docs/mountain-guide-data-workflow.md): mountain guide data workflow
+- [`docs/my-page-b-implementation-plan.md`](./docs/my-page-b-implementation-plan.md): My Page B implementation record
+- [`docs/mountain-discovery-implementation-workflow.md`](./docs/mountain-discovery-implementation-workflow.md): mountain discovery implementation and release record
