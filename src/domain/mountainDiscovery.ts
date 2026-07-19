@@ -210,6 +210,7 @@ export type DiscoveryAction =
   | { type: 'CANCEL_FILTERS' }
   | { type: 'APPLY_FILTERS' }
   | { type: 'RESET_FILTERS' }
+  | { type: 'RESET_DISCOVERY' }
   | { type: 'DIFFICULTY_SUMMARIES_UNAVAILABLE' }
   | { type: 'AUTHENTICATION_CHANGED'; isAuthenticated: boolean }
   | { type: 'SET_SORT'; sort: MountainSort }
@@ -285,6 +286,17 @@ export function discoveryReducer(
       return {
         ...state,
         view: { kind: 'results' },
+        draftFilters: { ...filters },
+        appliedFilters: { ...filters },
+        resultScrollTop: 0,
+        appliedRevision: state.appliedRevision + 1,
+      };
+    }
+    case 'RESET_DISCOVERY': {
+      const filters = createDefaultMountainFilters();
+      return {
+        ...state,
+        view: { kind: 'closed' },
         draftFilters: { ...filters },
         appliedFilters: { ...filters },
         resultScrollTop: 0,

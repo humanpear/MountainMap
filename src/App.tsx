@@ -911,6 +911,7 @@ export default function App() {
       action.type === 'OPEN_FILTERS' ||
       action.type === 'APPLY_FILTERS' ||
       action.type === 'RESET_FILTERS' ||
+      action.type === 'RESET_DISCOVERY' ||
       action.type === 'CLOSE_DISCOVERY' ||
       action.type === 'CANCEL_RANDOM'
     ) {

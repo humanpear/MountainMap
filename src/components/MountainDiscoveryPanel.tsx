@@ -331,7 +331,7 @@ export function MountainDiscoveryControls({
           <button
             className="inline-flex min-h-11 flex-none items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
             type="button"
-            onClick={() => onAction({ type: 'RESET_FILTERS' })}
+            onClick={() => onAction({ type: 'RESET_DISCOVERY' })}
           >
             <RotateCcw size={16} />
             <span className="max-[560px]:sr-only">필터 </span>초기화
