@@ -349,6 +349,7 @@ export default function App() {
   });
   const accountMenuCloseTimerRef = useRef<number | null>(null);
   const detailMountainIdRef = useRef(detailMountainId);
+  const discoveryStateRef = useRef(discoveryState);
   const difficultyRequestIdRef = useRef(0);
   const completionRequestIdRef = useRef(0);
   const difficultySummaryStateRef = useRef<DifficultySummaryState>({ status: 'idle' });
@@ -358,6 +359,7 @@ export default function App() {
   const headerRef = useRef<HTMLElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   detailMountainIdRef.current = detailMountainId;
+  discoveryStateRef.current = discoveryState;
 
   const clearRandomTimer = useCallback(() => {
     if (randomTimerRef.current !== null) {
@@ -630,6 +632,17 @@ export default function App() {
   useEffect(() => {
     const syncDetailRoute = (event: PopStateEvent) => {
       const nextDetailMountainId = getMountainDetailRouteId();
+      const selectedDiscoveryMountainId =
+        discoveryStateRef.current.view.kind === 'detail'
+          ? discoveryStateRef.current.view.mountainId
+          : null;
+      const isDiscoveryDetailRouteTransition =
+        selectedDiscoveryMountainId !== null &&
+        ((detailMountainIdRef.current === selectedDiscoveryMountainId &&
+          nextDetailMountainId === null) ||
+          (detailMountainIdRef.current === null &&
+            nextDetailMountainId === selectedDiscoveryMountainId));
+
       if (isMobileDiscoveryHistoryState(event.state)) {
         if (detailMountainIdRef.current !== nextDetailMountainId) {
           setDetailMountainId(nextDetailMountainId);
@@ -647,7 +660,9 @@ export default function App() {
       setMyPageTab(getMyPageTabRoute());
       setIsAccountMenuOpen(false);
       setIsMobileSearchOpen(false);
-      dispatchDiscovery({ type: 'CLOSE_DISCOVERY' });
+      if (!isDiscoveryDetailRouteTransition) {
+        dispatchDiscovery({ type: 'CLOSE_DISCOVERY' });
+      }
       refreshChangedReviewSummaries();
     };
 

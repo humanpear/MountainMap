@@ -430,6 +430,32 @@ describe('App account menu', () => {
 
     expect(screen.queryByText('산 상세')).not.toBeInTheDocument();
     expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
+
+    window.history.replaceState(null, '', `/mountains/${mountains[0].id}`);
+    fireEvent.popState(window, { state: null });
+    expect(await screen.findByText('산 상세')).toBeInTheDocument();
+
+    window.history.replaceState({ __mountainMapDiscoverySheet: 'panel' }, '', '/');
+    fireEvent.popState(window, {
+      state: { __mountainMapDiscoverySheet: 'panel' },
+    });
+    expect(screen.queryByText('산 상세')).not.toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
+  });
+
+  it('returns from a full detail route to the selected desktop discovery panel on Back', async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(mountains[0].name) }));
+    fireEvent.click(screen.getByRole('button', { name: '정보 상세페이지' }));
+    expect(await screen.findByText('산 상세')).toBeInTheDocument();
+
+    window.history.replaceState(null, '', '/');
+    fireEvent.popState(window, { state: null });
+
+    expect(screen.queryByText('산 상세')).not.toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
   });
 
   it('returns to updated results when a completion change removes the selected mountain', async () => {
