@@ -363,7 +363,7 @@ export function MountainDiscoveryControls({
                 </h2>
               </div>
               <button
-                className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-lg border border-[#d8e0da] bg-[#eef3f0] text-[#18221d]"
+                className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-lg border-0 bg-transparent text-[#18221d] transition-colors hover:bg-[#eef3f0]"
                 type="button"
                 onClick={closeFilters}
                 aria-label="조건으로 찾기 닫기"
@@ -691,7 +691,7 @@ export function MountainDiscoveryPanel({
                 </h2>
               </div>
               <button
-                className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-lg border border-[#d8e0da] bg-[#eef3f0]"
+                className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-lg border-0 bg-transparent transition-colors hover:bg-[#eef3f0]"
                 type="button"
                 onClick={closePanel}
                 aria-label="산 찾기 결과 닫기"
