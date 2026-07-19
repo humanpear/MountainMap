@@ -314,10 +314,10 @@ export function MountainDiscoveryControls({
       <section
         ref={filterPanelRef}
         className={cn(
-          'absolute left-5 top-5 origin-top-left overflow-hidden border-0 bg-white p-[2px] transition-[width,max-height,border-radius,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[560px]:left-3 max-[560px]:top-3',
+          'absolute left-5 top-5 origin-top-left overflow-hidden border-0 bg-white p-3 transition-[width,max-height,border-radius,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[560px]:left-3 max-[560px]:top-3',
           isFilterOpen
             ? 'z-[6] max-h-[calc(100%-40px)] w-[min(336px,calc(100%-40px))] overflow-y-auto rounded-xl shadow-[0_18px_56px_rgba(24,34,29,0.18)] max-[560px]:max-h-[calc(100%-24px)] max-[560px]:w-[min(336px,calc(100%-24px))]'
-            : 'z-[3] h-12 max-h-12 w-[85px] rounded-[10px] shadow-[0_4px_14px_rgba(24,34,29,0.12)]',
+            : 'z-[3] h-[68px] max-h-[68px] w-[105px] rounded-xl shadow-[0_4px_14px_rgba(24,34,29,0.12)]',
         )}
         data-filter-shell={isFilterOpen ? 'open' : 'closed'}
       >
@@ -337,7 +337,7 @@ export function MountainDiscoveryControls({
         {isFilterOpen ? (
           <div
             id="mountain-discovery-filters"
-            className="top-5 mt-[2px] w-[min(336px,calc(100%-40px))] max-w-full origin-top-left p-2.5 animate-[filter-panel-expand_250ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none"
+            className="top-5 mt-3 w-[min(336px,calc(100%-40px))] max-w-full origin-top-left animate-[filter-panel-expand_250ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none"
             role="dialog"
             aria-modal={isMobile || undefined}
             aria-labelledby="mountain-discovery-filter-title"
@@ -527,7 +527,7 @@ export function MountainDiscoveryControls({
 
       {hasAppliedFilters(state) && !isFilterOpen ? (
         <button
-          className="absolute left-[111px] top-5 z-[3] inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] max-[560px]:left-[103px] max-[560px]:top-3"
+          className="absolute left-[131px] top-5 z-[3] inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] max-[560px]:left-[123px] max-[560px]:top-3"
           type="button"
           onClick={() => onAction({ type: 'RESET_DISCOVERY' })}
         >
