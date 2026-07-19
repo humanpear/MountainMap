@@ -473,10 +473,10 @@ export function MountainDiscoveryControls({
           <button
             ref={triggerRef}
             className={cn(
-              'inline-flex h-full min-w-0 items-center border-0 bg-transparent text-sm font-bold text-white disabled:opacity-100',
+              'inline-flex h-full w-full min-w-0 items-center gap-2 border-0 bg-transparent px-3.5 text-sm font-bold text-white disabled:opacity-100',
               isFilterOpen
-                ? 'flex-1 cursor-default justify-start gap-3 px-4 text-left'
-                : 'w-full cursor-pointer justify-center gap-2 px-3.5',
+                ? 'cursor-default justify-start pr-12 text-left'
+                : 'cursor-pointer justify-center',
             )}
             type="button"
             onClick={() => onAction({ type: 'OPEN_FILTERS' })}
@@ -485,29 +485,68 @@ export function MountainDiscoveryControls({
             aria-controls="mountain-discovery-filters"
             disabled={isFilterOpen}
           >
-            <SlidersHorizontal size={18} aria-hidden="true" />
-            <span className={isFilterOpen ? 'truncate' : undefined}>
-              {isFilterOpen ? '조건으로 산 찾기' : '필터'}
+            <SlidersHorizontal className="flex-none" size={18} aria-hidden="true" />
+            <span
+              className={cn(
+                'relative h-5 min-w-0 flex-none',
+                isFilterOpen ? 'flex-1' : 'w-6',
+              )}
+              aria-hidden="true"
+            >
+              <span
+                className={cn(
+                  'absolute inset-y-0 left-0 flex items-center whitespace-nowrap transition-opacity ease-out motion-reduce:transition-none',
+                  isFilterOpen
+                    ? 'opacity-0 duration-75'
+                    : 'opacity-100 delay-75 duration-100',
+                )}
+                data-filter-label="compact"
+              >
+                필터
+              </span>
+              <span
+                className={cn(
+                  'absolute inset-y-0 left-0 right-0 flex items-center truncate whitespace-nowrap transition-opacity ease-out motion-reduce:transition-none',
+                  isFilterOpen
+                    ? 'opacity-100 delay-100 duration-100'
+                    : 'opacity-0 duration-75',
+                )}
+                data-filter-label="expanded"
+              >
+                조건으로 산 찾기
+              </span>
             </span>
           </button>
 
-          {isFilterOpen ? (
-            <button
-              className="inline-flex h-11 w-11 flex-none items-center justify-center border-0 bg-transparent text-white"
-              type="button"
-              aria-label="필터 닫기"
-              onClick={closeFilters}
-            >
-              <X size={21} aria-hidden="true" />
-            </button>
-          ) : null}
+          <button
+            className={cn(
+              'absolute right-0 top-0 inline-flex h-11 w-11 items-center justify-center border-0 bg-transparent text-white transition-opacity ease-out motion-reduce:transition-none',
+              isFilterOpen
+                ? 'pointer-events-auto opacity-100 delay-[140ms] duration-100'
+                : 'pointer-events-none opacity-0 duration-75',
+            )}
+            type="button"
+            aria-label="필터 닫기"
+            aria-hidden={!isFilterOpen}
+            tabIndex={isFilterOpen ? 0 : -1}
+            onClick={closeFilters}
+          >
+            <X size={21} aria-hidden="true" />
+          </button>
         </div>
 
-        {isFilterOpen ? (
-          <div
-            id="mountain-discovery-filters"
-            className="filter-scroll-region min-h-0 w-full flex-auto overflow-y-auto opacity-0 animate-[filter-content-fade_120ms_ease-out_160ms_forwards] motion-reduce:animate-none motion-reduce:opacity-100"
-          >
+        <div
+          id="mountain-discovery-filters"
+          className={cn(
+            'filter-scroll-region min-h-0 w-full flex-auto overflow-y-auto opacity-0',
+            isFilterOpen
+              ? 'visible animate-[filter-content-fade_120ms_ease-out_160ms_forwards]'
+              : 'invisible',
+            'motion-reduce:animate-none motion-reduce:opacity-100',
+          )}
+          aria-hidden={!isFilterOpen}
+          inert={!isFilterOpen}
+        >
             <h2 id="mountain-discovery-filter-title" className="sr-only">
               조건으로 찾기
             </h2>
@@ -696,8 +735,7 @@ export function MountainDiscoveryControls({
                 </div>
               </div>
             </form>
-          </div>
-        ) : null}
+        </div>
       </section>
 
       {hasAppliedFilters(state) && !isFilterOpen ? (
