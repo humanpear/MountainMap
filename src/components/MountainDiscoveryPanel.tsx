@@ -25,7 +25,6 @@ import {
 import { getMountainGuide } from '../data/mountainDetails';
 import {
   getDifficultyFromAverage,
-  unratedDifficultyFilter,
   type DifficultySummaryState,
   type DiscoveryAction,
   type DiscoveryState,
@@ -60,7 +59,6 @@ const difficultyFilterLabels: Array<{
     value: difficulty,
     label: difficulty,
   })),
-  { value: unratedDifficultyFilter, label: '평가 전' },
 ];
 
 const completionFilterOptions = [
@@ -113,7 +111,7 @@ function FilterAccordionCard({
       >
         {icon}
         <span className="min-w-0">
-          <span className="block text-sm font-black text-[#18221d]">{label}</span>
+          <span className="block text-sm font-semibold text-[#18221d]">{label}</span>
           <span className="mt-0.5 block truncate text-base font-medium text-[#4f5d55]">
             {summary}
           </span>
@@ -541,7 +539,7 @@ export function MountainDiscoveryControls({
               </p>
             </div>
 
-            <form className="grid gap-3 px-3 pb-3" onSubmit={applyFilters}>
+            <form className="grid gap-3 bg-white px-3 pb-3" onSubmit={applyFilters}>
               <FilterAccordionCard
                 section="region"
                 label="지역"
@@ -687,7 +685,7 @@ export function MountainDiscoveryControls({
               </FilterAccordionCard>
 
               <div
-                className="sticky bottom-0 -mx-3 border-t border-[#d8e0da] bg-[#f5f7f4] px-3 pt-3"
+                className="sticky bottom-0 -mx-3 border-t border-[#d8e0da] bg-white px-3 pt-3"
                 data-filter-actions
               >
                 <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-2.5">
