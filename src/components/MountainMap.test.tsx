@@ -137,6 +137,7 @@ type MountainMapTestProps = {
   focusedMountainId?: string;
   highlightedId?: string;
   fitResultsRevision?: number;
+  resetCameraRevision?: number;
   layoutKey?: string;
 };
 
@@ -147,6 +148,7 @@ function renderMountainMap(overrides: MountainMapTestProps = {}) {
       focusedMountainId={overrides.focusedMountainId}
       highlightedId={overrides.highlightedId}
       fitResultsRevision={overrides.fitResultsRevision ?? 0}
+      resetCameraRevision={overrides.resetCameraRevision ?? 0}
       layoutKey={overrides.layoutKey}
       completedIds={new Set()}
       completionCounts={new Map()}
@@ -232,6 +234,33 @@ describe('MountainMap', () => {
     });
 
     expect(kakaoMocks.Map.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ level: 13 }));
+  });
+
+  it('restores the mobile initial camera instead of fitting all markers after a filter reset', async () => {
+    vi.stubGlobal('matchMedia', createMatchMedia('(max-width: 900px)'));
+    const { rerender } = renderMountainMap({
+      mountains: [mountains[0]],
+      fitResultsRevision: 1,
+    });
+    await waitFor(() => expect(kakaoMocks.Map).toHaveBeenCalledTimes(1));
+
+    kakaoMocks.setCenter.mockClear();
+    kakaoMocks.setLevel.mockClear();
+    kakaoMocks.setBounds.mockClear();
+    rerender(
+      <MountainMap
+        mountains={mountains}
+        fitResultsRevision={1}
+        resetCameraRevision={1}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    expect(kakaoMocks.setCenter).toHaveBeenCalledWith({ latitude: 36.4, longitude: 127.8 });
+    expect(kakaoMocks.setLevel).toHaveBeenCalledWith(13);
+    expect(kakaoMocks.setBounds).not.toHaveBeenCalled();
   });
 
   it('relayouts the Kakao map when the map container size changes after mount', async () => {

@@ -9,6 +9,7 @@ type MountainMapProps = {
   selectedMountainId?: string;
   focusedMountainId?: string;
   fitResultsRevision: number;
+  resetCameraRevision?: number;
   layoutKey?: string;
   completedIds: ReadonlySet<string>;
   completionCounts: ReadonlyMap<string, number>;
@@ -85,6 +86,7 @@ export function MountainMap(props: MountainMapProps) {
   const overlaysRef = useRef<KakaoMarkerOverlayEntry[]>([]);
   const onMountainSelectRef = useRef(props.onMountainSelect);
   const lastFitResultsRevisionRef = useRef(0);
+  const lastResetCameraRevisionRef = useRef(0);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
@@ -200,13 +202,22 @@ export function MountainMap(props: MountainMapProps) {
   ]);
 
   useEffect(() => {
-    if (
-      !mapReady ||
-      !mapRef.current ||
-      !containerRef.current ||
-      !window.kakao?.maps ||
-      props.fitResultsRevision === lastFitResultsRevisionRef.current
-    ) {
+    if (!mapReady || !mapRef.current || !containerRef.current || !window.kakao?.maps) {
+      return;
+    }
+
+    const resetCameraRevision = props.resetCameraRevision ?? 0;
+    if (resetCameraRevision !== lastResetCameraRevisionRef.current) {
+      lastResetCameraRevisionRef.current = resetCameraRevision;
+      lastFitResultsRevisionRef.current = props.fitResultsRevision;
+      mapRef.current.setCenter(
+        new window.kakao.maps.LatLng(INITIAL_MAP_CENTER.latitude, INITIAL_MAP_CENTER.longitude),
+      );
+      mapRef.current.setLevel(getInitialMapLevel());
+      return;
+    }
+
+    if (props.fitResultsRevision === lastFitResultsRevisionRef.current) {
       return;
     }
 
@@ -244,7 +255,13 @@ export function MountainMap(props: MountainMapProps) {
       isMobile ? Math.min(320, Math.round(mapHeight * 0.42)) : 64,
       isMobile ? 32 : 64,
     );
-  }, [mapReady, mountainIdsKey, props.fitResultsRevision, props.mountains]);
+  }, [
+    mapReady,
+    mountainIdsKey,
+    props.fitResultsRevision,
+    props.mountains,
+    props.resetCameraRevision,
+  ]);
 
   useEffect(() => {
     if (!mapReady || !mapRef.current || !containerRef.current) {

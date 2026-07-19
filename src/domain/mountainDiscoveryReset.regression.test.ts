@@ -22,5 +22,7 @@ describe('discovery reset regression', () => {
     });
     expect(reset.appliedFilters).toEqual(reset.draftFilters);
     expect(reset.resultScrollTop).toBe(0);
+    expect(reset.appliedRevision).toBe(results.appliedRevision);
+    expect(reset.cameraResetRevision).toBe(results.cameraResetRevision + 1);
   });
 });

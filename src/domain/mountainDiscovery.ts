@@ -202,6 +202,7 @@ export type DiscoveryState = {
   sort: MountainSort;
   resultScrollTop: number;
   appliedRevision: number;
+  cameraResetRevision: number;
 };
 
 export type DiscoveryAction =
@@ -238,6 +239,7 @@ export function createInitialDiscoveryState(): DiscoveryState {
     sort: 'name',
     resultScrollTop: 0,
     appliedRevision: 0,
+    cameraResetRevision: 0,
   };
 }
 
@@ -300,7 +302,7 @@ export function discoveryReducer(
         draftFilters: { ...filters },
         appliedFilters: { ...filters },
         resultScrollTop: 0,
-        appliedRevision: state.appliedRevision + 1,
+        cameraResetRevision: state.cameraResetRevision + 1,
       };
     }
     case 'DIFFICULTY_SUMMARIES_UNAVAILABLE':

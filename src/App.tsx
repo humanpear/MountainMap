@@ -19,6 +19,7 @@ import {
   Menu,
   MessageCircle,
   Mountain as MountainIcon,
+  Power,
   Search,
   UserRound,
   X
@@ -1157,8 +1158,10 @@ export default function App() {
     }
 
     previousResultMountainIdsKeyRef.current = resultMountainIdsKey;
-    setResultDataRevision((revision) => revision + 1);
     const currentView = discoveryState.view;
+    if (currentView.kind !== 'closed') {
+      setResultDataRevision((revision) => revision + 1);
+    }
     if (currentView.kind === 'random-running') {
       clearRandomTimer();
       dispatchDiscovery({ type: 'CANCEL_RANDOM' });
@@ -1269,7 +1272,10 @@ export default function App() {
                     <Menu className="hidden max-[900px]:block" size={19} />
                   </>
                 ) : (
-                  <LogIn size={17} />
+                  <>
+                    <LogIn className="max-[900px]:hidden" size={17} />
+                    <Power className="hidden max-[900px]:block" size={20} strokeWidth={2.4} />
+                  </>
                 )}
                 <span className="max-[900px]:sr-only">{session ? '마이페이지' : '로그인'}</span>
               </button>
@@ -1408,6 +1414,7 @@ export default function App() {
               selectedMountainId={selectedMountain?.id}
               focusedMountainId={selectedMountain?.id}
               fitResultsRevision={discoveryState.appliedRevision + resultDataRevision}
+              resetCameraRevision={discoveryState.cameraResetRevision}
               layoutKey={isDetailPanelOpen ? 'with-detail-panel' : 'full-map'}
               completedIds={completedIds}
               completionCounts={completionCounts}

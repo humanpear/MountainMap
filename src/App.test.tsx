@@ -34,17 +34,20 @@ vi.mock('./components/MountainMap', () => ({
   MountainMap: ({
     mountains: mapMountains,
     selectedMountainId,
-    fitResultsRevision
+    fitResultsRevision,
+    resetCameraRevision,
   }: {
     mountains: Array<{ id: string }>;
     selectedMountainId?: string;
     fitResultsRevision: number;
+    resetCameraRevision: number;
   }) => (
     <div
       aria-label="mock-map"
       data-mountain-count={mapMountains.length}
       data-selected-mountain-id={selectedMountainId ?? ''}
       data-fit-results-revision={fitResultsRevision}
+      data-reset-camera-revision={resetCameraRevision}
     />
   )
 }));
