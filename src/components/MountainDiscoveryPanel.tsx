@@ -563,7 +563,16 @@ export function MountainDiscoveryPanel({
     }
 
     pushMobileDiscoveryHistoryEntry('panel');
-    const handlePopState = () => {
+    const handlePopState = (event: PopStateEvent) => {
+      const nextLayer = getMobileDiscoveryHistoryLayer(event.state);
+      if (nextLayer === 'filters') {
+        onAction({ type: 'OPEN_FILTERS' });
+        return;
+      }
+      if (nextLayer === 'panel') {
+        return;
+      }
+
       onAction({ type: 'CLOSE_DISCOVERY' });
       window.requestAnimationFrame(() => triggerRef.current?.focus());
     };

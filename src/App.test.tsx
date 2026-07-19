@@ -51,20 +51,27 @@ vi.mock('./components/MountainMap', () => ({
 vi.mock('./components/MountainDetailPage', () => ({
   MountainDetailPage: ({
     mountain,
+    isCompleted,
     onBack,
     onReviewDataChange,
     onShowOnMap,
+    onToggleCompleted,
   }: {
     mountain: (typeof mountains)[number];
+    isCompleted: boolean;
     onBack: () => void;
     onReviewDataChange?: () => void;
     onShowOnMap: (mountain: (typeof mountains)[number]) => void;
+    onToggleCompleted: (mountain: (typeof mountains)[number]) => void;
   }) => (
     <div>
       산 상세
       <button type="button" onClick={onReviewDataChange}>한줄평 변경</button>
       <button type="button" onClick={onBack}>상세에서 지도 복귀</button>
       <button type="button" onClick={() => onShowOnMap(mountain)}>지도에서 보기</button>
+      <button type="button" onClick={() => onToggleCompleted(mountain)}>
+        {isCompleted ? '산 상세 등반 완료 해제' : '산 상세 등반 완료 표시'}
+      </button>
     </div>
   )
 }));
@@ -456,6 +463,44 @@ describe('App account menu', () => {
 
     expect(screen.queryByText('산 상세')).not.toBeInTheDocument();
     expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
+  });
+
+  it('returns to updated desktop results when completion removes the detail mountain before Back', async () => {
+    const completedMountain = mountains.find((mountain) => mountain.id === '0000000001')!;
+    const completionQuery = {
+      select: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({
+          data: [
+            { id: 'completion-1', mountain_id: completedMountain.id, completed_at: '2026-06-01T00:00:00.000Z' },
+          ],
+          error: null,
+        })),
+      })),
+    };
+    const deleteChain = { eq: vi.fn() };
+    deleteChain.eq.mockReturnValueOnce(deleteChain).mockResolvedValueOnce({ error: null });
+    supabaseMocks.from
+      .mockReturnValueOnce(completionQuery)
+      .mockReturnValueOnce({ delete: vi.fn(() => deleteChain) });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    const completedFilter = screen.getByRole('button', { name: '등정 완료' });
+    await waitFor(() => expect(completedFilter).toBeEnabled());
+    fireEvent.click(completedFilter);
+    fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(completedMountain.name) }));
+    fireEvent.click(screen.getByRole('button', { name: '정보 상세페이지' }));
+    expect(await screen.findByText('산 상세')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '산 상세 등반 완료 해제' }));
+    await waitFor(() => expect(deleteChain.eq).toHaveBeenCalledTimes(2));
+
+    window.history.replaceState(null, '', '/');
+    fireEvent.popState(window, { state: null });
+
+    expect(screen.queryByText('산 상세')).not.toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: '산 찾기 결과' })).toBeInTheDocument();
   });
 
   it('returns to updated results when a completion change removes the selected mountain', async () => {

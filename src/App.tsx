@@ -349,7 +349,7 @@ export default function App() {
   });
   const accountMenuCloseTimerRef = useRef<number | null>(null);
   const detailMountainIdRef = useRef(detailMountainId);
-  const discoveryStateRef = useRef(discoveryState);
+  const discoveryDetailRouteMountainIdRef = useRef<string | null>(null);
   const difficultyRequestIdRef = useRef(0);
   const completionRequestIdRef = useRef(0);
   const difficultySummaryStateRef = useRef<DifficultySummaryState>({ status: 'idle' });
@@ -359,7 +359,6 @@ export default function App() {
   const headerRef = useRef<HTMLElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   detailMountainIdRef.current = detailMountainId;
-  discoveryStateRef.current = discoveryState;
 
   const clearRandomTimer = useCallback(() => {
     if (randomTimerRef.current !== null) {
@@ -632,16 +631,15 @@ export default function App() {
   useEffect(() => {
     const syncDetailRoute = (event: PopStateEvent) => {
       const nextDetailMountainId = getMountainDetailRouteId();
-      const selectedDiscoveryMountainId =
-        discoveryStateRef.current.view.kind === 'detail'
-          ? discoveryStateRef.current.view.mountainId
-          : null;
+      const nextIsMyPageOpen = getIsMyPageRoute();
+      const discoveryDetailRouteMountainId = discoveryDetailRouteMountainIdRef.current;
       const isDiscoveryDetailRouteTransition =
-        selectedDiscoveryMountainId !== null &&
-        ((detailMountainIdRef.current === selectedDiscoveryMountainId &&
-          nextDetailMountainId === null) ||
+        discoveryDetailRouteMountainId !== null &&
+        ((detailMountainIdRef.current === discoveryDetailRouteMountainId &&
+          nextDetailMountainId === null &&
+          !nextIsMyPageOpen) ||
           (detailMountainIdRef.current === null &&
-            nextDetailMountainId === selectedDiscoveryMountainId));
+            nextDetailMountainId === discoveryDetailRouteMountainId));
 
       if (isMobileDiscoveryHistoryState(event.state)) {
         if (detailMountainIdRef.current !== nextDetailMountainId) {
@@ -656,11 +654,12 @@ export default function App() {
       }
 
       setDetailMountainId(nextDetailMountainId);
-      setIsMyPageOpen(getIsMyPageRoute());
+      setIsMyPageOpen(nextIsMyPageOpen);
       setMyPageTab(getMyPageTabRoute());
       setIsAccountMenuOpen(false);
       setIsMobileSearchOpen(false);
       if (!isDiscoveryDetailRouteTransition) {
+        discoveryDetailRouteMountainIdRef.current = null;
         dispatchDiscovery({ type: 'CLOSE_DISCOVERY' });
       }
       refreshChangedReviewSummaries();
@@ -896,7 +895,8 @@ export default function App() {
     dispatchDiscovery({ type: 'SELECT_MOUNTAIN', mountainId: mountain.id });
   };
 
-  const openMountainDetail = (mountain: Mountain) => {
+  const openMountainDetail = (mountain: Mountain, preserveDiscoveryContext = false) => {
+    discoveryDetailRouteMountainIdRef.current = preserveDiscoveryContext ? mountain.id : null;
     setBrowserPath(`/mountains/${encodeURIComponent(mountain.id)}`);
     setDetailMountainId(mountain.id);
     setIsMyPageOpen(false);
@@ -916,6 +916,7 @@ export default function App() {
   };
 
   const navigateHome = () => {
+    discoveryDetailRouteMountainIdRef.current = null;
     setBrowserPath('/');
     setDetailMountainId(null);
     setIsMyPageOpen(false);
@@ -1470,7 +1471,7 @@ export default function App() {
                     </div>
                   )}
                 </section>
-                <button className={appClass.primaryAction} type="button" onClick={() => openMountainDetail(selectedMountain)}>
+                <button className={appClass.primaryAction} type="button" onClick={() => openMountainDetail(selectedMountain, true)}>
                   <MapPin size={18} />
                   정보 상세페이지
                 </button>

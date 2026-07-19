@@ -353,6 +353,37 @@ describe('MountainDiscoveryPanel', () => {
     expect(await screen.findByRole('dialog', { name: '산 찾기 결과' })).toBeInTheDocument();
   });
 
+  it('restores nested mobile filters across Back, Forward, and Back', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({
+      matches: true,
+      media: '(max-width: 900px)',
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+    render(<DiscoveryHarness />);
+
+    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
+    fireEvent.click(screen.getByRole('button', { name: '필터 수정' }));
+    expect(await screen.findByRole('dialog', { name: '조건으로 찾기' })).toBeInTheDocument();
+
+    window.history.replaceState({ __mountainMapDiscoverySheet: 'panel' }, '', '/');
+    fireEvent.popState(window, { state: { __mountainMapDiscoverySheet: 'panel' } });
+    expect(await screen.findByRole('dialog', { name: '산 찾기 결과' })).toBeInTheDocument();
+
+    window.history.replaceState({ __mountainMapDiscoverySheet: 'filters' }, '', '/');
+    fireEvent.popState(window, { state: { __mountainMapDiscoverySheet: 'filters' } });
+    expect(await screen.findByRole('dialog', { name: '조건으로 찾기' })).toBeInTheDocument();
+
+    window.history.replaceState({ __mountainMapDiscoverySheet: 'panel' }, '', '/');
+    fireEvent.popState(window, { state: { __mountainMapDiscoverySheet: 'panel' } });
+    expect(await screen.findByRole('dialog', { name: '산 찾기 결과' })).toBeInTheDocument();
+  });
+
   it('treats the mobile result sheet as a modal and restores trigger focus', async () => {
     vi.stubGlobal('matchMedia', vi.fn(() => ({
       matches: true,
