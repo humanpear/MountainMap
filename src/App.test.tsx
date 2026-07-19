@@ -162,6 +162,18 @@ function mockCompletedMountainsQuery() {
   });
 }
 
+function openDiscoveryFilterCard(section: '지역' | '체감 난이도' | '등정 상태') {
+  const card = screen.getByRole('button', { name: new RegExp(`^${section} 필터`) });
+  if (card.getAttribute('aria-expanded') !== 'true') {
+    fireEvent.click(card);
+  }
+}
+
+function selectDiscoveryFilter(section: '지역' | '체감 난이도' | '등정 상태', option: string) {
+  openDiscoveryFilterCard(section);
+  fireEvent.click(screen.getByRole('radio', { name: option }));
+}
+
 describe('App account menu', () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -277,14 +289,15 @@ describe('App account menu', () => {
 
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
+    fireEvent.click(await screen.findByRole('button', { name: /체감 난이도 필터, 현재 정보를 불러오지 못함/ }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('난이도 정보를 불러오지 못했습니다.');
-    expect(screen.getByLabelText('지역')).toBeEnabled();
+    expect(screen.getByRole('button', { name: /지역 필터/ })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }));
 
     await waitFor(() => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-      expect(screen.getByRole('combobox', { name: '체감 난이도' })).toBeEnabled();
+      expect(screen.getByRole('radio', { name: '전체' })).toBeEnabled();
     });
     expect(mountainReviewMocks.fetchMountainDifficultySummaries).toHaveBeenCalledTimes(2);
   });
@@ -296,7 +309,7 @@ describe('App account menu', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
-    fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
+    selectDiscoveryFilter('지역', '강원도');
     fireEvent.click(screen.getByRole('button', { name: /개 산 보기/ }));
     fireEvent.change(screen.getByLabelText('결과 정렬'), { target: { value: 'elevation-desc' } });
     fireEvent.click(screen.getByRole('button', { name: '필터 수정' }));
@@ -330,9 +343,7 @@ describe('App account menu', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
-    fireEvent.change(await screen.findByRole('combobox', { name: '체감 난이도' }), {
-      target: { value: '매우 어려움' },
-    });
+    selectDiscoveryFilter('체감 난이도', '매우 어려움');
     fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
     expect(screen.getByRole('heading', { name: '결과 1개' })).toBeInTheDocument();
   });
@@ -368,9 +379,7 @@ describe('App account menu', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox', { name: '체감 난이도' }), {
-      target: { value: '보통' },
-    });
+    selectDiscoveryFilter('체감 난이도', '보통');
     fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
     expect(screen.getByRole('heading', { name: '결과 1개' })).toBeInTheDocument();
   });
@@ -385,8 +394,9 @@ describe('App account menu', () => {
     render(<App />);
 
     fireEvent.click(await screen.findByRole('button', { name: '필터' }));
+    openDiscoveryFilterCard('등정 상태');
     expect(await screen.findByText('등정 기록을 불러오는 중입니다.')).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: '등정 완료' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: '등정 완료' })).toBeDisabled();
 
     await act(async () => {
       resolveCompletionQuery({ data: null, error: { code: 'PGRST001' } });
@@ -395,13 +405,13 @@ describe('App account menu', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '등정 기록을 불러오지 못해 완료·미등정 필터를 사용할 수 없습니다.',
     );
-    expect(screen.getByRole('option', { name: '미등정' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: '미등정' })).toBeDisabled();
   });
 
   it('shares the applied result set with the map and selected detail', async () => {
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: '필터' }));
-    fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
+    selectDiscoveryFilter('지역', '강원도');
 
     const gangwonMountains = mountains.filter((mountain) => mountain.regionCodes.includes('gangwon'));
     fireEvent.click(screen.getByRole('button', { name: `${gangwonMountains.length}개 산 보기` }));
@@ -527,11 +537,10 @@ describe('App account menu', () => {
     render(<App />);
 
     fireEvent.click(await screen.findByRole('button', { name: '필터' }));
-    const completedFilter = screen.getByRole('option', { name: '등정 완료' });
+    openDiscoveryFilterCard('등정 상태');
+    const completedFilter = screen.getByRole('radio', { name: '등정 완료' });
     await waitFor(() => expect(completedFilter).toBeEnabled());
-    fireEvent.change(screen.getByRole('combobox', { name: '등정 상태' }), {
-      target: { value: 'completed' },
-    });
+    fireEvent.click(completedFilter);
     fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
     fireEvent.click(screen.getByRole('button', { name: new RegExp(completedMountain.name) }));
     fireEvent.click(screen.getByRole('button', { name: '정보 상세페이지' }));
@@ -574,11 +583,10 @@ describe('App account menu', () => {
     render(<App />);
 
     fireEvent.click(await screen.findByRole('button', { name: '필터' }));
-    const completedFilter = screen.getByRole('option', { name: '등정 완료' });
+    openDiscoveryFilterCard('등정 상태');
+    const completedFilter = screen.getByRole('radio', { name: '등정 완료' });
     await waitFor(() => expect(completedFilter).toBeEnabled());
-    fireEvent.change(screen.getByRole('combobox', { name: '등정 상태' }), {
-      target: { value: 'completed' },
-    });
+    fireEvent.click(completedFilter);
     fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
     fireEvent.click(screen.getByRole('button', { name: new RegExp(completedMountain.name) }));
     expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
@@ -595,7 +603,7 @@ describe('App account menu', () => {
   it('resets filters before showing a detail-page mountain on the map', async () => {
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: '필터' }));
-    fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
+    selectDiscoveryFilter('지역', '강원도');
     const gangwonMountains = mountains.filter((mountain) => mountain.regionCodes.includes('gangwon'));
     fireEvent.click(screen.getByRole('button', { name: `${gangwonMountains.length}개 산 보기` }));
 
@@ -616,7 +624,7 @@ describe('App account menu', () => {
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: '필터' }));
-    fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'jeju' } });
+    selectDiscoveryFilter('지역', '제주도');
 
     const jejuMountains = mountains.filter((mountain) => mountain.regionCodes.includes('jeju'));
     fireEvent.click(screen.getByRole('button', { name: `${jejuMountains.length}개 산 보기` }));
@@ -674,11 +682,10 @@ describe('App account menu', () => {
   it('auto-cancels a running recommendation when authentication changes its candidates', async () => {
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: '필터' }));
-    const completedFilter = screen.getByRole('option', { name: '등정 완료' });
+    openDiscoveryFilterCard('등정 상태');
+    const completedFilter = screen.getByRole('radio', { name: '등정 완료' });
     await waitFor(() => expect(completedFilter).toBeEnabled());
-    fireEvent.change(screen.getByRole('combobox', { name: '등정 상태' }), {
-      target: { value: 'completed' },
-    });
+    fireEvent.click(completedFilter);
     fireEvent.click(await screen.findByRole('button', { name: '2개 산 보기' }));
     vi.useFakeTimers();
 

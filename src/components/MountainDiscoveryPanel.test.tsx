@@ -125,6 +125,11 @@ function DiscoveryHarness({
   );
 }
 
+function selectFilterOption(section: '지역' | '체감 난이도' | '등정 상태', option: string) {
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${section} 필터`) }));
+  fireEvent.click(screen.getByRole('radio', { name: option }));
+}
+
 describe('MountainDiscoveryPanel', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -135,7 +140,7 @@ describe('MountainDiscoveryPanel', () => {
     render(<DiscoveryHarness />);
 
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
-    fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
+    selectFilterOption('지역', '강원도');
 
     fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
 
@@ -145,33 +150,44 @@ describe('MountainDiscoveryPanel', () => {
     expect(screen.queryByText('강원도 · 1개')).not.toBeInTheDocument();
   });
 
-  it('renders the three dropdowns as icon filter cards', () => {
+  it('renders the three filters as single-open radio accordion cards', () => {
     render(<DiscoveryHarness />);
 
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
 
     const dialog = screen.getByRole('dialog', { name: '조건으로 찾기' });
-    expect(dialog).toHaveClass('w-[min(336px,calc(100%-40px))]');
-    expect(dialog).toHaveClass(
-      'top-5',
-      'origin-top-left',
-      'animate-[filter-panel-expand_250ms_cubic-bezier(0.22,1,0.36,1)_both]',
-    );
-    expect(screen.getByLabelText('지역').closest('[data-filter-card]')).toHaveAttribute(
+    expect(dialog).toHaveClass('w-[min(388px,calc(100%-40px))]');
+    expect(screen.getByText('조건으로 산 찾기')).toBeInTheDocument();
+    expect(screen.getByText('선택 0')).toBeInTheDocument();
+    expect(dialog.querySelector('[data-filter-header="expanded"]')).toBeInTheDocument();
+
+    const regionCard = screen.getByRole('button', { name: /지역 필터/ });
+    const difficultyCard = screen.getByRole('button', { name: /체감 난이도 필터/ });
+    const completionCard = screen.getByRole('button', { name: /등정 상태 필터/ });
+    expect(regionCard.closest('[data-filter-card]')).toHaveAttribute(
       'data-filter-card',
       'region',
     );
-    expect(screen.getByLabelText('체감 난이도').closest('[data-filter-card]')).toHaveAttribute(
+    expect(difficultyCard.closest('[data-filter-card]')).toHaveAttribute(
       'data-filter-card',
       'difficulty',
     );
-    expect(screen.getByLabelText('등정 상태').closest('[data-filter-card]')).toHaveAttribute(
+    expect(completionCard.closest('[data-filter-card]')).toHaveAttribute(
       'data-filter-card',
       'completion',
     );
-    expect(screen.getByLabelText('지역')).toHaveClass('h-8');
-    expect(screen.getByLabelText('체감 난이도')).toHaveClass('h-8');
-    expect(screen.getByLabelText('등정 상태')).toHaveClass('h-8');
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+
+    fireEvent.click(completionCard);
+    expect(screen.getByRole('radiogroup', { name: '등정 상태' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: '전체' })).toBeChecked();
+
+    fireEvent.click(regionCard);
+    expect(screen.queryByRole('radiogroup', { name: '등정 상태' })).not.toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: '지역' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: '강원도' }));
+    expect(screen.getByRole('button', { name: '지역 필터, 현재 강원도' })).toBeInTheDocument();
+    expect(screen.getByText('선택 1')).toBeInTheDocument();
     expect(screen.queryByText('전체 산 · 2개')).not.toBeInTheDocument();
   });
 
@@ -179,7 +195,7 @@ describe('MountainDiscoveryPanel', () => {
     render(<DiscoveryHarness />);
 
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
-    fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'jeju' } });
+    selectFilterOption('지역', '제주도');
     fireEvent.click(screen.getByRole('button', { name: '0개 산 보기' }));
 
     expect(screen.getByRole('heading', { name: '조건에 맞는 산이 없어요' })).toBeInTheDocument();
@@ -193,7 +209,7 @@ describe('MountainDiscoveryPanel', () => {
     render(<DiscoveryHarness onRandomRecommend={onRandomRecommend} />);
 
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
-    fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
+    selectFilterOption('지역', '강원도');
     fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
     fireEvent.click(screen.getByRole('button', { name: '이 결과 1개 중 랜덤 추천' }));
 
@@ -210,9 +226,10 @@ describe('MountainDiscoveryPanel', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
+    fireEvent.click(screen.getByRole('button', { name: /체감 난이도 필터/ }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('난이도 정보를 불러오지 못했습니다.');
-    expect(screen.queryByRole('option', { name: '평가 전' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: '평가 전' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
@@ -221,9 +238,10 @@ describe('MountainDiscoveryPanel', () => {
     render(<DiscoveryHarness isAuthenticated={false} />);
 
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
+    fireEvent.click(screen.getByRole('button', { name: /등정 상태 필터/ }));
 
-    expect(screen.getByRole('option', { name: '등정 완료' })).toBeDisabled();
-    expect(screen.getByRole('option', { name: '미등정' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: '등정 완료' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: '미등정' })).toBeDisabled();
     expect(screen.getByText('등정 기록 필터는 로그인이 필요합니다.')).toBeInTheDocument();
   });
 
@@ -233,15 +251,16 @@ describe('MountainDiscoveryPanel', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
-    expect(screen.getByRole('option', { name: '등정 완료' })).toBeDisabled();
-    expect(screen.getByRole('option', { name: '미등정' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /등정 상태 필터/ }));
+    expect(screen.getByRole('radio', { name: '등정 완료' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: '미등정' })).toBeDisabled();
     expect(screen.getByRole('status')).toHaveTextContent('등정 기록을 불러오는 중입니다.');
 
     rerender(<DiscoveryHarness isAuthenticated completionDataStatus="error" />);
     expect(screen.getByRole('alert')).toHaveTextContent(
       '등정 기록을 불러오지 못해 완료·미등정 필터를 사용할 수 없습니다.',
     );
-    expect(screen.getByRole('option', { name: '등정 완료' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: '등정 완료' })).toBeDisabled();
   });
 
   it('returns from detail to the same result list and restores its scroll position', async () => {
@@ -292,9 +311,9 @@ describe('MountainDiscoveryPanel', () => {
     const trigger = screen.getByRole('button', { name: '필터' });
 
     fireEvent.click(trigger);
-    const dialog = await screen.findByRole('dialog', { name: '조건으로 찾기' });
+    await screen.findByRole('dialog', { name: '조건으로 찾기' });
     const backdrop = screen.getByRole('button', { name: '조건으로 찾기 닫기' });
-    const firstFilter = screen.getByLabelText('지역');
+    const firstFilter = screen.getByRole('button', { name: '필터 닫기' });
     const applyButton = screen.getByRole('button', { name: '2개 산 보기' });
 
     firstFilter.focus();
@@ -306,7 +325,7 @@ describe('MountainDiscoveryPanel', () => {
 
     fireEvent.click(backdrop);
     await waitFor(() => {
-      expect(dialog).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: '조건으로 찾기' })).not.toBeInTheDocument();
       expect(trigger).toHaveFocus();
     });
   });
@@ -349,9 +368,10 @@ describe('MountainDiscoveryPanel', () => {
     render(<DiscoveryHarness />);
 
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
-    const regionSelect = await screen.findByLabelText('지역');
+    fireEvent.click(await screen.findByRole('button', { name: /지역 필터/ }));
+    const regionSelect = screen.getByRole('radio', { name: '강원도' });
     regionSelect.focus();
-    fireEvent.change(regionSelect, { target: { value: 'gangwon' } });
+    fireEvent.click(regionSelect);
 
     expect(regionSelect).toHaveFocus();
   });
