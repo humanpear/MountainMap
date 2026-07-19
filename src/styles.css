@@ -66,22 +66,12 @@ button {
 }
 
 @keyframes filter-panel-expand {
-  0% {
-    opacity: 0.96;
-    transform: scale(0.26, 0.105);
-    border-radius: 8px;
-    box-shadow: none;
+  from {
+    opacity: 1;
   }
 
-  62% {
+  to {
     opacity: 1;
-    transform: scale(1.015, 0.94);
-  }
-
-  100% {
-    opacity: 1;
-    transform: scale(1);
-    border-radius: 12px;
   }
 }
 

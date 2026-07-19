@@ -302,42 +302,47 @@ export function MountainDiscoveryControls({
 
   return (
     <>
-      <div className="absolute left-5 top-5 z-[3] flex max-w-[calc(100%-40px)] items-center gap-1.5 max-[560px]:left-3 max-[560px]:top-3 max-[560px]:max-w-[calc(100%-24px)]">
+      {isFilterOpen ? (
+        <button
+          className="fixed inset-0 z-[5] hidden cursor-default border-0 bg-black/85 p-0 max-[900px]:block max-[900px]:animate-[filter-backdrop-in_180ms_ease-out_both] motion-reduce:animate-none"
+          type="button"
+          aria-label="조건으로 찾기 닫기"
+          onClick={closeFilters}
+        />
+      ) : null}
+
+      <section
+        ref={filterPanelRef}
+        className={cn(
+          'absolute left-5 top-5 origin-top-left overflow-hidden border transition-[width,max-height,background-color,border-color,border-radius,box-shadow,padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[560px]:left-3 max-[560px]:top-3',
+          isFilterOpen
+            ? 'z-[6] max-h-[calc(100%-40px)] w-[min(336px,calc(100%-40px))] overflow-y-auto rounded-xl border-[#d8e0da] bg-white p-3 shadow-[0_18px_56px_rgba(24,34,29,0.18)] animate-[filter-panel-expand_250ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none max-[560px]:max-h-[calc(100%-24px)] max-[560px]:w-[min(336px,calc(100%-24px))]'
+            : 'z-[3] h-11 max-h-11 w-[81px] rounded-lg border-[#245c46] bg-[#245c46] p-0 shadow-none',
+        )}
+        data-filter-shell={isFilterOpen ? 'open' : 'closed'}
+      >
         <button
           ref={triggerRef}
-          className="inline-flex min-h-11 flex-none items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-3.5 text-sm font-bold text-white"
+          className={cn(
+            'inline-flex h-11 w-[81px] items-center justify-center gap-2 border-0 bg-transparent px-3.5 text-sm font-bold text-white transition-opacity duration-100 motion-reduce:transition-none',
+            isFilterOpen
+              ? 'pointer-events-none invisible absolute left-0 top-0 opacity-0'
+              : 'visible opacity-100',
+          )}
           type="button"
           onClick={() => onAction({ type: 'OPEN_FILTERS' })}
           aria-expanded={isFilterOpen}
           aria-controls="mountain-discovery-filters"
+          disabled={isFilterOpen}
         >
           <SlidersHorizontal size={18} />
           필터
         </button>
-        {hasAppliedFilters(state) ? (
-          <button
-            className="inline-flex min-h-11 flex-none items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
-            type="button"
-            onClick={() => onAction({ type: 'RESET_DISCOVERY' })}
-          >
-            <RotateCcw size={16} />
-            <span className="max-[560px]:sr-only">필터 </span>초기화
-          </button>
-        ) : null}
-      </div>
 
-      {isFilterOpen ? (
-        <>
-          <button
-            className="fixed inset-0 z-[5] hidden cursor-default border-0 bg-black/85 p-0 max-[900px]:block max-[900px]:animate-[filter-backdrop-in_180ms_ease-out_both] motion-reduce:animate-none"
-            type="button"
-            aria-label="조건으로 찾기 닫기"
-            onClick={closeFilters}
-          />
-          <section
-            ref={filterPanelRef}
+        {isFilterOpen ? (
+          <div
             id="mountain-discovery-filters"
-            className="absolute left-5 top-5 z-[6] max-h-[calc(100%-40px)] w-[min(336px,calc(100%-40px))] origin-top-left overflow-y-auto rounded-xl border border-[#d8e0da] bg-white p-3 shadow-[0_18px_56px_rgba(24,34,29,0.18)] animate-[filter-panel-expand_250ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none max-[560px]:left-3 max-[560px]:top-3 max-[560px]:max-h-[calc(100%-24px)] max-[560px]:w-[min(336px,calc(100%-24px))]"
+            className="top-5 w-[min(336px,calc(100%-40px))] max-w-full origin-top-left animate-[filter-panel-expand_250ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none"
             role="dialog"
             aria-modal={isMobile || undefined}
             aria-labelledby="mountain-discovery-filter-title"
@@ -521,8 +526,19 @@ export function MountainDiscoveryControls({
                 </button>
               </div>
             </form>
-          </section>
-        </>
+          </div>
+        ) : null}
+      </section>
+
+      {hasAppliedFilters(state) && !isFilterOpen ? (
+        <button
+          className="absolute left-[107px] top-5 z-[3] inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] max-[560px]:left-[99px] max-[560px]:top-3"
+          type="button"
+          onClick={() => onAction({ type: 'RESET_DISCOVERY' })}
+        >
+          <RotateCcw size={16} />
+          <span className="max-[560px]:sr-only">필터 </span>초기화
+        </button>
       ) : null}
     </>
   );
