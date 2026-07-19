@@ -506,7 +506,7 @@ export function MountainDiscoveryControls({
         {isFilterOpen ? (
           <div
             id="mountain-discovery-filters"
-            className="w-full"
+            className="w-full opacity-0 animate-[filter-content-fade_120ms_ease-out_160ms_forwards] motion-reduce:animate-none motion-reduce:opacity-100"
           >
             <h2 id="mountain-discovery-filter-title" className="sr-only">
               조건으로 찾기
