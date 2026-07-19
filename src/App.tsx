@@ -43,7 +43,7 @@ import {
   type DifficultySummaryState,
   type DiscoveryAction
 } from './domain/mountainDiscovery';
-import { getRandomTickDelay, pickRandomMountain } from './game/random';
+import { getRandomTickDelays, pickRandomMountain } from './game/random';
 import { cn } from './lib/classNames';
 import { createAppFeedback } from './services/appFeedback';
 import { getOAuthRedirectUrl } from './services/authRedirect';
@@ -1119,6 +1119,7 @@ export default function App() {
       sequenceIds: result.sequence.map((mountain) => mountain.id)
     });
     playRouletteTick(0);
+    const tickDelays = getRandomTickDelays(result.sequence.length);
 
     let index = 0;
     const tick = () => {
@@ -1137,10 +1138,10 @@ export default function App() {
 
       playRouletteTick(index);
       dispatchDiscovery({ type: 'RANDOM_TICK', highlightedId: nextMountain.id });
-      randomTimerRef.current = window.setTimeout(tick, getRandomTickDelay(index));
+      randomTimerRef.current = window.setTimeout(tick, tickDelays[index]);
     };
 
-    randomTimerRef.current = window.setTimeout(tick, getRandomTickDelay(0));
+    randomTimerRef.current = window.setTimeout(tick, tickDelays[0]);
   };
 
   const highlightedId =

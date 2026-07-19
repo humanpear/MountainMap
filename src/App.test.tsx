@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { mountains } from './data/mountains';
-import { getRandomTickDelay } from './game/random';
+import { getRandomTickDelays } from './game/random';
 
 const supabaseMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -614,10 +614,8 @@ describe('App account menu', () => {
 
     expect(screen.getByRole('complementary', { name: '랜덤 추천 진행 상태' })).toBeInTheDocument();
     const sequenceLength = Math.max(18, Math.min(42, jejuMountains.length * 4));
-    const rouletteDuration = Array.from(
-      { length: sequenceLength },
-      (_, index) => getRandomTickDelay(index),
-    ).reduce((total, delay) => total + delay, 0);
+    const rouletteDuration = getRandomTickDelays(sequenceLength)
+      .reduce((total, delay) => total + delay, 0);
     act(() => vi.advanceTimersByTime(rouletteDuration));
 
     expect(screen.getByRole('complementary', { name: '랜덤 추천 당첨 결과' })).toBeInTheDocument();
