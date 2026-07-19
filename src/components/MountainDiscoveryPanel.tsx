@@ -443,7 +443,7 @@ export function MountainDiscoveryControls({
     <>
       {isFilterOpen ? (
         <button
-          className="fixed inset-0 z-[5] hidden cursor-default border-0 bg-black/85 p-0 max-[900px]:block max-[900px]:animate-[filter-backdrop-in_180ms_ease-out_both] motion-reduce:animate-none"
+          className="fixed inset-0 z-[5] hidden cursor-default border-0 bg-black/60 p-0 max-[900px]:block max-[900px]:animate-[filter-backdrop-in_180ms_ease-out_both] motion-reduce:animate-none"
           type="button"
           aria-label="조건으로 찾기 닫기"
           onClick={closeFilters}
@@ -453,7 +453,7 @@ export function MountainDiscoveryControls({
       <section
         ref={filterPanelRef}
         className={cn(
-          'absolute left-5 top-5 origin-top-left overflow-hidden border-0 transition-[width,max-height,border-radius,box-shadow,padding,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[560px]:left-3 max-[560px]:top-3',
+          'absolute left-5 top-5 origin-top-left overflow-hidden border-0 transition-[width,max-height,border-radius,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[560px]:left-3 max-[560px]:top-3',
           isFilterOpen
             ? 'z-[6] max-h-[calc(100%-40px)] w-[min(388px,calc(100%-40px))] overflow-y-auto rounded-xl bg-[#f5f7f4] p-0 shadow-[0_18px_56px_rgba(24,34,29,0.18)] max-[560px]:max-h-[calc(100%-24px)] max-[560px]:w-[min(388px,calc(100%-24px))]'
             : 'z-[3] h-11 max-h-11 w-[81px] rounded-lg bg-[#245c46] p-0 shadow-[0_4px_14px_rgba(24,34,29,0.12)]',
@@ -465,8 +465,8 @@ export function MountainDiscoveryControls({
       >
         <div
           className={cn(
-            'sticky left-0 top-0 z-[3] flex items-center bg-[#245c46] transition-[height,border-radius] duration-300 motion-reduce:transition-none',
-            isFilterOpen ? 'h-16 w-full rounded-t-xl' : 'h-11 w-[81px] rounded-lg',
+            'sticky left-0 top-0 z-[3] flex h-11 items-center bg-[#245c46] transition-[border-radius] duration-300 motion-reduce:transition-none',
+            isFilterOpen ? 'w-full rounded-t-xl' : 'w-[81px] rounded-lg',
           )}
           data-filter-header={isFilterOpen ? 'expanded' : 'compact'}
         >
@@ -506,7 +506,7 @@ export function MountainDiscoveryControls({
         {isFilterOpen ? (
           <div
             id="mountain-discovery-filters"
-            className="w-full animate-[filter-content-reveal_180ms_ease-out_100ms_both] motion-reduce:animate-none"
+            className="w-full"
           >
             <h2 id="mountain-discovery-filter-title" className="sr-only">
               조건으로 찾기
