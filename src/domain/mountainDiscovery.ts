@@ -192,6 +192,7 @@ export type DiscoveryView =
       winnerId: string;
       highlightedId: string;
       sequenceIds: readonly string[];
+      phase: 'spinning' | 'winner';
     };
 
 export type DiscoveryState = {
@@ -223,6 +224,7 @@ export type DiscoveryAction =
       sequenceIds: readonly string[];
     }
   | { type: 'RANDOM_TICK'; highlightedId: string }
+  | { type: 'ANNOUNCE_RANDOM_WINNER' }
   | { type: 'FINISH_RANDOM' }
   | { type: 'CANCEL_RANDOM' };
 
@@ -334,11 +336,23 @@ export function discoveryReducer(
           winnerId: action.winnerId,
           highlightedId: action.highlightedId,
           sequenceIds: [...action.sequenceIds],
+          phase: 'spinning',
         },
       };
     case 'RANDOM_TICK':
       return state.view.kind === 'random-running'
         ? { ...state, view: { ...state.view, highlightedId: action.highlightedId } }
+        : state;
+    case 'ANNOUNCE_RANDOM_WINNER':
+      return state.view.kind === 'random-running'
+        ? {
+            ...state,
+            view: {
+              ...state.view,
+              highlightedId: state.view.winnerId,
+              phase: 'winner',
+            },
+          }
         : state;
     case 'FINISH_RANDOM':
       return state.view.kind === 'random-running'

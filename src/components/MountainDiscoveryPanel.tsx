@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   type FormEvent,
   type ReactNode,
   type RefObject,
@@ -48,6 +49,17 @@ const difficultyFilterLabels: Array<{
   })),
   { value: unratedDifficultyFilter, label: '평가 전' },
 ];
+
+const confettiPieces = Array.from({ length: 34 }, (_, index) => index);
+
+function getConfettiStyle(index: number) {
+  return {
+    '--x': `${(index % 11 - 5) * 34}px`,
+    '--delay': `${(index % 7) * 34}ms`,
+    '--duration': `${760 + (index % 5) * 120}ms`,
+    '--hue': `${38 + (index % 5) * 42}`,
+  } as CSSProperties;
+}
 
 function getMountainImage(mountain: Mountain) {
   return getMountainGuide(mountain).heroImage?.src ?? `/mountain-images/${mountain.id}/hero.png`;
@@ -300,10 +312,10 @@ export function MountainDiscoveryControls({
 
   return (
     <>
-      <div className="absolute left-5 top-5 z-[3] flex max-w-[calc(100%-40px)] items-center gap-2 rounded-xl border border-[#d8e0da] bg-white/95 p-2 shadow-[0_16px_50px_rgba(24,34,29,0.14)] max-[560px]:left-3 max-[560px]:top-3 max-[560px]:max-w-[calc(100%-24px)] max-[560px]:p-1.5">
+      <div className="absolute left-5 top-5 z-[3] flex max-w-[calc(100%-40px)] items-center gap-1.5 rounded-xl border border-[#d8e0da] bg-white/95 p-1.5 shadow-[0_16px_50px_rgba(24,34,29,0.14)] max-[560px]:left-3 max-[560px]:top-3 max-[560px]:max-w-[calc(100%-24px)]">
         <button
           ref={triggerRef}
-          className="inline-flex min-h-11 flex-none items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-4 text-base font-extrabold text-white"
+          className="inline-flex min-h-11 flex-none items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-3.5 text-sm font-bold text-white"
           type="button"
           onClick={() => onAction({ type: 'OPEN_FILTERS' })}
           aria-expanded={isFilterOpen}
@@ -312,12 +324,12 @@ export function MountainDiscoveryControls({
           <SlidersHorizontal size={18} />
           산 찾기
         </button>
-        <span className="min-w-0 truncate px-1 text-base font-bold text-[#5d6a62]">
+        <span className="min-w-0 truncate px-1 text-sm font-bold text-[#5d6a62]">
           {getAppliedFilterSummary(state)} · {appliedResultCount.toLocaleString()}개
         </span>
         {hasAppliedFilters(state) ? (
           <button
-            className="inline-flex min-h-11 flex-none items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-extrabold text-[#18221d]"
+            className="inline-flex min-h-11 flex-none items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
             type="button"
             onClick={() => onAction({ type: 'RESET_FILTERS' })}
           >
@@ -338,7 +350,7 @@ export function MountainDiscoveryControls({
           <section
             ref={filterPanelRef}
             id="mountain-discovery-filters"
-            className="absolute left-5 top-[84px] z-[6] max-h-[calc(100%-104px)] w-[min(420px,calc(100%-40px))] overflow-y-auto rounded-xl border border-[#d8e0da] bg-white p-5 shadow-[0_20px_70px_rgba(24,34,29,0.2)] max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:top-auto max-[900px]:w-auto max-[900px]:max-h-[78vh] max-[900px]:rounded-b-none max-[900px]:rounded-t-2xl max-[900px]:border-x-0 max-[900px]:border-b-0 max-[900px]:p-4 max-[900px]:pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            className="absolute left-5 top-[84px] z-[6] max-h-[calc(100%-104px)] w-[min(400px,calc(100%-40px))] overflow-y-auto rounded-xl border border-[#d8e0da] bg-white p-4 shadow-[0_20px_70px_rgba(24,34,29,0.2)] max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:top-auto max-[900px]:w-auto max-[900px]:max-h-[78vh] max-[900px]:rounded-b-none max-[900px]:rounded-t-2xl max-[900px]:border-x-0 max-[900px]:border-b-0 max-[900px]:p-4 max-[900px]:pb-[calc(1rem+env(safe-area-inset-bottom))]"
             role="dialog"
             aria-modal={isMobile || undefined}
             aria-labelledby="mountain-discovery-filter-title"
@@ -346,7 +358,7 @@ export function MountainDiscoveryControls({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="m-0 text-sm font-black text-[#245c46]">100대 명산</p>
-                <h2 id="mountain-discovery-filter-title" className="m-0 mt-1 text-xl font-black text-[#18221d]">
+                <h2 id="mountain-discovery-filter-title" className="m-0 mt-0.5 text-lg font-black text-[#18221d]">
                   조건으로 찾기
                 </h2>
               </div>
@@ -360,11 +372,11 @@ export function MountainDiscoveryControls({
               </button>
             </div>
 
-            <form className="mt-5 grid gap-5" onSubmit={applyFilters}>
-              <label className="grid gap-2 text-base font-black text-[#18221d]">
+            <form className="mt-4 grid gap-4" onSubmit={applyFilters}>
+              <label className="grid gap-1.5 text-sm font-black text-[#18221d]">
                 지역
                 <select
-                  className="min-h-11 w-full rounded-lg border border-[#d8e0da] bg-white px-3 text-base font-bold text-[#18221d]"
+                  className="min-h-11 w-full rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
                   value={state.draftFilters.region}
                   onChange={(event) =>
                     onAction({
@@ -383,7 +395,7 @@ export function MountainDiscoveryControls({
               </label>
 
               <fieldset className="m-0 grid gap-2 border-0 p-0">
-                <legend className="mb-2 text-base font-black text-[#18221d]">체감 난이도</legend>
+                <legend className="mb-1.5 text-sm font-black text-[#18221d]">체감 난이도</legend>
                 {difficultySummaryState.status === 'loading' || difficultySummaryState.status === 'idle' ? (
                   <p className="m-0 rounded-lg bg-[#eef3f0] p-3 text-base font-bold text-[#5d6a62]" role="status">
                     난이도 정보를 불러오는 중입니다.
@@ -392,7 +404,7 @@ export function MountainDiscoveryControls({
                   <div className="rounded-lg border border-[#e7c8c1] bg-[#fff4f1] p-3 text-base text-[#6d3028]" role="alert">
                     <p className="m-0 font-bold">난이도 정보를 불러오지 못했습니다.</p>
                     <button
-                      className="mt-3 inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b14a3d] bg-white px-4 font-extrabold text-[#8c382e]"
+                      className="mt-3 inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b14a3d] bg-white px-4 text-sm font-bold text-[#8c382e]"
                       type="button"
                       onClick={onRetryDifficultySummaries}
                     >
@@ -405,7 +417,7 @@ export function MountainDiscoveryControls({
                       <button
                         key={option.value}
                         className={cn(
-                          'inline-flex min-h-11 items-center justify-center rounded-lg border px-3 text-base font-bold',
+                          'inline-flex min-h-11 items-center justify-center rounded-lg border px-3 text-sm font-bold',
                           state.draftFilters.difficulty === option.value
                             ? 'border-[#245c46] bg-[#245c46] text-white'
                             : 'border-[#d8e0da] bg-white text-[#18221d]',
@@ -427,7 +439,7 @@ export function MountainDiscoveryControls({
               </fieldset>
 
               <fieldset className="m-0 grid gap-2 border-0 p-0">
-                <legend className="mb-2 text-base font-black text-[#18221d]">등정 상태</legend>
+                <legend className="mb-1.5 text-sm font-black text-[#18221d]">등정 상태</legend>
                 <div className="grid grid-cols-3 gap-2">
                   {([
                     ['all', '전체'],
@@ -466,7 +478,7 @@ export function MountainDiscoveryControls({
                   <div className="flex items-center justify-between gap-3 rounded-lg bg-[#eef3f0] p-3 text-base text-[#5d6a62]">
                     <span>등정 기록 필터는 로그인이 필요합니다.</span>
                     <button
-                      className="min-h-11 flex-none rounded-lg border border-[#245c46] bg-white px-3 font-extrabold text-[#245c46]"
+                      className="min-h-11 flex-none rounded-lg border border-[#245c46] bg-white px-3 text-sm font-bold text-[#245c46]"
                       type="button"
                       onClick={onRequestLogin}
                     >
@@ -486,14 +498,14 @@ export function MountainDiscoveryControls({
 
               <div className="sticky bottom-0 grid grid-cols-[minmax(0,1fr)_2fr] gap-2 bg-white pt-1">
                 <button
-                  className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-base font-extrabold text-[#18221d]"
+                  className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-sm font-bold text-[#18221d]"
                   type="button"
                   onClick={closeFilters}
                 >
                   취소
                 </button>
                 <button
-                  className="min-h-11 rounded-lg border border-[#245c46] bg-[#245c46] px-4 text-base font-extrabold text-white"
+                  className="min-h-11 rounded-lg border border-[#245c46] bg-[#245c46] px-4 text-sm font-bold text-white"
                   type="submit"
                 >
                   {draftResultCount.toLocaleString()}개 산 보기
@@ -554,7 +566,12 @@ export function MountainDiscoveryPanel({
   const isMobile = useMobileDiscoveryLayout();
   const isResults = state.view.kind === 'results';
   const isDetail = state.view.kind === 'detail';
-  const isRandomRunning = state.view.kind === 'random-running';
+  const randomView = state.view.kind === 'random-running' ? state.view : null;
+  const isRandomRunning = randomView !== null;
+  const isRandomWinner = randomView?.phase === 'winner';
+  const randomWinner = randomView
+    ? resultMountains.find((mountain) => mountain.id === randomView.winnerId)
+    : undefined;
   const isOpen = isResults || isDetail || isRandomRunning;
 
   useEffect(() => {
@@ -662,14 +679,14 @@ export function MountainDiscoveryPanel({
         className="z-[6] flex min-h-0 flex-col overflow-hidden border-l border-[#d8e0da] bg-white max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:max-h-[78vh] max-[900px]:rounded-t-2xl max-[900px]:border-l-0 max-[900px]:border-t max-[900px]:shadow-[0_-18px_60px_rgba(0,0,0,0.24)]"
         role={isMobile ? 'dialog' : undefined}
         aria-modal={isMobile || undefined}
-        aria-label={isResults ? '산 찾기 결과' : isRandomRunning ? '랜덤 추천 진행 상태' : '선택한 산 정보'}
+        aria-label={isResults ? '산 찾기 결과' : isRandomWinner ? '랜덤 추천 당첨 결과' : isRandomRunning ? '랜덤 추천 진행 상태' : '선택한 산 정보'}
       >
         {isResults ? (
           <>
-            <header className="flex flex-none items-start justify-between gap-3 border-b border-[#d8e0da] p-4">
+            <header className="flex flex-none items-start justify-between gap-3 border-b border-[#d8e0da] p-3.5">
               <div>
                 <p className="m-0 text-sm font-black text-[#245c46]">조건으로 찾은 산</p>
-                <h2 className="m-0 mt-1 text-xl font-black text-[#18221d]">
+                <h2 className="m-0 mt-0.5 text-lg font-black text-[#18221d]">
                   결과 <span className="font-numeric">{resultMountains.length.toLocaleString()}</span>개
                 </h2>
               </div>
@@ -685,7 +702,7 @@ export function MountainDiscoveryPanel({
 
             <div className="flex-none border-b border-[#d8e0da] p-3">
               <button
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-4 text-base font-extrabold text-white disabled:cursor-not-allowed disabled:border-[#8a9790] disabled:bg-[#8a9790]"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:border-[#8a9790] disabled:bg-[#8a9790]"
                 type="button"
                 onClick={onRandomRecommend}
                 disabled={resultMountains.length === 0}
@@ -699,7 +716,7 @@ export function MountainDiscoveryPanel({
 
             <div className="flex flex-none items-center gap-2 border-b border-[#d8e0da] p-3">
               <button
-                className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-3 text-base font-extrabold text-[#18221d]"
+                className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
                 type="button"
                 onClick={() => onAction({ type: 'OPEN_FILTERS' })}
               >
@@ -711,7 +728,7 @@ export function MountainDiscoveryPanel({
               </label>
               <select
                 id="mountain-result-sort"
-                className="min-h-11 min-w-0 flex-1 rounded-lg border border-[#d8e0da] bg-white px-3 text-base font-bold text-[#18221d]"
+                className="min-h-11 min-w-0 flex-1 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
                 value={state.sort}
                 onChange={(event) =>
                   onAction({
@@ -730,18 +747,18 @@ export function MountainDiscoveryPanel({
               <div className="grid min-h-0 flex-1 place-items-center overflow-y-auto p-6 text-center max-[900px]:pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                 <div>
                   <SlidersHorizontal className="mx-auto text-[#5d6a62]" size={28} />
-                  <h3 className="m-0 mt-3 text-xl font-black text-[#18221d]">조건에 맞는 산이 없어요</h3>
+                  <h3 className="m-0 mt-3 text-lg font-black text-[#18221d]">조건에 맞는 산이 없어요</h3>
                   <p className="m-0 mt-2 text-base leading-7 text-[#5d6a62]">조건을 조금 넓혀 다시 찾아보세요.</p>
                   <div className="mt-5 grid gap-2">
                     <button
-                      className="min-h-11 rounded-lg border border-[#245c46] bg-[#245c46] px-4 text-base font-extrabold text-white"
+                      className="min-h-11 rounded-lg border border-[#245c46] bg-[#245c46] px-4 text-sm font-bold text-white"
                       type="button"
                       onClick={() => onAction({ type: 'OPEN_FILTERS' })}
                     >
                       필터 수정
                     </button>
                     <button
-                      className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-base font-extrabold text-[#18221d]"
+                      className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-sm font-bold text-[#18221d]"
                       type="button"
                       onClick={() => onAction({ type: 'RESET_FILTERS' })}
                     >
@@ -805,25 +822,44 @@ export function MountainDiscoveryPanel({
             )}
           </>
         ) : isRandomRunning ? (
-          <div className="grid min-h-60 flex-1 place-items-center content-center gap-4 p-6 text-center text-[#245c46]" role="status" aria-live="polite">
-            <Shuffle className="animate-[spin_900ms_linear_infinite]" size={28} />
-            <div>
-              <h2 className="m-0 text-xl font-black text-[#18221d]">랜덤 추천 중</h2>
-              <p className="m-0 mt-2 text-base font-bold text-[#5d6a62]">현재 결과 안에서 산을 고르고 있습니다.</p>
+          isRandomWinner && randomWinner ? (
+            <div className="relative grid min-h-60 flex-1 place-items-center content-center gap-3 overflow-hidden p-5 text-center" role="status" aria-live="assertive">
+              <div
+                className="pointer-events-none absolute left-1/2 top-5 h-px w-px motion-reduce:hidden [&_span]:absolute [&_span]:h-3 [&_span]:w-[7px] [&_span]:rounded-sm [&_span]:bg-[hsl(var(--hue),78%,52%)] [&_span]:opacity-0 [&_span]:animate-[confetti-fall_var(--duration)_ease-out_var(--delay)_both]"
+                data-confetti="winner"
+                aria-hidden="true"
+              >
+                {confettiPieces.map((piece) => (
+                  <span key={piece} style={getConfettiStyle(piece)} />
+                ))}
+              </div>
+              <p className="m-0 text-sm font-black text-[#245c46]">랜덤 추천 결과</p>
+              <h2 className="m-0 text-[19px] font-black leading-6 text-[#18221d]">
+                {randomWinner.name} 당첨!
+              </h2>
+              <p className="m-0 text-base text-[#5d6a62]">선택한 산의 상세 정보를 열어드릴게요.</p>
             </div>
-            <button
-              className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-base font-extrabold text-[#18221d]"
-              type="button"
-              onClick={() => onAction({ type: 'CANCEL_RANDOM' })}
-            >
-              추천 취소
-            </button>
-          </div>
+          ) : (
+            <div className="grid min-h-60 flex-1 place-items-center content-center gap-3 p-5 text-center text-[#245c46]" role="status" aria-live="polite">
+              <Shuffle className="animate-[spin_1100ms_linear_infinite] motion-reduce:animate-none" size={26} />
+              <div>
+                <h2 className="m-0 text-lg font-black text-[#18221d]">랜덤 추천 중</h2>
+                <p className="m-0 mt-1.5 text-base font-bold text-[#5d6a62]">현재 결과 안에서 산을 고르고 있습니다.</p>
+              </div>
+              <button
+                className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-sm font-bold text-[#18221d]"
+                type="button"
+                onClick={() => onAction({ type: 'CANCEL_RANDOM' })}
+              >
+                추천 취소
+              </button>
+            </div>
+          )
         ) : (
           <>
             <header className="flex flex-none items-center justify-between gap-3 border-b border-[#d8e0da] p-3">
               <button
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-3 text-base font-extrabold text-[#18221d]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
                 type="button"
                 onClick={() => onAction({ type: 'BACK_TO_RESULTS' })}
               >

@@ -1126,9 +1126,12 @@ export default function App() {
       const nextMountain = result.sequence[index];
 
       if (!nextMountain) {
-        randomTimerRef.current = null;
-        dispatchDiscovery({ type: 'FINISH_RANDOM' });
+        dispatchDiscovery({ type: 'ANNOUNCE_RANDOM_WINNER' });
         playFanfare();
+        randomTimerRef.current = window.setTimeout(() => {
+          randomTimerRef.current = null;
+          dispatchDiscovery({ type: 'FINISH_RANDOM' });
+        }, 1_600);
         return;
       }
 

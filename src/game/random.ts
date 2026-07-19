@@ -6,7 +6,7 @@ type RandomOptions = {
 };
 
 export function getRandomTickDelay(index: number) {
-  return Math.min(40 + Math.max(0, index), 60);
+  return Math.min(50 + Math.max(0, index), 72);
 }
 
 export function pickRandomMountain(options: RandomOptions): RandomResult | null {

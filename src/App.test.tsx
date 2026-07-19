@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { mountains } from './data/mountains';
+import { getRandomTickDelay } from './game/random';
 
 const supabaseMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -612,7 +613,20 @@ describe('App account menu', () => {
     fireEvent.click(screen.getByRole('button', { name: `이 결과 ${jejuMountains.length}개 중 랜덤 추천` }));
 
     expect(screen.getByRole('complementary', { name: '랜덤 추천 진행 상태' })).toBeInTheDocument();
-    act(() => vi.runAllTimers());
+    const sequenceLength = Math.max(18, Math.min(42, jejuMountains.length * 4));
+    const rouletteDuration = Array.from(
+      { length: sequenceLength },
+      (_, index) => getRandomTickDelay(index),
+    ).reduce((total, delay) => total + delay, 0);
+    act(() => vi.advanceTimersByTime(rouletteDuration));
+
+    expect(screen.getByRole('complementary', { name: '랜덤 추천 당첨 결과' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: `${jejuMountains[0].name} 당첨!` })).toBeInTheDocument();
+    expect(document.querySelector('[data-confetti="winner"]')).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: '선택한 산 정보' })).not.toBeInTheDocument();
+    expect(randomSoundMocks.playFanfare).toHaveBeenCalledTimes(1);
+
+    act(() => vi.advanceTimersByTime(1_600));
 
     const selectedId = screen.getByLabelText('mock-map').getAttribute('data-selected-mountain-id');
     expect(jejuMountains.some((mountain) => mountain.id === selectedId)).toBe(true);

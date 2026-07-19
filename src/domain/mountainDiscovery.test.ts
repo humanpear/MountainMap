@@ -366,4 +366,26 @@ describe('discoveryReducer', () => {
     expect(results.view).toEqual({ kind: 'results' });
     expect(results.resultScrollTop).toBe(240);
   });
+
+  it('announces the random winner before opening its detail view', () => {
+    const winnerId = mountains[0].id;
+    const started = discoveryReducer(createInitialDiscoveryState(), {
+      type: 'START_RANDOM',
+      winnerId,
+      highlightedId: mountains[1].id,
+      sequenceIds: [mountains[1].id, winnerId],
+    });
+    const announced = discoveryReducer(started, { type: 'ANNOUNCE_RANDOM_WINNER' });
+
+    expect(announced.view).toMatchObject({
+      kind: 'random-running',
+      winnerId,
+      highlightedId: winnerId,
+      phase: 'winner',
+    });
+    expect(discoveryReducer(announced, { type: 'FINISH_RANDOM' }).view).toEqual({
+      kind: 'detail',
+      mountainId: winnerId,
+    });
+  });
 });
