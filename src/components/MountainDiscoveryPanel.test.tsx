@@ -157,14 +157,24 @@ describe('MountainDiscoveryPanel', () => {
 
     const dialog = screen.getByRole('dialog', { name: '조건으로 찾기' });
     expect(dialog).toHaveClass('w-[min(388px,calc(100%-40px))]');
+    expect(dialog).toHaveClass('overflow-hidden');
+    expect(dialog).not.toHaveClass('overflow-y-auto');
     expect(screen.getByText('조건으로 산 찾기')).toBeInTheDocument();
     expect(screen.queryByText(/선택 \d+/)).not.toBeInTheDocument();
     const expandedHeader = dialog.querySelector('[data-filter-header="expanded"]');
     expect(expandedHeader).toHaveClass('h-11', 'rounded-none');
     expect(expandedHeader?.querySelector('button')).toHaveClass('text-sm', 'font-bold');
     expect(dialog.querySelector('#mountain-discovery-filters')).toHaveClass(
+      'filter-scroll-region',
+      'flex-auto',
+      'overflow-y-auto',
       'opacity-0',
       'animate-[filter-content-fade_120ms_ease-out_160ms_forwards]',
+    );
+    expect(dialog.querySelector('[data-filter-intro]')).toHaveClass('bg-white');
+    expect(dialog.querySelector('[data-filter-actions]')).toHaveClass(
+      'border-t',
+      'border-[#d8e0da]',
     );
     expect(screen.getByRole('button', { name: '2개 산 보기' })).toHaveClass('border-0');
 

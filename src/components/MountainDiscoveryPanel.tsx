@@ -453,9 +453,9 @@ export function MountainDiscoveryControls({
       <section
         ref={filterPanelRef}
         className={cn(
-          'absolute left-5 top-5 origin-top-left overflow-hidden border-0 transition-[width,max-height,border-radius,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[560px]:left-3 max-[560px]:top-3',
+          'absolute left-5 top-5 flex origin-top-left flex-col overflow-hidden border-0 transition-[width,max-height,border-radius,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[560px]:left-3 max-[560px]:top-3',
           isFilterOpen
-            ? 'z-[6] max-h-[calc(100%-40px)] w-[min(388px,calc(100%-40px))] overflow-y-auto rounded-xl bg-[#f5f7f4] p-0 shadow-[0_18px_56px_rgba(24,34,29,0.18)] max-[560px]:max-h-[calc(100%-24px)] max-[560px]:w-[min(388px,calc(100%-24px))]'
+            ? 'z-[6] max-h-[calc(100%-40px)] w-[min(388px,calc(100%-40px))] rounded-xl bg-[#f5f7f4] p-0 shadow-[0_18px_56px_rgba(24,34,29,0.18)] max-[560px]:max-h-[calc(100%-24px)] max-[560px]:w-[min(388px,calc(100%-24px))]'
             : 'z-[3] h-11 max-h-11 w-[81px] rounded-lg bg-[#245c46] p-0 shadow-[0_4px_14px_rgba(24,34,29,0.12)]',
         )}
         data-filter-shell={isFilterOpen ? 'open' : 'closed'}
@@ -465,7 +465,7 @@ export function MountainDiscoveryControls({
       >
         <div
           className={cn(
-            'sticky left-0 top-0 z-[3] flex h-11 items-center rounded-none bg-[#245c46]',
+            'sticky left-0 top-0 z-[3] flex h-11 flex-none items-center rounded-none bg-[#245c46]',
             isFilterOpen ? 'w-full' : 'w-[81px]',
           )}
           data-filter-header={isFilterOpen ? 'expanded' : 'compact'}
@@ -506,15 +506,28 @@ export function MountainDiscoveryControls({
         {isFilterOpen ? (
           <div
             id="mountain-discovery-filters"
-            className="w-full opacity-0 animate-[filter-content-fade_120ms_ease-out_160ms_forwards] motion-reduce:animate-none motion-reduce:opacity-100"
+            className="filter-scroll-region min-h-0 w-full flex-auto overflow-y-auto opacity-0 animate-[filter-content-fade_120ms_ease-out_160ms_forwards] motion-reduce:animate-none motion-reduce:opacity-100"
           >
             <h2 id="mountain-discovery-filter-title" className="sr-only">
               조건으로 찾기
             </h2>
 
-            <p className="m-0 px-4 pb-3 pt-4 text-base leading-6 text-[#4f5d55]">
-              조건을 선택하고 원하는 산을 찾아보세요.
-            </p>
+            <div
+              className="relative isolate min-h-[82px] overflow-hidden bg-white"
+              data-filter-intro
+            >
+              <div
+                className="pointer-events-none absolute inset-0 z-0 bg-[url('/my-page/completed-progress-bg-desktop.png')] bg-cover bg-center bg-no-repeat opacity-[0.65] max-[560px]:bg-[url('/my-page/completed-progress-bg-mobile.png')]"
+                aria-hidden="true"
+              />
+              <div
+                className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(245,247,244,0.28)_0%,rgba(255,255,255,0.98)_100%)]"
+                aria-hidden="true"
+              />
+              <p className="relative z-[2] m-0 w-[58%] px-4 pb-4 pt-4 text-base leading-6 text-[#4f5d55]">
+                조건을 선택하고 원하는 산을 찾아보세요.
+              </p>
+            </div>
 
             <form className="grid gap-3 px-3 pb-3" onSubmit={applyFilters}>
               <FilterAccordionCard
@@ -661,21 +674,26 @@ export function MountainDiscoveryControls({
                 ) : null}
               </FilterAccordionCard>
 
-              <div className="sticky bottom-0 grid grid-cols-[72px_minmax(0,1fr)] gap-2.5 bg-[#f5f7f4]">
-                <button
-                  className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-sm font-bold text-[#18221d]"
-                  type="button"
-                  onClick={closeFilters}
-                >
-                  취소
-                </button>
-                <button
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-[#245c46] px-4 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#245c46]"
-                  type="submit"
-                >
-                  <Search size={18} />
-                  {draftResultCount.toLocaleString()}개 산 보기
-                </button>
+              <div
+                className="sticky bottom-0 -mx-3 border-t border-[#d8e0da] bg-[#f5f7f4] px-3 pt-3"
+                data-filter-actions
+              >
+                <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-2.5">
+                  <button
+                    className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-sm font-bold text-[#18221d]"
+                    type="button"
+                    onClick={closeFilters}
+                  >
+                    취소
+                  </button>
+                  <button
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-[#245c46] px-4 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#245c46]"
+                    type="submit"
+                  >
+                    <Search size={18} />
+                    {draftResultCount.toLocaleString()}개 산 보기
+                  </button>
+                </div>
               </div>
             </form>
           </div>
