@@ -158,7 +158,7 @@ describe('MountainDiscoveryPanel', () => {
     const dialog = screen.getByRole('dialog', { name: '조건으로 찾기' });
     expect(dialog).toHaveClass('w-[min(388px,calc(100%-40px))]');
     expect(screen.getByText('조건으로 산 찾기')).toBeInTheDocument();
-    expect(screen.getByText('선택 0')).toBeInTheDocument();
+    expect(screen.queryByText(/선택 \d+/)).not.toBeInTheDocument();
     expect(dialog.querySelector('[data-filter-header="expanded"]')).toBeInTheDocument();
 
     const regionCard = screen.getByRole('button', { name: /지역 필터/ });
@@ -187,7 +187,7 @@ describe('MountainDiscoveryPanel', () => {
     expect(screen.getByRole('radiogroup', { name: '지역' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('radio', { name: '강원도' }));
     expect(screen.getByRole('button', { name: '지역 필터, 현재 강원도' })).toBeInTheDocument();
-    expect(screen.getByText('선택 1')).toBeInTheDocument();
+    expect(screen.queryByText(/선택 \d+/)).not.toBeInTheDocument();
     expect(screen.queryByText('전체 산 · 2개')).not.toBeInTheDocument();
   });
 

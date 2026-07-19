@@ -308,7 +308,6 @@ export function MountainDiscoveryControls({
   const isMobile = useMobileDiscoveryLayout();
   const isFilterOpen = state.view.kind === 'filters';
   const filterReturnViewKind = state.view.kind === 'filters' ? state.view.returnView.kind : 'closed';
-  const selectedFilterCount = Object.values(state.draftFilters).filter((value) => value !== 'all').length;
   const regionSummary = state.draftFilters.region === 'all'
     ? '전체 지역'
     : regionLabels[state.draftFilters.region];
@@ -457,7 +456,7 @@ export function MountainDiscoveryControls({
           'absolute left-5 top-5 origin-top-left overflow-hidden border-0 transition-[width,max-height,border-radius,box-shadow,padding,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[560px]:left-3 max-[560px]:top-3',
           isFilterOpen
             ? 'z-[6] max-h-[calc(100%-40px)] w-[min(388px,calc(100%-40px))] overflow-y-auto rounded-xl bg-[#f5f7f4] p-0 shadow-[0_18px_56px_rgba(24,34,29,0.18)] max-[560px]:max-h-[calc(100%-24px)] max-[560px]:w-[min(388px,calc(100%-24px))]'
-            : 'z-[3] h-[68px] max-h-[68px] w-[105px] rounded-xl bg-white p-3 shadow-[0_4px_14px_rgba(24,34,29,0.12)]',
+            : 'z-[3] h-11 max-h-11 w-[81px] rounded-lg bg-[#245c46] p-0 shadow-[0_4px_14px_rgba(24,34,29,0.12)]',
         )}
         data-filter-shell={isFilterOpen ? 'open' : 'closed'}
         role={isFilterOpen ? 'dialog' : undefined}
@@ -493,19 +492,14 @@ export function MountainDiscoveryControls({
           </button>
 
           {isFilterOpen ? (
-            <>
-              <span className="mr-1 whitespace-nowrap rounded-full bg-white/90 px-2.5 py-1 text-sm font-bold text-[#245c46]">
-                선택 {selectedFilterCount}
-              </span>
-              <button
-                className="inline-flex h-11 w-11 flex-none items-center justify-center border-0 bg-transparent text-white"
-                type="button"
-                aria-label="필터 닫기"
-                onClick={closeFilters}
-              >
-                <X size={21} aria-hidden="true" />
-              </button>
-            </>
+            <button
+              className="inline-flex h-11 w-11 flex-none items-center justify-center border-0 bg-transparent text-white"
+              type="button"
+              aria-label="필터 닫기"
+              onClick={closeFilters}
+            >
+              <X size={21} aria-hidden="true" />
+            </button>
           ) : null}
         </div>
 
@@ -667,7 +661,7 @@ export function MountainDiscoveryControls({
                 ) : null}
               </FilterAccordionCard>
 
-              <div className="sticky bottom-0 grid grid-cols-[72px_minmax(0,1fr)] gap-2.5 bg-white pt-1">
+              <div className="sticky bottom-0 grid grid-cols-[72px_minmax(0,1fr)] gap-2.5 bg-[#f5f7f4] pt-1">
                 <button
                   className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-sm font-bold text-[#18221d]"
                   type="button"
@@ -690,7 +684,7 @@ export function MountainDiscoveryControls({
 
       {hasAppliedFilters(state) && !isFilterOpen ? (
         <button
-          className="absolute left-[131px] top-5 z-[3] inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] max-[560px]:left-[123px] max-[560px]:top-3"
+          className="absolute left-[107px] top-5 z-[3] inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] max-[560px]:left-[99px] max-[560px]:top-3"
           type="button"
           onClick={() => onAction({ type: 'RESET_DISCOVERY' })}
         >
