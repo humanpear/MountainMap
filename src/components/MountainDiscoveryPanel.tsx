@@ -109,9 +109,9 @@ function useMobileDiscoveryLayout() {
 }
 
 export const mobileDiscoveryHistoryKey = '__mountainMapDiscoverySheet';
-type MobileDiscoveryHistoryLayer = 'filters' | 'panel';
+export type MobileDiscoveryHistoryLayer = 'filters' | 'panel';
 
-function getMobileDiscoveryHistoryLayer(state: unknown = window.history.state) {
+export function getMobileDiscoveryHistoryLayer(state: unknown = window.history.state) {
   if (!state || typeof state !== 'object') {
     return null;
   }

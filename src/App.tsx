@@ -25,9 +25,9 @@ import {
 } from 'lucide-react';
 import { MountainDetailPage } from './components/MountainDetailPage';
 import {
+  getMobileDiscoveryHistoryLayer,
   MountainDiscoveryControls,
   MountainDiscoveryPanel,
-  isMobileDiscoveryHistoryState
 } from './components/MountainDiscoveryPanel';
 import { MountainMap } from './components/MountainMap';
 import { MountainNameWithHanja } from './components/MountainNameWithHanja';
@@ -76,6 +76,9 @@ type AccountSummaryState =
   | { status: 'error'; profile: null; reviewCount: number };
 
 type CompletionDataStatus = 'signed-out' | 'loading' | 'ready' | 'error';
+type MobileDiscoveryRestoreView =
+  | { kind: 'results' }
+  | { kind: 'detail'; mountainId: string };
 
 function getLatestReviewPhotos(reviews: MountainReview[]) {
   return reviews
@@ -350,6 +353,8 @@ export default function App() {
   const accountMenuCloseTimerRef = useRef<number | null>(null);
   const detailMountainIdRef = useRef(detailMountainId);
   const discoveryDetailRouteMountainIdRef = useRef<string | null>(null);
+  const discoveryStateRef = useRef(discoveryState);
+  const mobileDiscoveryRestoreViewRef = useRef<MobileDiscoveryRestoreView | null>(null);
   const difficultyRequestIdRef = useRef(0);
   const completionRequestIdRef = useRef(0);
   const difficultySummaryStateRef = useRef<DifficultySummaryState>({ status: 'idle' });
@@ -359,6 +364,17 @@ export default function App() {
   const headerRef = useRef<HTMLElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   detailMountainIdRef.current = detailMountainId;
+  discoveryStateRef.current = discoveryState;
+  if (discoveryState.view.kind === 'results') {
+    mobileDiscoveryRestoreViewRef.current = { kind: 'results' };
+  } else if (discoveryState.view.kind === 'detail') {
+    mobileDiscoveryRestoreViewRef.current = {
+      kind: 'detail',
+      mountainId: discoveryState.view.mountainId
+    };
+  } else if (discoveryState.view.kind === 'random-running') {
+    mobileDiscoveryRestoreViewRef.current = { kind: 'results' };
+  }
 
   const clearRandomTimer = useCallback(() => {
     if (randomTimerRef.current !== null) {
@@ -632,6 +648,7 @@ export default function App() {
     const syncDetailRoute = (event: PopStateEvent) => {
       const nextDetailMountainId = getMountainDetailRouteId();
       const nextIsMyPageOpen = getIsMyPageRoute();
+      const mobileDiscoveryHistoryLayer = getMobileDiscoveryHistoryLayer(event.state);
       const discoveryDetailRouteMountainId = discoveryDetailRouteMountainIdRef.current;
       const isDiscoveryDetailRouteTransition =
         discoveryDetailRouteMountainId !== null &&
@@ -641,7 +658,7 @@ export default function App() {
           (detailMountainIdRef.current === null &&
             nextDetailMountainId === discoveryDetailRouteMountainId));
 
-      if (isMobileDiscoveryHistoryState(event.state)) {
+      if (mobileDiscoveryHistoryLayer !== null) {
         if (detailMountainIdRef.current !== nextDetailMountainId) {
           setDetailMountainId(nextDetailMountainId);
           setIsMyPageOpen(getIsMyPageRoute());
@@ -649,6 +666,19 @@ export default function App() {
           setIsAccountMenuOpen(false);
           setIsMobileSearchOpen(false);
           refreshChangedReviewSummaries();
+        }
+
+        if (discoveryStateRef.current.view.kind === 'closed') {
+          if (mobileDiscoveryHistoryLayer === 'filters') {
+            dispatchDiscovery({ type: 'OPEN_FILTERS' });
+          } else {
+            const restoreView = mobileDiscoveryRestoreViewRef.current;
+            if (restoreView?.kind === 'detail') {
+              dispatchDiscovery({ type: 'SELECT_MOUNTAIN', mountainId: restoreView.mountainId });
+            } else if (restoreView?.kind === 'results') {
+              dispatchDiscovery({ type: 'BACK_TO_RESULTS' });
+            }
+          }
         }
         return;
       }

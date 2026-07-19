@@ -161,6 +161,7 @@ function mockCompletedMountainsQuery() {
 describe('App account menu', () => {
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   beforeEach(() => {
@@ -418,6 +419,39 @@ describe('App account menu', () => {
     });
 
     expect(screen.getByRole('complementary', { name: '산 찾기 결과' })).toBeInTheDocument();
+  });
+
+  it('restores the mobile result panel across Back, Forward, and Back', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({
+      matches: true,
+      media: '(max-width: 900px)',
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '산 찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: `${mountains.length}개 산 보기` }));
+    expect(screen.getByRole('dialog', { name: '산 찾기 결과' })).toBeInTheDocument();
+
+    window.history.replaceState(null, '', '/');
+    fireEvent.popState(window, { state: null });
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: '산 찾기 결과' })).not.toBeInTheDocument();
+    });
+
+    window.history.replaceState({ __mountainMapDiscoverySheet: 'panel' }, '', '/');
+    fireEvent.popState(window, { state: { __mountainMapDiscoverySheet: 'panel' } });
+    expect(await screen.findByRole('dialog', { name: '산 찾기 결과' })).toBeInTheDocument();
+
+    window.history.replaceState(null, '', '/');
+    fireEvent.popState(window, { state: null });
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: '산 찾기 결과' })).not.toBeInTheDocument();
+    });
   });
 
   it('returns from a full detail route to the selected mobile discovery panel on Back', async () => {
