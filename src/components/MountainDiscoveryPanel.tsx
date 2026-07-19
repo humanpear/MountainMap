@@ -69,27 +69,6 @@ function hasAppliedFilters(state: DiscoveryState) {
   return Object.values(state.appliedFilters).some((value) => value !== 'all');
 }
 
-function getAppliedFilterSummary(state: DiscoveryState) {
-  const labels: string[] = [];
-  const { appliedFilters } = state;
-
-  if (appliedFilters.region !== 'all') {
-    labels.push(regionLabels[appliedFilters.region]);
-  }
-  if (appliedFilters.difficulty !== 'all') {
-    labels.push(
-      appliedFilters.difficulty === unratedDifficultyFilter
-        ? '평가 전'
-        : appliedFilters.difficulty,
-    );
-  }
-  if (appliedFilters.completion !== 'all') {
-    labels.push(appliedFilters.completion === 'completed' ? '등정 완료' : '미등정');
-  }
-
-  return labels.length > 0 ? labels.join(' · ') : '전체 산';
-}
-
 function getFocusableElements(container: HTMLElement) {
   return Array.from(
     container.querySelectorAll<HTMLElement>(
@@ -171,7 +150,6 @@ type CompletionDataStatus = 'signed-out' | 'loading' | 'ready' | 'error';
 type MountainDiscoveryControlsProps = {
   state: DiscoveryState;
   draftResultCount: number;
-  appliedResultCount: number;
   difficultySummaryState: DifficultySummaryState;
   isAuthenticated: boolean;
   completionDataStatus: CompletionDataStatus;
@@ -184,7 +162,6 @@ type MountainDiscoveryControlsProps = {
 export function MountainDiscoveryControls({
   state,
   draftResultCount,
-  appliedResultCount,
   difficultySummaryState,
   isAuthenticated,
   completionDataStatus,
@@ -312,7 +289,7 @@ export function MountainDiscoveryControls({
 
   return (
     <>
-      <div className="absolute left-5 top-5 z-[3] flex max-w-[calc(100%-40px)] items-center gap-1.5 rounded-xl border border-[#d8e0da] bg-white/95 p-1.5 shadow-[0_16px_50px_rgba(24,34,29,0.14)] max-[560px]:left-3 max-[560px]:top-3 max-[560px]:max-w-[calc(100%-24px)]">
+      <div className="absolute left-5 top-5 z-[3] flex max-w-[calc(100%-40px)] items-center gap-1.5 max-[560px]:left-3 max-[560px]:top-3 max-[560px]:max-w-[calc(100%-24px)]">
         <button
           ref={triggerRef}
           className="inline-flex min-h-11 flex-none items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-3.5 text-sm font-bold text-white"
@@ -324,9 +301,6 @@ export function MountainDiscoveryControls({
           <SlidersHorizontal size={18} />
           산 찾기
         </button>
-        <span className="min-w-0 truncate px-1 text-sm font-bold text-[#5d6a62]">
-          {getAppliedFilterSummary(state)} · {appliedResultCount.toLocaleString()}개
-        </span>
         {hasAppliedFilters(state) ? (
           <button
             className="inline-flex min-h-11 flex-none items-center justify-center gap-1.5 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
@@ -350,15 +324,14 @@ export function MountainDiscoveryControls({
           <section
             ref={filterPanelRef}
             id="mountain-discovery-filters"
-            className="absolute left-5 top-[84px] z-[6] max-h-[calc(100%-104px)] w-[min(400px,calc(100%-40px))] overflow-y-auto rounded-xl border border-[#d8e0da] bg-white p-4 shadow-[0_20px_70px_rgba(24,34,29,0.2)] max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:top-auto max-[900px]:w-auto max-[900px]:max-h-[78vh] max-[900px]:rounded-b-none max-[900px]:rounded-t-2xl max-[900px]:border-x-0 max-[900px]:border-b-0 max-[900px]:p-4 max-[900px]:pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            className="absolute left-5 top-[76px] z-[6] max-h-[calc(100%-92px)] w-[min(336px,calc(100%-40px))] overflow-y-auto rounded-xl border border-[#d8e0da] bg-white p-3 shadow-[0_18px_56px_rgba(24,34,29,0.18)] max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:top-auto max-[900px]:w-auto max-[900px]:max-h-[68vh] max-[900px]:rounded-b-none max-[900px]:rounded-t-2xl max-[900px]:border-x-0 max-[900px]:border-b-0 max-[900px]:p-3 max-[900px]:pb-[calc(.75rem+env(safe-area-inset-bottom))]"
             role="dialog"
             aria-modal={isMobile || undefined}
             aria-labelledby="mountain-discovery-filter-title"
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="m-0 text-sm font-black text-[#245c46]">100대 명산</p>
-                <h2 id="mountain-discovery-filter-title" className="m-0 mt-0.5 text-lg font-black text-[#18221d]">
+                <h2 id="mountain-discovery-filter-title" className="m-0 text-base font-black text-[#18221d]">
                   조건으로 찾기
                 </h2>
               </div>
@@ -372,8 +345,8 @@ export function MountainDiscoveryControls({
               </button>
             </div>
 
-            <form className="mt-4 grid gap-4" onSubmit={applyFilters}>
-              <label className="grid gap-1.5 text-sm font-black text-[#18221d]">
+            <form className="mt-3 grid gap-2.5" onSubmit={applyFilters}>
+              <label className="grid min-h-11 grid-cols-[88px_minmax(0,1fr)] items-center gap-2 text-sm font-black text-[#18221d]">
                 지역
                 <select
                   className="min-h-11 w-full rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
@@ -394,19 +367,19 @@ export function MountainDiscoveryControls({
                 </select>
               </label>
 
-              <div className="grid gap-1.5">
+              <div className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-x-2 gap-y-2">
                 <label className="text-sm font-black text-[#18221d]" htmlFor="mountain-discovery-difficulty">
                   체감 난이도
                 </label>
                 {difficultySummaryState.status === 'loading' || difficultySummaryState.status === 'idle' ? (
-                  <p className="m-0 rounded-lg bg-[#eef3f0] p-3 text-base font-bold text-[#5d6a62]" role="status">
+                  <p className="m-0 rounded-lg bg-[#eef3f0] p-2 text-base font-bold text-[#5d6a62]" role="status">
                     난이도 정보를 불러오는 중입니다.
                   </p>
                 ) : difficultySummaryState.status === 'error' ? (
-                  <div className="rounded-lg border border-[#e7c8c1] bg-[#fff4f1] p-3 text-base text-[#6d3028]" role="alert">
+                  <div className="rounded-lg border border-[#e7c8c1] bg-[#fff4f1] p-2 text-base text-[#6d3028]" role="alert">
                     <p className="m-0 font-bold">난이도 정보를 불러오지 못했습니다.</p>
                     <button
-                      className="mt-3 inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b14a3d] bg-white px-4 text-sm font-bold text-[#8c382e]"
+                      className="mt-2 inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b14a3d] bg-white px-3 text-sm font-bold text-[#8c382e]"
                       type="button"
                       onClick={onRetryDifficultySummaries}
                     >
@@ -434,7 +407,7 @@ export function MountainDiscoveryControls({
                 )}
               </div>
 
-              <div className="grid gap-1.5">
+              <div className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-x-2 gap-y-2">
                 <label className="text-sm font-black text-[#18221d]" htmlFor="mountain-discovery-completion">
                   등정 상태
                 </label>
@@ -469,10 +442,10 @@ export function MountainDiscoveryControls({
                   })}
                 </select>
                 {!isAuthenticated ? (
-                  <div className="flex items-center justify-between gap-3 rounded-lg bg-[#eef3f0] p-3 text-base text-[#5d6a62]">
+                  <div className="col-span-2 flex items-center justify-between gap-2 rounded-lg bg-[#eef3f0] p-2 text-base text-[#5d6a62]">
                     <span>등정 기록 필터는 로그인이 필요합니다.</span>
                     <button
-                      className="min-h-11 flex-none rounded-lg border border-[#245c46] bg-white px-3 text-sm font-bold text-[#245c46]"
+                      className="min-h-11 flex-none rounded-lg border border-[#245c46] bg-white px-2.5 text-sm font-bold text-[#245c46]"
                       type="button"
                       onClick={onRequestLogin}
                     >
@@ -480,11 +453,11 @@ export function MountainDiscoveryControls({
                     </button>
                   </div>
                 ) : completionDataStatus === 'loading' ? (
-                  <p className="m-0 rounded-lg bg-[#eef3f0] p-3 text-base font-bold text-[#5d6a62]" role="status">
+                  <p className="col-span-2 m-0 rounded-lg bg-[#eef3f0] p-2 text-base font-bold text-[#5d6a62]" role="status">
                     등정 기록을 불러오는 중입니다.
                   </p>
                 ) : completionDataStatus === 'error' ? (
-                  <p className="m-0 rounded-lg border border-[#e7c8c1] bg-[#fff4f1] p-3 text-base font-bold text-[#6d3028]" role="alert">
+                  <p className="col-span-2 m-0 rounded-lg border border-[#e7c8c1] bg-[#fff4f1] p-2 text-base font-bold text-[#6d3028]" role="alert">
                     등정 기록을 불러오지 못해 완료·미등정 필터를 사용할 수 없습니다.
                   </p>
                 ) : null}
@@ -835,7 +808,7 @@ export function MountainDiscoveryPanel({
             </div>
           ) : (
             <div className="grid min-h-60 flex-1 place-items-center content-center gap-3 p-5 text-center text-[#245c46]" role="status" aria-live="polite">
-              <Shuffle className="animate-[spin_1100ms_linear_infinite] motion-reduce:animate-none" size={26} />
+              <Shuffle size={26} />
               <div>
                 <h2 className="m-0 text-lg font-black text-[#18221d]">랜덤 추천 중</h2>
                 <p className="m-0 mt-1.5 text-base font-bold text-[#5d6a62]">현재 결과 안에서 산을 고르고 있습니다.</p>
@@ -853,15 +826,15 @@ export function MountainDiscoveryPanel({
           <>
             <header className="flex flex-none items-center justify-between gap-3 border-b border-[#d8e0da] p-3">
               <button
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-transparent px-3 text-sm font-bold text-[#18221d] transition-colors hover:text-[#245c46]"
                 type="button"
                 onClick={() => onAction({ type: 'BACK_TO_RESULTS' })}
               >
                 <ArrowLeft size={18} />
-                결과 목록
+                목록
               </button>
               <button
-                className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-lg border border-[#d8e0da] bg-[#eef3f0]"
+                className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-lg border-0 bg-transparent text-[#18221d] transition-colors hover:text-[#245c46]"
                 type="button"
                 onClick={closePanel}
                 aria-label="선택한 산 정보 닫기"

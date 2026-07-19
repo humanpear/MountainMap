@@ -1425,7 +1425,6 @@ export default function App() {
             <MountainDiscoveryControls
               state={discoveryState}
               draftResultCount={draftResultCount}
-              appliedResultCount={resultMountains.length}
               difficultySummaryState={difficultySummaryState}
               isAuthenticated={Boolean(session?.user)}
               completionDataStatus={completionDataStatus}

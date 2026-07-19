@@ -98,7 +98,6 @@ function DiscoveryHarness({
       <MountainDiscoveryControls
         state={state}
         draftResultCount={draftResultCount}
-        appliedResultCount={results.length}
         difficultySummaryState={difficultySummaryState}
         isAuthenticated={isAuthenticated}
         completionDataStatus={completionDataStatus}
@@ -138,13 +137,31 @@ describe('MountainDiscoveryPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
     fireEvent.change(screen.getByLabelText('지역'), { target: { value: 'gangwon' } });
 
-    expect(screen.getByText('전체 산 · 2개')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
 
     expect(screen.getByRole('heading', { name: '결과 1개' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /강원산/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /경기산/ })).not.toBeInTheDocument();
-    expect(screen.getByText('강원도 · 1개')).toBeInTheDocument();
+    expect(screen.queryByText('강원도 · 1개')).not.toBeInTheDocument();
+  });
+
+  it('lays out compact filter labels and dropdowns in matching rows', () => {
+    render(<DiscoveryHarness />);
+
+    fireEvent.click(screen.getByRole('button', { name: '산 찾기' }));
+
+    const dialog = screen.getByRole('dialog', { name: '조건으로 찾기' });
+    expect(dialog).toHaveClass('w-[min(336px,calc(100%-40px))]');
+    expect(screen.getByLabelText('지역').parentElement).toHaveClass(
+      'grid-cols-[88px_minmax(0,1fr)]',
+    );
+    expect(screen.getByLabelText('체감 난이도').parentElement).toHaveClass(
+      'grid-cols-[88px_minmax(0,1fr)]',
+    );
+    expect(screen.getByLabelText('등정 상태').parentElement).toHaveClass(
+      'grid-cols-[88px_minmax(0,1fr)]',
+    );
+    expect(screen.queryByText('전체 산 · 2개')).not.toBeInTheDocument();
   });
 
   it('shows the approved empty state and can reset all filters', () => {
@@ -228,7 +245,7 @@ describe('MountainDiscoveryPanel', () => {
     fireEvent.click(resultButton);
 
     expect(screen.getByText('선택한 산 상세정보')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '결과 목록' }));
+    fireEvent.click(screen.getByRole('button', { name: '목록' }));
 
     await waitFor(() => {
       const restoredList = screen.getByRole('button', { name: /강원산/ }).parentElement as HTMLDivElement;
