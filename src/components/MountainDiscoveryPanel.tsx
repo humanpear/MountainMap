@@ -453,10 +453,10 @@ export function MountainDiscoveryControls({
       <section
         ref={filterPanelRef}
         className={cn(
-          'absolute left-5 top-5 flex origin-top-left flex-col overflow-hidden border-0 transition-[width,max-height,border-radius,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[560px]:left-3 max-[560px]:top-3',
+          'filter-panel-shell absolute left-5 top-5 flex origin-top-left flex-col overflow-hidden border-0 shadow-[0_8px_28px_rgba(24,34,29,0.16)] transition-[width,max-height,border-radius] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[560px]:left-3 max-[560px]:top-3',
           isFilterOpen
-            ? 'z-[6] max-h-[calc(100%-40px)] w-[min(388px,calc(100%-40px))] rounded-xl bg-[#f5f7f4] p-0 shadow-[0_18px_56px_rgba(24,34,29,0.18)] max-[560px]:max-h-[calc(100%-24px)] max-[560px]:w-[min(388px,calc(100%-24px))]'
-            : 'z-[3] h-11 max-h-11 w-[81px] rounded-lg bg-[#245c46] p-0 shadow-[0_4px_14px_rgba(24,34,29,0.12)]',
+            ? 'z-[6] max-h-[calc(100%-40px)] w-[min(388px,calc(100%-40px))] rounded-xl bg-[#f5f7f4] p-0 max-[560px]:max-h-[calc(100%-24px)] max-[560px]:w-[min(388px,calc(100%-24px))]'
+            : 'z-[3] h-11 max-h-11 w-[81px] rounded-lg bg-[#245c46] p-0',
         )}
         data-filter-shell={isFilterOpen ? 'open' : 'closed'}
         role={isFilterOpen ? 'dialog' : undefined}
@@ -486,44 +486,17 @@ export function MountainDiscoveryControls({
             disabled={isFilterOpen}
           >
             <SlidersHorizontal className="flex-none" size={18} aria-hidden="true" />
-            <span
-              className={cn(
-                'relative h-5 min-w-0 flex-none',
-                isFilterOpen ? 'flex-1' : 'w-6',
-              )}
-              aria-hidden="true"
-            >
-              <span
-                className={cn(
-                  'absolute inset-y-0 left-0 flex items-center whitespace-nowrap transition-opacity ease-out motion-reduce:transition-none',
-                  isFilterOpen
-                    ? 'opacity-0 duration-75'
-                    : 'opacity-100 delay-75 duration-100',
-                )}
-                data-filter-label="compact"
-              >
-                필터
-              </span>
-              <span
-                className={cn(
-                  'absolute inset-y-0 left-0 right-0 flex items-center truncate whitespace-nowrap transition-opacity ease-out motion-reduce:transition-none',
-                  isFilterOpen
-                    ? 'opacity-100 delay-100 duration-100'
-                    : 'opacity-0 duration-75',
-                )}
-                data-filter-label="expanded"
-              >
-                조건으로 산 찾기
-              </span>
+            <span className={isFilterOpen ? 'min-w-0 flex-1 truncate' : undefined}>
+              {isFilterOpen ? '조건으로 산 찾기' : '필터'}
             </span>
           </button>
 
           <button
             className={cn(
-              'absolute right-0 top-0 inline-flex h-11 w-11 items-center justify-center border-0 bg-transparent text-white transition-opacity ease-out motion-reduce:transition-none',
+              'absolute right-0 top-0 inline-flex h-11 w-11 items-center justify-center border-0 bg-transparent text-white transition-opacity duration-100 ease-out motion-reduce:transition-none',
               isFilterOpen
-                ? 'pointer-events-auto opacity-100 delay-[140ms] duration-100'
-                : 'pointer-events-none opacity-0 duration-75',
+                ? 'pointer-events-auto opacity-100'
+                : 'pointer-events-none opacity-0',
             )}
             type="button"
             aria-label="필터 닫기"

@@ -108,6 +108,13 @@ button {
   height: 0;
 }
 
+.filter-panel-shell {
+  contain: layout style;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: width, max-height;
+}
+
 @keyframes filter-backdrop-in {
   from {
     opacity: 0;
