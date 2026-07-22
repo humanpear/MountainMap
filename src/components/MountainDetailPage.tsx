@@ -2939,7 +2939,7 @@ function ReviewCard({
               getReviewDifficultyBadgeClass(review.difficulty),
             )}
           >
-            난이도 {review.difficulty}
+            {review.difficulty}
           </span>
           <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-[#d8e0da] bg-[#f1f5f7] px-2.5 font-numeric text-[12px] font-semibold text-[#49524d]">
             <Clock size={13} />

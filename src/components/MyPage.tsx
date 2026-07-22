@@ -1125,7 +1125,7 @@ function EditableUserReviewsPanel({
 
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={cn("inline-flex min-h-6 items-center rounded-full border px-2 text-[11px] font-semibold text-[#2d3932]", getReviewDifficultyBadgeClass(review.difficulty))}>
-                      난이도 {review.difficulty}
+                      {review.difficulty}
                     </span>
                     <span className="inline-flex min-h-6 items-center gap-1 rounded-full border border-[#d8e0da] bg-[#f1f5f7] px-2 font-numeric text-[11px] font-semibold text-[#49524d]">
                       <Clock size={13} />

@@ -40,6 +40,7 @@ declare global {
     setCenter(position: KakaoLatLng): void;
     panTo(position: KakaoLatLng): void;
     setLevel(level: number, options?: KakaoMapSetLevelOptions): void;
+    setMaxLevel(level: number): void;
     setBounds(
       bounds: KakaoLatLngBounds,
       paddingTop?: number,

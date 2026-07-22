@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
   useEffect,
@@ -26,7 +27,7 @@ import {
 } from 'lucide-react';
 import { MountainDetailPage } from './components/MountainDetailPage';
 import {
-  getMobileDiscoveryHistoryLayer,
+  MobileMountainInfoBar,
   MountainDiscoveryControls,
   MountainDiscoveryPanel,
 } from './components/MountainDiscoveryPanel';
@@ -68,6 +69,12 @@ type SidebarReviewPhoto = {
   index: number;
 };
 
+type SidebarReviewPhotoState =
+  | { status: 'idle' }
+  | { status: 'loading'; mountainId: string; requestId: number }
+  | { status: 'ready'; mountainId: string; requestId: number; photos: SidebarReviewPhoto[] }
+  | { status: 'error'; mountainId: string; requestId: number; issue: 'load-failed' };
+
 type MyPageTab = 'profile' | 'completed' | 'reviews';
 
 type AccountSummaryState =
@@ -77,10 +84,6 @@ type AccountSummaryState =
   | { status: 'error'; profile: null; reviewCount: number };
 
 type CompletionDataStatus = 'signed-out' | 'loading' | 'ready' | 'error';
-type MobileDiscoveryRestoreView =
-  | { kind: 'results' }
-  | { kind: 'detail'; mountainId: string };
-
 function getLatestReviewPhotos(reviews: MountainReview[]) {
   return reviews
     .flatMap((review) =>
@@ -305,7 +308,7 @@ const appClass = {
   setupNote:
     'fixed bottom-[92px] right-5 z-[5] max-w-[360px] rounded-lg border border-[#d8e0da] bg-white px-3.5 py-3 text-[13px] text-[#627168] shadow-[0_16px_50px_rgba(24,34,29,0.14)] max-[560px]:left-5 max-[560px]:max-w-none',
   feedbackButton:
-    'fixed bottom-5 right-5 z-[6] inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-4 font-extrabold text-white shadow-[0_16px_50px_rgba(24,34,29,0.2)] transition hover:bg-[#1f4e39] max-[900px]:z-[4] max-[560px]:bottom-3 max-[560px]:right-3 max-[560px]:h-12 max-[560px]:w-12 max-[560px]:rounded-full max-[560px]:px-0',
+    'app-feedback-button fixed bottom-5 right-[380px] z-[6] inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-4 font-extrabold text-white shadow-[0_16px_50px_rgba(24,34,29,0.2)] transition-[bottom,background-color] hover:bg-[#1f4e39] max-[900px]:right-5 max-[900px]:z-[4] max-[560px]:bottom-3 max-[560px]:right-3 max-[560px]:h-12 max-[560px]:w-12 max-[560px]:rounded-full max-[560px]:px-0',
   feedbackModal:
     'relative grid w-[min(520px,100%)] gap-4 rounded-xl border border-[#d8e0da] bg-white p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] animate-[modal-pop_180ms_ease-out] max-[560px]:gap-3 max-[560px]:p-4',
   feedbackClose:
@@ -340,8 +343,8 @@ export default function App() {
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackContact, setFeedbackContact] = useState('');
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
-  const [sidebarReviewPhotos, setSidebarReviewPhotos] = useState<SidebarReviewPhoto[]>([]);
-  const [sidebarPhotoState, setSidebarPhotoState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [sidebarPhotoState, setSidebarPhotoState] = useState<SidebarReviewPhotoState>({ status: 'idle' });
+  const [mobileInfoBarHeight, setMobileInfoBarHeight] = useState(0);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isAccountMenuClosing, setIsAccountMenuClosing] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -353,11 +356,13 @@ export default function App() {
   });
   const accountMenuCloseTimerRef = useRef<number | null>(null);
   const detailMountainIdRef = useRef(detailMountainId);
+  const isMyPageOpenRef = useRef(isMyPageOpen);
   const discoveryDetailRouteMountainIdRef = useRef<string | null>(null);
   const discoveryStateRef = useRef(discoveryState);
-  const mobileDiscoveryRestoreViewRef = useRef<MobileDiscoveryRestoreView | null>(null);
+  const authUserIdRef = useRef<string | null>(null);
   const difficultyRequestIdRef = useRef(0);
   const completionRequestIdRef = useRef(0);
+  const sidebarPhotoRequestIdRef = useRef(0);
   const difficultySummaryStateRef = useRef<DifficultySummaryState>({ status: 'idle' });
   const reviewSummaryDirtyRef = useRef(false);
   const randomTimerRef = useRef<number | null>(null);
@@ -365,23 +370,18 @@ export default function App() {
   const headerRef = useRef<HTMLElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   detailMountainIdRef.current = detailMountainId;
+  isMyPageOpenRef.current = isMyPageOpen;
   discoveryStateRef.current = discoveryState;
-  if (discoveryState.view.kind === 'results') {
-    mobileDiscoveryRestoreViewRef.current = { kind: 'results' };
-  } else if (discoveryState.view.kind === 'detail') {
-    mobileDiscoveryRestoreViewRef.current = {
-      kind: 'detail',
-      mountainId: discoveryState.view.mountainId
-    };
-  } else if (discoveryState.view.kind === 'random-running') {
-    mobileDiscoveryRestoreViewRef.current = { kind: 'results' };
-  }
 
   const clearRandomTimer = useCallback(() => {
     if (randomTimerRef.current !== null) {
       window.clearTimeout(randomTimerRef.current);
       randomTimerRef.current = null;
     }
+  }, []);
+
+  const handleMobileInfoBarHeightChange = useCallback((height: number) => {
+    setMobileInfoBarHeight((current) => current === height ? current : height);
   }, []);
 
   const closeAccountMenu = useCallback((animated = true) => {
@@ -540,11 +540,48 @@ export default function App() {
   }, [loadDifficultySummaries]);
 
   useEffect(() => {
-    dispatchDiscovery({ type: 'AUTHENTICATION_CHANGED', isAuthenticated: Boolean(session?.user) });
-  }, [session?.user]);
+    const nextUserId = session?.user.id ?? null;
+    if (authUserIdRef.current === nextUserId) {
+      return;
+    }
 
-  const selectedMountainId = discoveryState.view.kind === 'detail' ? discoveryState.view.mountainId : undefined;
+    authUserIdRef.current = nextUserId;
+    dispatchDiscovery({
+      type: 'AUTH_IDENTITY_CHANGED',
+      isAuthenticated: nextUserId !== null,
+    });
+  }, [session?.user.id]);
+
+  useEffect(() => {
+    dispatchDiscovery({
+      type: 'COMPLETION_FILTER_AVAILABILITY_CHANGED',
+      available: Boolean(session?.user.id) && completionDataStatus === 'ready',
+    });
+  }, [completionDataStatus, session?.user.id]);
+
+  const selectedMountainId = discoveryState.selectedMountainId;
   const selectedMountain = mountains.find((mountain) => mountain.id === selectedMountainId);
+  useEffect(() => {
+    if (!selectedMountainId || selectedMountain) {
+      return;
+    }
+
+    dispatchDiscovery({ type: 'CLEAR_SELECTION' });
+    setMessage('선택한 산 정보를 찾을 수 없어요. 다시 선택해 주세요.');
+  }, [selectedMountain, selectedMountainId]);
+
+  useEffect(() => {
+    const request = discoveryState.focusRequest;
+    if (!request || request.target !== 'map') {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('[data-discovery-map]')?.focus();
+      dispatchDiscovery({ type: 'FOCUS_REQUEST_HANDLED', revision: request.revision });
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [discoveryState.focusRequest]);
   const detailMountain = mountains.find((mountain) => mountain.id === detailMountainId);
   const completedIds = useMemo(() => new Set(completionRecords.map((record) => record.mountainId)), [completionRecords]);
   const resultMountains = useMemo(
@@ -570,7 +607,7 @@ export default function App() {
         ? normalizeFiltersForAuthentication(discoveryState.draftFilters, isAuthenticated)
         : {
             ...normalizeFiltersForAuthentication(discoveryState.draftFilters, isAuthenticated),
-            difficulty: 'all' as const
+            difficulty: []
           };
 
     return filterMountains({
@@ -623,7 +660,7 @@ export default function App() {
     discoveryState.view.kind === 'results' ||
     discoveryState.view.kind === 'detail' ||
     discoveryState.view.kind === 'random-running';
-  const isDetailPanelOpen = isDiscoveryPanelOpen;
+  const isMobileDiscoverySurfaceOpen = discoveryState.view.kind !== 'closed';
   const accountProfile = accountSummary.profile;
   const accountDisplayName =
     accountProfile?.displayName || session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || '내 계정';
@@ -646,10 +683,14 @@ export default function App() {
   }, [isMobileSearchOpen]);
 
   useEffect(() => {
-    const syncDetailRoute = (event: PopStateEvent) => {
+    const syncDetailRoute = () => {
       const nextDetailMountainId = getMountainDetailRouteId();
       const nextIsMyPageOpen = getIsMyPageRoute();
-      const mobileDiscoveryHistoryLayer = getMobileDiscoveryHistoryLayer(event.state);
+      const routeChanged = detailMountainIdRef.current !== nextDetailMountainId
+        || isMyPageOpenRef.current !== nextIsMyPageOpen;
+      if (!routeChanged) {
+        return;
+      }
       const discoveryDetailRouteMountainId = discoveryDetailRouteMountainIdRef.current;
       const isDiscoveryDetailRouteTransition =
         discoveryDetailRouteMountainId !== null &&
@@ -659,31 +700,6 @@ export default function App() {
           (detailMountainIdRef.current === null &&
             nextDetailMountainId === discoveryDetailRouteMountainId));
 
-      if (mobileDiscoveryHistoryLayer !== null) {
-        if (detailMountainIdRef.current !== nextDetailMountainId) {
-          setDetailMountainId(nextDetailMountainId);
-          setIsMyPageOpen(getIsMyPageRoute());
-          setMyPageTab(getMyPageTabRoute());
-          setIsAccountMenuOpen(false);
-          setIsMobileSearchOpen(false);
-          refreshChangedReviewSummaries();
-        }
-
-        if (discoveryStateRef.current.view.kind === 'closed') {
-          if (mobileDiscoveryHistoryLayer === 'filters') {
-            dispatchDiscovery({ type: 'OPEN_FILTERS' });
-          } else {
-            const restoreView = mobileDiscoveryRestoreViewRef.current;
-            if (restoreView?.kind === 'detail') {
-              dispatchDiscovery({ type: 'SELECT_MOUNTAIN', mountainId: restoreView.mountainId });
-            } else if (restoreView?.kind === 'results') {
-              dispatchDiscovery({ type: 'BACK_TO_RESULTS' });
-            }
-          }
-        }
-        return;
-      }
-
       setDetailMountainId(nextDetailMountainId);
       setIsMyPageOpen(nextIsMyPageOpen);
       setMyPageTab(getMyPageTabRoute());
@@ -691,7 +707,7 @@ export default function App() {
       setIsMobileSearchOpen(false);
       if (!isDiscoveryDetailRouteTransition) {
         discoveryDetailRouteMountainIdRef.current = null;
-        dispatchDiscovery({ type: 'CLOSE_DISCOVERY' });
+        dispatchDiscovery({ type: 'RESET_DISCOVERY' });
       }
       refreshChangedReviewSummaries();
     };
@@ -700,40 +716,60 @@ export default function App() {
     return () => window.removeEventListener('popstate', syncDetailRoute);
   }, [refreshChangedReviewSummaries]);
 
-  useEffect(() => {
-    let isActive = true;
+  const loadSidebarReviewPhotos = useCallback((mountainId: string) => {
+    const requestId = ++sidebarPhotoRequestIdRef.current;
 
-    if (!selectedMountain || !isSupabaseConfigured) {
-      setSidebarReviewPhotos([]);
-      setSidebarPhotoState('ready');
-      return () => {
-        isActive = false;
-      };
+    if (!isSupabaseConfigured) {
+      setSidebarPhotoState({ status: 'ready', mountainId, requestId, photos: [] });
+      return;
     }
 
-    setSidebarPhotoState('loading');
-    fetchMountainReviews(selectedMountain.id)
+    setSidebarPhotoState({ status: 'loading', mountainId, requestId });
+    void fetchMountainReviews(mountainId)
       .then((reviews) => {
-        if (!isActive) {
+        if (
+          requestId !== sidebarPhotoRequestIdRef.current
+          || discoveryStateRef.current.selectedMountainId !== mountainId
+        ) {
           return;
         }
 
-        setSidebarReviewPhotos(getLatestReviewPhotos(reviews));
-        setSidebarPhotoState('ready');
+        setSidebarPhotoState({
+          status: 'ready',
+          mountainId,
+          requestId,
+          photos: getLatestReviewPhotos(reviews),
+        });
       })
       .catch(() => {
-        if (!isActive) {
+        if (
+          requestId !== sidebarPhotoRequestIdRef.current
+          || discoveryStateRef.current.selectedMountainId !== mountainId
+        ) {
           return;
         }
 
-        setSidebarReviewPhotos([]);
-        setSidebarPhotoState('error');
+        setSidebarPhotoState({
+          status: 'error',
+          mountainId,
+          requestId,
+          issue: 'load-failed',
+        });
       });
+  }, []);
 
+  useEffect(() => {
+    if (!selectedMountain) {
+      sidebarPhotoRequestIdRef.current += 1;
+      setSidebarPhotoState({ status: 'idle' });
+      return;
+    }
+
+    loadSidebarReviewPhotos(selectedMountain.id);
     return () => {
-      isActive = false;
+      sidebarPhotoRequestIdRef.current += 1;
     };
-  }, [selectedMountain?.id]);
+  }, [loadSidebarReviewPhotos, selectedMountain]);
 
   useEffect(() => {
     if (!supabase) {
@@ -815,7 +851,6 @@ export default function App() {
     const requestId = ++completionRequestIdRef.current;
     setCompletionRecords([]);
     setCompletionDataStatus('loading');
-    dispatchDiscovery({ type: 'AUTHENTICATION_CHANGED', isAuthenticated: false });
 
     void (async () => {
       try {
@@ -830,7 +865,6 @@ export default function App() {
 
         if (error) {
           setCompletionDataStatus('error');
-          dispatchDiscovery({ type: 'AUTHENTICATION_CHANGED', isAuthenticated: false });
           setMessage(getCompletionErrorMessage(error, 'load'));
           return;
         }
@@ -849,7 +883,6 @@ export default function App() {
         }
 
         setCompletionDataStatus('error');
-        dispatchDiscovery({ type: 'AUTHENTICATION_CHANGED', isAuthenticated: false });
         setMessage(
           getCompletionErrorMessage(
             error instanceof Error ? { message: error.message } : {},
@@ -913,7 +946,8 @@ export default function App() {
       action.type === 'APPLY_FILTERS' ||
       action.type === 'RESET_FILTERS' ||
       action.type === 'RESET_DISCOVERY' ||
-      action.type === 'CLOSE_DISCOVERY' ||
+      action.type === 'CLOSE_MOBILE_SURFACE' ||
+      action.type === 'CLEAR_SELECTION' ||
       action.type === 'CANCEL_RANDOM'
     ) {
       clearRandomTimer();
@@ -922,9 +956,14 @@ export default function App() {
     dispatchDiscovery(action);
   }, [clearRandomTimer]);
 
-  const selectMountain = (mountain: Mountain) => {
+  const selectMountainFromMap = (mountain: Mountain) => {
     clearRandomTimer();
-    dispatchDiscovery({ type: 'SELECT_MOUNTAIN', mountainId: mountain.id });
+    dispatchDiscovery({ type: 'SELECT_FROM_MAP', mountainId: mountain.id });
+  };
+
+  const selectMountainFromList = (mountain: Mountain) => {
+    clearRandomTimer();
+    dispatchDiscovery({ type: 'SELECT_FROM_LIST', mountainId: mountain.id });
   };
 
   const openMountainDetail = (mountain: Mountain, preserveDiscoveryContext = false) => {
@@ -955,12 +994,12 @@ export default function App() {
     setMyPageTab('profile');
     setIsAccountMenuOpen(false);
     setIsMobileSearchOpen(false);
-    handleDiscoveryAction({ type: 'CLOSE_DISCOVERY' });
+    handleDiscoveryAction({ type: 'RESET_DISCOVERY' });
     refreshChangedReviewSummaries();
   };
 
   const openSearchMountain = (match: Mountain) => {
-    handleDiscoveryAction({ type: 'CLOSE_DISCOVERY' });
+    handleDiscoveryAction({ type: 'RESET_DISCOVERY' });
     openMountainDetail(match);
     setIsMobileSearchOpen(false);
     setIsSearchFocused(false);
@@ -1033,7 +1072,7 @@ export default function App() {
     setIsAccountMenuOpen(false);
     setIsMobileSearchOpen(false);
     handleDiscoveryAction({ type: 'RESET_FILTERS' });
-    dispatchDiscovery({ type: 'SELECT_MOUNTAIN', mountainId: mountain.id });
+    dispatchDiscovery({ type: 'SELECT_FROM_MAP', mountainId: mountain.id });
     refreshChangedReviewSummaries();
   };
 
@@ -1097,7 +1136,7 @@ export default function App() {
     setIsMyPageOpen(true);
     setMyPageTab(tab);
     setDetailMountainId(null);
-    handleDiscoveryAction({ type: 'CLOSE_DISCOVERY' });
+    handleDiscoveryAction({ type: 'RESET_DISCOVERY' });
     setIsAccountMenuOpen(false);
     setIsMobileSearchOpen(false);
   };
@@ -1120,25 +1159,47 @@ export default function App() {
       highlightedId: result.sequence[0].id,
       sequenceIds: result.sequence.map((mountain) => mountain.id)
     });
-    playRouletteTick(0);
+    try {
+      playRouletteTick(0);
+    } catch {
+      // Sound is optional; visual roulette continues.
+    }
     const tickDelays = getRandomTickDelays(result.sequence.length);
+    const winnerDeadline = performance.now()
+      + tickDelays.reduce((total, delay) => total + delay, 0);
 
     let index = 0;
+    const announceWinner = () => {
+      dispatchDiscovery({ type: 'ANNOUNCE_RANDOM_WINNER' });
+      try {
+        playFanfare();
+      } catch {
+        // Celebration is optional; the selected winner remains authoritative.
+      }
+      randomTimerRef.current = window.setTimeout(() => {
+        randomTimerRef.current = null;
+        dispatchDiscovery({ type: 'FINISH_RANDOM' });
+      }, 1_600);
+    };
     const tick = () => {
+      if (performance.now() >= winnerDeadline) {
+        announceWinner();
+        return;
+      }
+
       index += 1;
       const nextMountain = result.sequence[index];
 
       if (!nextMountain) {
-        dispatchDiscovery({ type: 'ANNOUNCE_RANDOM_WINNER' });
-        playFanfare();
-        randomTimerRef.current = window.setTimeout(() => {
-          randomTimerRef.current = null;
-          dispatchDiscovery({ type: 'FINISH_RANDOM' });
-        }, 1_600);
+        announceWinner();
         return;
       }
 
-      playRouletteTick(index);
+      try {
+        playRouletteTick(index);
+      } catch {
+        // Sound is optional; visual roulette continues.
+      }
       dispatchDiscovery({ type: 'RANDOM_TICK', highlightedId: nextMountain.id });
       randomTimerRef.current = window.setTimeout(tick, tickDelays[index]);
     };
@@ -1168,16 +1229,15 @@ export default function App() {
       return;
     }
 
-    if (
-      currentView.kind === 'detail' &&
-      !resultMountains.some((mountain) => mountain.id === currentView.mountainId)
-    ) {
-      dispatchDiscovery({ type: 'BACK_TO_RESULTS' });
-    }
   }, [clearRandomTimer, discoveryState.view, resultMountainIdsKey, resultMountains]);
 
   return (
-    <main className={appClass.shell}>
+    <main
+      className={appClass.shell}
+      style={{
+        '--mobile-info-bar-height': `${mobileInfoBarHeight}px`,
+      } as CSSProperties}
+    >
       <header ref={headerRef} className={appClass.topbar}>
         <div className={appClass.topbarInner}>
           <button className={appClass.brand} type="button" onClick={navigateHome} aria-label="지도로 이동">
@@ -1404,7 +1464,7 @@ export default function App() {
         <section
           className={cn(
             appClass.workspace,
-            isDetailPanelOpen ? 'grid-cols-[minmax(0,1fr)_360px]' : 'grid-cols-[minmax(0,1fr)_0px]'
+            'grid-cols-[minmax(0,1fr)_360px]'
           )}
           aria-label="100대 명산 지도"
         >
@@ -1412,14 +1472,17 @@ export default function App() {
             <MountainMap
               mountains={resultMountains}
               selectedMountainId={selectedMountain?.id}
-              focusedMountainId={selectedMountain?.id}
+              cameraRequest={discoveryState.cameraRequest}
               fitResultsRevision={discoveryState.appliedRevision + resultDataRevision}
               resetCameraRevision={discoveryState.cameraResetRevision}
-              layoutKey={isDetailPanelOpen ? 'with-detail-panel' : 'full-map'}
+              layoutKey="with-detail-panel"
               completedIds={completedIds}
               completionCounts={completionCounts}
               highlightedId={highlightedId}
-              onMountainSelect={selectMountain}
+              onMountainSelect={selectMountainFromMap}
+              onCameraRequestHandled={(revision) =>
+                dispatchDiscovery({ type: 'CAMERA_REQUEST_HANDLED', revision })
+              }
             />
 
             <MountainDiscoveryControls
@@ -1433,6 +1496,21 @@ export default function App() {
               onRetryDifficultySummaries={() => void loadDifficultySummaries(false)}
               onRequestLogin={() => void signInWithGoogle()}
             />
+
+            {selectedMountain ? (
+              <MobileMountainInfoBar
+                mountain={selectedMountain}
+                obscured={isMobileDiscoverySurfaceOpen}
+                focusRequest={discoveryState.focusRequest}
+                onFocusHandled={(revision) =>
+                  dispatchDiscovery({ type: 'FOCUS_REQUEST_HANDLED', revision })
+                }
+                onHeightChange={handleMobileInfoBarHeightChange}
+                onOpenDetail={() => dispatchDiscovery({ type: 'OPEN_SELECTED_DETAIL' })}
+                onOpenResults={() => dispatchDiscovery({ type: 'OPEN_SELECTED_RESULTS' })}
+                onClearSelection={() => dispatchDiscovery({ type: 'CLEAR_SELECTION' })}
+              />
+            ) : null}
           </div>
           <MountainDiscoveryPanel
               state={discoveryState}
@@ -1443,14 +1521,18 @@ export default function App() {
               completionDataStatus={completionDataStatus}
               triggerRef={discoveryTriggerRef}
               onAction={handleDiscoveryAction}
-              onSelectMountain={selectMountain}
+              onSelectMountain={selectMountainFromList}
               onRandomRecommend={runRandomPick}
               detailContent={selectedMountain ? (
                 <>
                 <div className={appClass.detailHeader}>
                   <div>
                     <p className={appClass.eyebrow}>{selectedMountain.province}</p>
-                    <h2 className="m-0 text-[19px] font-black leading-[24px] max-[560px]:text-[17px] max-[560px]:leading-[22px]">
+                    <h2
+                      className="m-0 text-[19px] font-black leading-[24px] max-[560px]:text-[17px] max-[560px]:leading-[22px]"
+                      data-discovery-focus="detail-heading"
+                      tabIndex={-1}
+                    >
                       <MountainNameWithHanja
                         mountain={selectedMountain}
                         className="flex-wrap"
@@ -1491,11 +1573,24 @@ export default function App() {
                 <p className="mt-4 leading-7 text-[#627168]">{selectedMountain.shortDescription}</p>
                 <section className={appClass.sidebarPhotos} aria-label="최신 한줄평 사진">
                   <h3 className="text-[15px] font-black leading-5">최신 한줄평 사진</h3>
-                  {sidebarPhotoState === 'loading' ? (
+                  {sidebarPhotoState.status === 'loading'
+                  || sidebarPhotoState.status === 'idle'
+                  || sidebarPhotoState.mountainId !== selectedMountain.id ? (
                     <div className={appClass.sidebarPhotoEmpty}>사진을 불러오는 중입니다.</div>
-                  ) : sidebarReviewPhotos.length > 0 ? (
+                  ) : sidebarPhotoState.status === 'error' ? (
+                    <div className={cn(appClass.sidebarPhotoEmpty, 'gap-2')} role="alert">
+                      <span>사진을 불러오지 못했습니다.</span>
+                      <button
+                        className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-semibold text-[#18221d]"
+                        type="button"
+                        onClick={() => loadSidebarReviewPhotos(selectedMountain.id)}
+                      >
+                        다시 시도
+                      </button>
+                    </div>
+                  ) : sidebarPhotoState.photos.length > 0 ? (
                     <div className={appClass.sidebarPhotoGrid}>
-                      {sidebarReviewPhotos.map((photo) => (
+                      {sidebarPhotoState.photos.map((photo) => (
                         <div
                           key={`${photo.url}-${photo.index}`}
                         >
@@ -1537,6 +1632,7 @@ export default function App() {
           (isMyPageOpen || detailMountain || isDiscoveryPanelOpen) && 'hidden',
         )}
         type="button"
+        data-mobile-info-visible={selectedMountain ? 'true' : undefined}
         onClick={() => setIsFeedbackOpen(true)}
         aria-label="앱 피드백 보내기"
       >

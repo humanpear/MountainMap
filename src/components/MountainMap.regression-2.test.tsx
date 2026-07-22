@@ -165,7 +165,7 @@ describe('MountainMap container projection regression', () => {
     rerender(
       <MountainMap
         mountains={mountains}
-        focusedMountainId="m-2"
+        cameraRequest={{ mountainId: 'm-2', revision: 1, reason: 'list-selection' }}
         fitResultsRevision={0}
         completedIds={new Set()}
         completionCounts={new Map()}

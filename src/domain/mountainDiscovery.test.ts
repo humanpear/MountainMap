@@ -100,10 +100,10 @@ describe('filterMountains', () => {
     expect(gaya).toBeDefined();
 
     const gyeongbuk = runFilter({
-      filters: { ...createDefaultMountainFilters(), region: 'gyeongbuk' },
+      filters: { ...createDefaultMountainFilters(), region: ['gyeongbuk'] },
     });
     const gyeongnam = runFilter({
-      filters: { ...createDefaultMountainFilters(), region: 'gyeongnam' },
+      filters: { ...createDefaultMountainFilters(), region: ['gyeongnam'] },
     });
 
     expect(gyeongbuk.every((mountain) => mountain.regionCodes.includes('gyeongbuk'))).toBe(
@@ -114,6 +114,32 @@ describe('filterMountains', () => {
     );
     expect(gyeongbuk).toContainEqual(gaya);
     expect(gyeongnam).toContainEqual(gaya);
+  });
+
+  it('matches any selected region and difficulty while completion remains single-select', () => {
+    const source: Mountain[] = [
+      { ...mountains[0], id: 'gangwon-easy', regionCodes: ['gangwon'] },
+      { ...mountains[1], id: 'jeju-normal', regionCodes: ['jeju'] },
+      { ...mountains[2], id: 'chungnam-hard', regionCodes: ['chungnam'] },
+    ];
+    const difficultySummaryState = createReadyState([
+      createSummary(source[0], 1),
+      createSummary(source[1], 2),
+      createSummary(source[2], 4),
+    ]);
+
+    expect(
+      runFilter({
+        source,
+        filters: {
+          region: ['gangwon', 'jeju'],
+          difficulty: ['쉬움', '보통'],
+          completion: [],
+        },
+        difficultySummaryState,
+        completedIds: new Set([source[0].id, source[2].id]),
+      }),
+    ).toEqual([source[0], source[1]]);
   });
 
   it.each([
@@ -131,7 +157,7 @@ describe('filterMountains', () => {
     expect(
       runFilter({
         source,
-        filters: { ...createDefaultMountainFilters(), difficulty },
+        filters: { ...createDefaultMountainFilters(), difficulty: [difficulty] },
         difficultySummaryState,
       }).map((mountain) => mountain.id),
     ).toEqual([source[expectedIndex].id]);
@@ -147,7 +173,7 @@ describe('filterMountains', () => {
     expect(
       runFilter({
         source,
-        filters: { ...createDefaultMountainFilters(), difficulty: 'unrated' },
+        filters: { ...createDefaultMountainFilters(), difficulty: ['unrated'] },
         difficultySummaryState,
       }),
     ).toEqual([source[2]]);
@@ -160,7 +186,7 @@ describe('filterMountains', () => {
   ])('does not interpret $status difficulty data as unrated', (difficultySummaryState) => {
     expect(() =>
       runFilter({
-        filters: { ...createDefaultMountainFilters(), difficulty: 'unrated' },
+        filters: { ...createDefaultMountainFilters(), difficulty: ['unrated'] },
         difficultySummaryState,
       }),
     ).toThrow(MountainDiscoveryContractError);
@@ -172,7 +198,7 @@ describe('filterMountains', () => {
     expect(() =>
       runFilter({
         source: [mountain],
-        filters: { ...createDefaultMountainFilters(), difficulty: '보통' },
+        filters: { ...createDefaultMountainFilters(), difficulty: ['보통'] },
         difficultySummaryState: createReadyState([createSummary(mountain, 2, 0)]),
       }),
     ).toThrow('Invalid review count');
@@ -185,14 +211,14 @@ describe('filterMountains', () => {
     expect(
       runFilter({
         source,
-        filters: { ...createDefaultMountainFilters(), completion: 'completed' },
+        filters: { ...createDefaultMountainFilters(), completion: ['completed'] },
         completedIds,
       }),
     ).toEqual([source[0], source[2]]);
     expect(
       runFilter({
         source,
-        filters: { ...createDefaultMountainFilters(), completion: 'incomplete' },
+        filters: { ...createDefaultMountainFilters(), completion: ['incomplete'] },
         completedIds,
       }),
     ).toEqual([source[1]]);
@@ -201,17 +227,17 @@ describe('filterMountains', () => {
   it('does not classify logged-out users as incomplete', () => {
     expect(() =>
       runFilter({
-        filters: { ...createDefaultMountainFilters(), completion: 'incomplete' },
+        filters: { ...createDefaultMountainFilters(), completion: ['incomplete'] },
         isAuthenticated: false,
       }),
     ).toThrow('Completion filter requires an authenticated user');
 
     expect(
       normalizeFiltersForAuthentication(
-        { ...createDefaultMountainFilters(), completion: 'incomplete' },
+        { ...createDefaultMountainFilters(), completion: ['incomplete'] },
         false,
       ).completion,
-    ).toBe('all');
+    ).toEqual([]);
   });
 
   it('combines region, difficulty, and completion filters with AND', () => {
@@ -235,9 +261,9 @@ describe('filterMountains', () => {
       runFilter({
         source: candidates,
         filters: {
-          region: target.regionCodes[0],
-          difficulty: '쉬움',
-          completion: 'completed',
+          region: [target.regionCodes[0]],
+          difficulty: ['쉬움'],
+          completion: ['completed'],
         },
         difficultySummaryState,
         completedIds: new Set([target.id, differentRegion.id]),
@@ -249,9 +275,9 @@ describe('filterMountains', () => {
     expect(
       runFilter({
         filters: {
-          region: 'jeju',
-          difficulty: '매우 어려움',
-          completion: 'all',
+          region: ['jeju'],
+          difficulty: ['매우 어려움'],
+          completion: [],
         },
         difficultySummaryState: createReadyState(),
       }),
@@ -284,7 +310,7 @@ describe('discoveryReducer', () => {
     const opened = discoveryReducer(initial, { type: 'OPEN_FILTERS' });
     const edited = discoveryReducer(opened, {
       type: 'UPDATE_DRAFT_FILTERS',
-      filters: { region: 'gangwon', completion: 'incomplete' },
+      filters: { region: ['gangwon'], completion: ['incomplete'] },
     });
     const cancelled = discoveryReducer(edited, { type: 'CANCEL_FILTERS' });
 
@@ -297,7 +323,7 @@ describe('discoveryReducer', () => {
     const opened = discoveryReducer(createInitialDiscoveryState(), { type: 'OPEN_FILTERS' });
     const edited = discoveryReducer(opened, {
       type: 'UPDATE_DRAFT_FILTERS',
-      filters: { region: 'gangwon', difficulty: '보통' },
+      filters: { region: ['gangwon'], difficulty: ['보통'] },
     });
     const firstApply = discoveryReducer(edited, { type: 'APPLY_FILTERS' });
     const secondApply = discoveryReducer(firstApply, { type: 'APPLY_FILTERS' });
@@ -312,28 +338,28 @@ describe('discoveryReducer', () => {
     const state = {
       ...createInitialDiscoveryState(),
       draftFilters: {
-        region: 'gangwon',
-        difficulty: '어려움',
-        completion: 'incomplete',
+        region: ['gangwon'],
+        difficulty: ['어려움'],
+        completion: ['incomplete'],
       } as MountainFilters,
       appliedFilters: {
-        region: 'gangwon',
-        difficulty: '어려움',
-        completion: 'incomplete',
+        region: ['gangwon'],
+        difficulty: ['어려움'],
+        completion: ['incomplete'],
       } as MountainFilters,
     };
     const withoutDifficulty = discoveryReducer(state, {
       type: 'DIFFICULTY_SUMMARIES_UNAVAILABLE',
     });
     const loggedOut = discoveryReducer(withoutDifficulty, {
-      type: 'AUTHENTICATION_CHANGED',
+      type: 'AUTH_IDENTITY_CHANGED',
       isAuthenticated: false,
     });
 
     expect(loggedOut.appliedFilters).toEqual({
-      region: 'gangwon',
-      difficulty: 'all',
-      completion: 'all',
+      region: ['gangwon'],
+      difficulty: [],
+      completion: [],
     });
     expect(loggedOut.appliedRevision).toBe(0);
   });
@@ -357,10 +383,10 @@ describe('discoveryReducer', () => {
       scrollTop: 240,
     });
     const detail = discoveryReducer(withScroll, {
-      type: 'SELECT_MOUNTAIN',
+      type: 'SELECT_FROM_LIST',
       mountainId: mountains[0].id,
     });
-    const results = discoveryReducer(detail, { type: 'BACK_TO_RESULTS' });
+    const results = discoveryReducer(detail, { type: 'RETURN_TO_RESULTS' });
 
     expect(detail.resultScrollTop).toBe(240);
     expect(results.view).toEqual({ kind: 'results' });
@@ -384,8 +410,142 @@ describe('discoveryReducer', () => {
       phase: 'winner',
     });
     expect(discoveryReducer(announced, { type: 'FINISH_RANDOM' }).view).toEqual({
-      kind: 'detail',
-      mountainId: winnerId,
+      kind: 'closed',
+    });
+    expect(discoveryReducer(announced, { type: 'FINISH_RANDOM' }).selectedMountainId).toBe(winnerId);
+  });
+});
+
+describe('discovery selection lifecycle', () => {
+  const firstId = mountains[0].id;
+  const secondId = mountains[1].id;
+
+  it('selects a map pin without opening detail or requesting camera movement', () => {
+    const selected = discoveryReducer(createInitialDiscoveryState(), {
+      type: 'SELECT_FROM_MAP',
+      mountainId: firstId,
+    });
+
+    expect(selected.selectedMountainId).toBe(firstId);
+    expect(selected.view).toEqual({ kind: 'closed' });
+    expect(selected.cameraRequest).toBeUndefined();
+  });
+
+  it('selects a result atomically with detail, focus, and a one-shot camera request', () => {
+    const selected = discoveryReducer(createInitialDiscoveryState(), {
+      type: 'SELECT_FROM_LIST',
+      mountainId: firstId,
+    });
+
+    expect(selected.selectedMountainId).toBe(firstId);
+    expect(selected.view).toEqual({ kind: 'detail' });
+    expect(selected.cameraRequest).toEqual({
+      mountainId: firstId,
+      revision: 1,
+      reason: 'list-selection',
+    });
+    expect(selected.focusRequest).toEqual({ target: 'detail-heading', revision: 1 });
+  });
+
+  it('refuses to open an empty detail and keeps selection through mobile surface close', () => {
+    const initial = createInitialDiscoveryState();
+    expect(discoveryReducer(initial, { type: 'OPEN_SELECTED_DETAIL' })).toBe(initial);
+
+    const detail = discoveryReducer(
+      discoveryReducer(initial, { type: 'SELECT_FROM_MAP', mountainId: firstId }),
+      { type: 'OPEN_SELECTED_DETAIL' },
+    );
+    const closed = discoveryReducer(detail, { type: 'CLOSE_MOBILE_SURFACE' });
+
+    expect(closed.selectedMountainId).toBe(firstId);
+    expect(closed.view).toEqual({ kind: 'closed' });
+    expect(closed.focusRequest?.target).toBe('info-detail-button');
+  });
+
+  it('clears selection only when filters actually change', () => {
+    const selected = discoveryReducer(createInitialDiscoveryState(), {
+      type: 'SELECT_FROM_MAP',
+      mountainId: firstId,
+    });
+    const unchanged = discoveryReducer(
+      discoveryReducer(selected, { type: 'OPEN_FILTERS' }),
+      { type: 'APPLY_FILTERS' },
+    );
+    expect(unchanged.selectedMountainId).toBe(firstId);
+
+    const edited = discoveryReducer(
+      discoveryReducer(unchanged, { type: 'OPEN_FILTERS' }),
+      { type: 'UPDATE_DRAFT_FILTERS', filters: { region: ['gangwon'] } },
+    );
+    const changed = discoveryReducer(edited, { type: 'APPLY_FILTERS' });
+    expect(changed.selectedMountainId).toBeUndefined();
+    expect(changed.view).toEqual({ kind: 'results' });
+  });
+
+  it('acknowledges only the matching one-shot request revision', () => {
+    const selected = discoveryReducer(createInitialDiscoveryState(), {
+      type: 'SELECT_FROM_LIST',
+      mountainId: firstId,
+    });
+    const stale = discoveryReducer(selected, { type: 'CAMERA_REQUEST_HANDLED', revision: 0 });
+    const handled = discoveryReducer(stale, { type: 'CAMERA_REQUEST_HANDLED', revision: 1 });
+
+    expect(stale.cameraRequest).toEqual(selected.cameraRequest);
+    expect(handled.cameraRequest).toBeUndefined();
+  });
+
+  it('preserves selection for completion availability but clears it for a user identity change', () => {
+    const selected = discoveryReducer(createInitialDiscoveryState(), {
+      type: 'SELECT_FROM_MAP',
+      mountainId: firstId,
+    });
+    const unavailable = discoveryReducer(selected, {
+      type: 'COMPLETION_FILTER_AVAILABILITY_CHANGED',
+      available: false,
+    });
+    expect(unavailable.selectedMountainId).toBe(firstId);
+
+    const identityChanged = discoveryReducer(unavailable, {
+      type: 'AUTH_IDENTITY_CHANGED',
+      isAuthenticated: true,
+    });
+    expect(identityChanged.selectedMountainId).toBeUndefined();
+  });
+
+  it('uses only a transient highlight while spinning and selects the winner when finished', () => {
+    const selected = discoveryReducer(createInitialDiscoveryState(), {
+      type: 'SELECT_FROM_MAP',
+      mountainId: firstId,
+    });
+    const started = discoveryReducer(selected, {
+      type: 'START_RANDOM',
+      winnerId: secondId,
+      highlightedId: firstId,
+      sequenceIds: [firstId, secondId],
+    });
+    expect(started.selectedMountainId).toBeUndefined();
+
+    const finished = discoveryReducer(
+      discoveryReducer(started, { type: 'ANNOUNCE_RANDOM_WINNER' }),
+      { type: 'FINISH_RANDOM' },
+    );
+    expect(finished.selectedMountainId).toBe(secondId);
+    expect(finished.view).toEqual({ kind: 'closed' });
+    expect(finished.cameraRequest?.reason).toBe('random-winner');
+  });
+
+  it('opens results with a reveal request and highlights the same selection', () => {
+    const selected = discoveryReducer(createInitialDiscoveryState(), {
+      type: 'SELECT_FROM_MAP',
+      mountainId: firstId,
+    });
+    const results = discoveryReducer(selected, { type: 'OPEN_SELECTED_RESULTS' });
+
+    expect(results.selectedMountainId).toBe(firstId);
+    expect(results.view).toEqual({ kind: 'results' });
+    expect(results.resultRevealRequest).toMatchObject({
+      mountainId: firstId,
+      reason: 'info-bar',
     });
   });
 });

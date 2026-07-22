@@ -125,6 +125,58 @@ button {
   }
 }
 
+@keyframes discovery-sheet-in {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes mobile-info-bar-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes discovery-sheet-out {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 100%, 0);
+    visibility: hidden;
+  }
+}
+
+@keyframes discovery-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes discovery-backdrop-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes confetti-fall {
   0% {
     opacity: 0;
@@ -152,5 +204,11 @@ button {
   40% {
     opacity: 1;
     transform: translateY(-5px);
+  }
+}
+
+@media (max-width: 560px) {
+  .app-feedback-button[data-mobile-info-visible='true'] {
+    bottom: calc(24px + var(--mobile-info-bar-height, 0px));
   }
 }

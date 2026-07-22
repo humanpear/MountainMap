@@ -873,6 +873,7 @@ describe("MountainDetailPage course feedback", () => {
     expect(screen.getByText("평균 소요시간")).toBeInTheDocument();
     expect(screen.getByText("가장 많이 선택한 코스")).toBeInTheDocument();
     expect(screen.getAllByText("약간 어려움").length).toBeGreaterThan(0);
+    expect(screen.queryByText("난이도 약간 어려움")).not.toBeInTheDocument();
     expect(screen.getByText("3시간 40분")).toBeInTheDocument();
     expect(screen.getAllByText("추천코스").length).toBeGreaterThan(0);
     expect(screen.queryByText("많이 언급된 키워드")).not.toBeInTheDocument();
