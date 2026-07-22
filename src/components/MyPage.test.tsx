@@ -307,6 +307,8 @@ describe("MyPage", () => {
       renderMyPage({ activeTab: "reviews" });
 
       expect(await screen.findByText(/original review body/)).toBeInTheDocument();
+      expect(screen.getByText("보통")).toBeInTheDocument();
+      expect(screen.queryByText("난이도 보통")).not.toBeInTheDocument();
       expect(screen.getByText("Trailhead → Summit")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Test Mountain 상세페이지/ })).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /한줄평 수정/ }));

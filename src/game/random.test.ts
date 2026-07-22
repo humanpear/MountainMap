@@ -1,38 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { mountains } from '../data/mountains';
-import { getCandidateIdsForRandomMode, getRandomCandidates, pickRandomMountain } from './random';
+import { pickRandomMountain } from './random';
 
 describe('random mountain selection', () => {
-  it('excludes completed mountains in incomplete mode', () => {
-    const candidates = getRandomCandidates({
-      mountains,
-      completedIds: new Set([mountains[0].id, mountains[1].id]),
-      selectedIds: new Set(),
-      mode: 'incomplete'
-    });
-
-    expect(candidates).toHaveLength(mountains.length - 2);
-    expect(candidates.some((mountain) => mountain.id === mountains[0].id)).toBe(false);
-  });
-
-  it('uses only manually selected candidates in selected mode', () => {
-    const selectedIds = new Set([mountains[2].id, mountains[4].id]);
-    const candidates = getRandomCandidates({
-      mountains,
-      completedIds: new Set(),
-      selectedIds,
-      mode: 'selected'
-    });
-
-    expect(candidates.map((mountain) => mountain.id).sort()).toEqual([...selectedIds].sort());
-  });
-
   it('returns a deterministic winner when random is injected', () => {
     const result = pickRandomMountain({
       mountains,
-      completedIds: new Set(),
-      selectedIds: new Set(),
-      mode: 'all',
       random: () => 0
     });
 
@@ -40,23 +13,20 @@ describe('random mountain selection', () => {
     expect(result?.sequence.at(-1)?.id).toBe(mountains[0].id);
   });
 
-  it('returns null when selected mode has no candidates', () => {
+  it('returns null when the current filtered result has no candidates', () => {
     const result = pickRandomMountain({
-      mountains,
-      completedIds: new Set(),
-      selectedIds: new Set(),
-      mode: 'selected',
+      mountains: [],
       random: () => 0
     });
 
     expect(result).toBeNull();
   });
 
-  it('clears manually selected candidates when leaving selected mode', () => {
-    const selectedIds = new Set([mountains[2].id, mountains[4].id]);
+  it('never selects a mountain outside the supplied filtered results', () => {
+    const filteredResults = [mountains[3], mountains[8], mountains[13]];
+    const result = pickRandomMountain({ mountains: filteredResults, random: () => 0.99 });
 
-    expect([...getCandidateIdsForRandomMode('all', selectedIds)]).toEqual([]);
-    expect([...getCandidateIdsForRandomMode('incomplete', selectedIds)]).toEqual([]);
-    expect([...getCandidateIdsForRandomMode('selected', selectedIds)].sort()).toEqual([...selectedIds].sort());
+    expect(filteredResults).toContain(result?.winner);
+    expect(result?.sequence.every((mountain) => filteredResults.includes(mountain))).toBe(true);
   });
 });

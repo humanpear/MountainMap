@@ -56,6 +56,7 @@ import {
   updateMountainReview,
   type MountainReview,
 } from "../services/mountainReviews";
+import { mountainReviewDifficulties } from "../types";
 import type {
   ForestTripCourseKind,
   Mountain,
@@ -73,6 +74,7 @@ type MountainDetailPageProps = {
   isCompleted: boolean;
   session?: Session | null;
   onBack: () => void;
+  onReviewDataChange?: () => void;
   onShowOnMap: (mountain: Mountain) => void;
   onToggleCompleted: (mountain: Mountain) => void;
 };
@@ -262,13 +264,7 @@ const difficultyThemeClass: Record<MountainGuideDifficulty, string> = {
   unknown: "border-[#cfd7dc] bg-[#eef2f4] text-[#65717a]",
 };
 
-const difficultyEvaluationOptions = [
-  "쉬움",
-  "보통",
-  "약간 어려움",
-  "어려움",
-  "매우 어려움",
-];
+const difficultyEvaluationOptions = mountainReviewDifficulties;
 
 const difficultyEvaluationIconSrcs = [
   "/course-feedback-icons/difficulty/easy.png",
@@ -521,6 +517,7 @@ export function MountainDetailPage({
   isCompleted,
   session = null,
   onBack,
+  onReviewDataChange,
   onShowOnMap,
   onToggleCompleted,
 }: MountainDetailPageProps) {
@@ -567,6 +564,7 @@ export function MountainDetailPage({
       isCompleted={isCompleted}
       session={session}
       onBack={onBack}
+      onReviewDataChange={onReviewDataChange}
       onShowOnMap={onShowOnMap}
       onToggleCompleted={onToggleCompleted}
       onRouteOpen={(route) => setActiveRouteName(route.name)}
@@ -586,6 +584,7 @@ function MountainMainDetailView({
   isCompleted,
   session,
   onBack,
+  onReviewDataChange,
   onShowOnMap,
   onToggleCompleted,
   onRouteOpen,
@@ -601,6 +600,7 @@ function MountainMainDetailView({
   isCompleted: boolean;
   session: Session | null;
   onBack: () => void;
+  onReviewDataChange?: () => void;
   onShowOnMap: (mountain: Mountain) => void;
   onToggleCompleted: (mountain: Mountain) => void;
   onRouteOpen: (route: MountainGuideRoute) => void;
@@ -887,6 +887,7 @@ function MountainMainDetailView({
               session={session}
               mode={mainTab === "reviews" ? "full" : "preview"}
               onShowAllReviews={() => setMainTab("reviews")}
+              onReviewDataChange={onReviewDataChange}
               onRouteDifficultyLabelsChange={handleRouteDifficultyLabelsChange}
             />
           }
@@ -1275,6 +1276,7 @@ function CourseFeedbackSection({
   session,
   mode,
   onShowAllReviews,
+  onReviewDataChange,
   onRouteDifficultyLabelsChange,
 }: {
   mountain: Mountain;
@@ -1282,6 +1284,7 @@ function CourseFeedbackSection({
   session: Session | null;
   mode: "preview" | "full";
   onShowAllReviews: () => void;
+  onReviewDataChange?: () => void;
   onRouteDifficultyLabelsChange?: (difficultyLabels: RouteDifficultyLabelMap) => void;
 }) {
   const feedbackRoutes = useMemo(
@@ -1555,6 +1558,7 @@ function CourseFeedbackSection({
       setIsFullReviewFormOpen(false);
       setMobileReviewStep(1);
       setReviewState("ready");
+      onReviewDataChange?.();
     } catch (error) {
       setFormMessage(getReviewErrorMessage(error, editingReview ? "update" : "save"));
     } finally {
@@ -1585,6 +1589,7 @@ function CourseFeedbackSection({
       if (editingReviewId === review.id) {
         resetReviewForm();
       }
+      onReviewDataChange?.();
     } catch (error) {
       setListMessage(getReviewErrorMessage(error, "delete"));
     } finally {
@@ -2451,6 +2456,7 @@ function ReviewFilterBar({
                 : "border-[#d8e0da] bg-white text-[#18221d] hover:bg-[#f7faf8]",
             )}
             type="button"
+            aria-label={`${option.label} ${option.count}`}
             aria-pressed={isActive}
             onClick={() => onFilterChange(option.kind)}
           >
@@ -2933,7 +2939,7 @@ function ReviewCard({
               getReviewDifficultyBadgeClass(review.difficulty),
             )}
           >
-            난이도 {review.difficulty}
+            {review.difficulty}
           </span>
           <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-[#d8e0da] bg-[#f1f5f7] px-2.5 font-numeric text-[12px] font-semibold text-[#49524d]">
             <Clock size={13} />
@@ -3066,7 +3072,7 @@ function ReviewPhotoLightbox({
 
   return (
     <div
-      className="fixed inset-0 z-[90] grid h-screen w-screen place-items-center bg-black/80 p-4"
+      className="fixed inset-0 z-[90] grid h-screen w-screen place-items-center bg-black/85 p-4"
       role="dialog"
       aria-modal="true"
       aria-label={`${review.routeName} 한줄평 사진 확대`}
@@ -4723,7 +4729,7 @@ function EvaluationPicker({
 }: {
   className?: string;
   title: string;
-  options: string[];
+  options: readonly string[];
   activeIndex: number;
   onChange: (index: number) => void;
 }) {

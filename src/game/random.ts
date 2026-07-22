@@ -1,41 +1,31 @@
-import type { Mountain, RandomMode, RandomResult } from '../types';
+import type { Mountain, RandomResult } from '../types';
 
 type RandomOptions = {
-  mountains: Mountain[];
-  completedIds: Set<string>;
-  selectedIds: Set<string>;
-  mode: RandomMode;
+  mountains: readonly Mountain[];
   random?: () => number;
 };
 
-export function getRandomCandidates({
-  mountains,
-  completedIds,
-  selectedIds,
-  mode
-}: Omit<RandomOptions, 'random'>): Mountain[] {
-  if (mode === 'incomplete') {
-    return mountains.filter((mountain) => !completedIds.has(mountain.id));
-  }
+export const randomRouletteDurationMs = 5_000;
 
-  if (mode === 'selected') {
-    return mountains.filter((mountain) => selectedIds.has(mountain.id));
-  }
+export function getRandomTickDelays(sequenceLength: number) {
+  const safeLength = Math.max(1, Math.floor(sequenceLength));
+  const weights = Array.from(
+    { length: safeLength },
+    (_, index) => Math.min(50 + index, 72),
+  );
+  const totalWeight = weights.reduce((total, weight) => total + weight, 0);
+  const delays = weights.map((weight) =>
+    Math.round((randomRouletteDurationMs * weight) / totalWeight),
+  );
+  const roundedTotal = delays.reduce((total, delay) => total + delay, 0);
+  delays[delays.length - 1] += randomRouletteDurationMs - roundedTotal;
 
-  return mountains;
-}
-
-export function getCandidateIdsForRandomMode(mode: RandomMode, selectedIds: Set<string>) {
-  if (mode !== 'selected') {
-    return new Set<string>();
-  }
-
-  return new Set(selectedIds);
+  return delays;
 }
 
 export function pickRandomMountain(options: RandomOptions): RandomResult | null {
   const random = options.random ?? Math.random;
-  const candidates = getRandomCandidates(options);
+  const candidates = options.mountains;
 
   if (candidates.length === 0) {
     return null;

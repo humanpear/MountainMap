@@ -45,6 +45,7 @@ import {
   updateMountainReview,
   type MountainReview,
 } from "../services/mountainReviews";
+import { mountainReviewDifficulties } from "../types";
 import type { CompletionRecord, Mountain, MountainGuideDifficulty, MountainGuideRoute } from "../types";
 
 type MyPageProps = {
@@ -53,6 +54,7 @@ type MyPageProps = {
   completionRecords: CompletionRecord[];
   onCompletionRecordsChange: (records: CompletionRecord[]) => void;
   onProfileChange?: (profile: UserProfile) => void;
+  onReviewDataChange?: () => void;
   onTabChange?: (tab: MyPageTab) => void;
   onBackToMap: () => void;
   onOpenMountain: (mountain: Mountain) => void;
@@ -68,7 +70,7 @@ type MyPageReviewLightboxState = {
 };
 
 const manualCourseRouteName = "코스 직접 입력";
-const difficultyEvaluationOptions = ["쉬움", "보통", "약간 어려움", "어려움", "매우 어려움"];
+const difficultyEvaluationOptions = mountainReviewDifficulties;
 const difficultyEvaluationIconSrcs = [
   "/course-feedback-icons/difficulty/easy.png",
   "/course-feedback-icons/difficulty/normal.png",
@@ -191,6 +193,7 @@ export function MyPage({
   completionRecords,
   onCompletionRecordsChange,
   onProfileChange,
+  onReviewDataChange,
   onTabChange,
   onBackToMap,
   onOpenMountain,
@@ -394,6 +397,7 @@ export function MyPage({
       reviews={reviews}
       currentUserId={session.user.id}
       onReviewsChange={setReviews}
+      onReviewDataChange={onReviewDataChange}
       onOpenMountain={onOpenMountain}
       onStatusMessage={setMessage}
     />
@@ -824,12 +828,14 @@ function EditableUserReviewsPanel({
   reviews,
   currentUserId,
   onReviewsChange,
+  onReviewDataChange,
   onOpenMountain,
   onStatusMessage,
 }: {
   reviews: UserReviewSummary[];
   currentUserId: string;
   onReviewsChange: (reviews: UserReviewSummary[]) => void;
+  onReviewDataChange?: () => void;
   onOpenMountain: (mountain: Mountain) => void;
   onStatusMessage: (message: string | null) => void;
 }) {
@@ -960,6 +966,7 @@ function EditableUserReviewsPanel({
       const nextReview = toUserReviewSummary(updatedReview, editingReview);
 
       onReviewsChange(reviews.map((review) => (review.id === nextReview.id ? nextReview : review)));
+      onReviewDataChange?.();
       closeEditor();
       onStatusMessage("한줄평을 수정했습니다.");
     } catch (error) {
@@ -985,6 +992,7 @@ function EditableUserReviewsPanel({
     try {
       await deleteMountainReview(toMountainReview(review));
       onReviewsChange(reviews.filter((currentReview) => currentReview.id !== review.id));
+      onReviewDataChange?.();
       if (editingReview?.id === review.id) {
         closeEditor();
       }
@@ -1117,7 +1125,7 @@ function EditableUserReviewsPanel({
 
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={cn("inline-flex min-h-6 items-center rounded-full border px-2 text-[11px] font-semibold text-[#2d3932]", getReviewDifficultyBadgeClass(review.difficulty))}>
-                      난이도 {review.difficulty}
+                      {review.difficulty}
                     </span>
                     <span className="inline-flex min-h-6 items-center gap-1 rounded-full border border-[#d8e0da] bg-[#f1f5f7] px-2 font-numeric text-[11px] font-semibold text-[#49524d]">
                       <Clock size={13} />
@@ -1827,7 +1835,7 @@ function MyPageEvaluationPicker({
 }: {
   className?: string;
   title: string;
-  options: string[];
+  options: readonly string[];
   activeIndex: number;
   onChange: (index: number) => void;
 }) {

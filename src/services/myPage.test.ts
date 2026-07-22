@@ -99,6 +99,37 @@ describe("my page service", () => {
     expect(query.select).toHaveBeenCalledWith(expect.stringContaining("route_start_point"));
     expect(query.select).toHaveBeenCalledWith(expect.stringContaining("route_end_point"));
   });
+
+  it("rejects a user review whose difficulty is outside the approved five values", async () => {
+    const query = createReviewQueryResult({
+      data: [
+        {
+          id: "review-invalid-difficulty",
+          user_id: "user-1",
+          mountain_id: "0000000001",
+          route_name: "추천 코스",
+          route_start_point: null,
+          route_end_point: null,
+          author_name: "테스트 등산객",
+          difficulty: "초보자용",
+          duration_minutes: 180,
+          duration_label: "3시간",
+          body: "잘못된 난이도 값이 포함된 리뷰",
+          image_urls: [],
+          created_at: "2026-06-01T00:00:00.000Z",
+          updated_at: "2026-06-01T00:00:00.000Z",
+        },
+      ],
+      error: null,
+    });
+    supabaseMock.from.mockReturnValue(query);
+    profileMocks.fetchPublicProfiles.mockResolvedValue(new Map());
+    const { fetchUserReviews } = await import("./myPage");
+
+    await expect(fetchUserReviews("user-1")).rejects.toThrow(
+      "Invalid mountain review difficulty",
+    );
+  });
 });
 
 function createCompletedQueryResult(result: { data: unknown; error: unknown }) {

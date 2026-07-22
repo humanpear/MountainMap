@@ -1,22 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../lib/classNames';
+import type { DiscoveryState } from '../domain/mountainDiscovery';
 import { isKakaoMapConfigured } from '../services/env';
 import { loadKakaoMaps } from '../services/kakaoLoader';
 import type { Mountain } from '../types';
 
 type MountainMapProps = {
-  mountains: Mountain[];
+  mountains: readonly Mountain[];
   selectedMountainId?: string;
-  focusedMountainId?: string;
+  cameraRequest?: DiscoveryState['cameraRequest'];
+  fitResultsRevision: number;
+  resetCameraRevision?: number;
   layoutKey?: string;
-  refreshKey?: number;
-  completedIds: Set<string>;
-  completionCounts: Map<string, number>;
-  candidateIds: Set<string>;
+  completedIds: ReadonlySet<string>;
+  completionCounts: ReadonlyMap<string, number>;
   highlightedId?: string;
-  selectionMode: boolean;
   onMountainSelect: (mountain: Mountain) => void;
-  onCandidateToggle: (mountain: Mountain) => void;
+  onCameraRequestHandled?: (revision: number) => void;
+};
+
+type KakaoMarkerOverlayEntry = {
+  mountain: Mountain;
+  element: HTMLButtonElement;
+  overlay: KakaoCustomOverlay;
+  triangleBack: HTMLSpanElement;
+  triangleFront: HTMLSpanElement;
+  medals: HTMLSpanElement;
+  label: HTMLSpanElement;
 };
 
 const KOREA_BOUNDS = {
@@ -32,15 +42,22 @@ const INITIAL_MAP_CENTER = {
 };
 
 const INITIAL_MAP_LEVEL = 12;
-const MOBILE_INITIAL_MAP_LEVEL = 13;
+const MOBILE_MAX_MAP_LEVEL = 13;
+const MOBILE_INITIAL_MAP_LEVEL = MOBILE_MAX_MAP_LEVEL;
 const MOBILE_MAP_QUERY = '(max-width: 900px)';
+const SINGLE_RESULT_MAP_LEVEL = 7;
+const MAP_VISIBLE_MARGIN = 48;
 
-function getInitialMapLevel() {
+function isMobileMapLayout() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-    return INITIAL_MAP_LEVEL;
+    return false;
   }
 
-  return window.matchMedia(MOBILE_MAP_QUERY).matches ? MOBILE_INITIAL_MAP_LEVEL : INITIAL_MAP_LEVEL;
+  return window.matchMedia(MOBILE_MAP_QUERY).matches;
+}
+
+function getInitialMapLevel() {
+  return isMobileMapLayout() ? MOBILE_INITIAL_MAP_LEVEL : INITIAL_MAP_LEVEL;
 }
 
 const markerClass = {
@@ -50,16 +67,15 @@ const markerClass = {
   grid:
     'absolute inset-0 bg-[linear-gradient(rgba(47,107,79,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(47,107,79,0.08)_1px,transparent_1px)] bg-[length:56px_56px]',
   label:
-    'absolute bottom-[92px] left-5 max-w-[300px] rounded-lg border border-[#d8e0da] bg-white/90 px-3 py-2.5 text-[13px] leading-[18px] text-[#627168] max-[560px]:left-3 max-[560px]:right-3 max-[560px]:max-w-none',
+    'absolute bottom-[calc(92px+var(--mobile-info-bar-height,0px))] left-5 max-w-[300px] rounded-lg border border-[#d8e0da] bg-white/90 px-3 py-2.5 text-[13px] leading-[18px] text-[#627168] max-[560px]:left-3 max-[560px]:right-3 max-[560px]:max-w-none',
   marker:
-    'absolute block h-9 w-9 -translate-x-1/2 -translate-y-1/2 overflow-visible rounded-full border-2 border-[#2f6b4f] bg-white p-0 text-[#2f6b4f] shadow-[0_8px_20px_rgba(24,34,29,0.18)] transition-[transform,box-shadow,background,border-color] duration-150 ease-out',
+    "absolute block h-9 w-9 -translate-x-1/2 -translate-y-1/2 overflow-visible rounded-full border-2 border-[#2f6b4f] bg-white p-0 text-[#2f6b4f] shadow-[0_8px_20px_rgba(24,34,29,0.18)] transition-[transform,box-shadow,background,border-color] duration-150 ease-out after:absolute after:-inset-1 after:rounded-full after:content-['']",
   kakaoMarker:
-    'relative block h-9 w-9 overflow-visible rounded-full border-2 border-[#2f6b4f] bg-white p-0 text-[#2f6b4f] shadow-[0_8px_20px_rgba(24,34,29,0.18)] transition-[transform,box-shadow,background,border-color] duration-150 ease-out',
+    "relative block h-9 w-9 overflow-visible rounded-full border-2 border-[#2f6b4f] bg-white p-0 text-[#2f6b4f] shadow-[0_8px_20px_rgba(24,34,29,0.18)] transition-[transform,box-shadow,background,border-color] duration-150 ease-out after:absolute after:-inset-1 after:rounded-full after:content-['']",
   selected:
     'z-[6] scale-105 border-[#d7922b] bg-[#fff9ed] shadow-[0_0_0_4px_rgba(255,255,255,0.94),0_0_0_9px_rgba(215,146,43,0.42),0_12px_28px_rgba(24,34,29,0.2)]',
   kakaoSelected:
     'z-[6] scale-110 border-[#d7922b] bg-[#fff9ed] shadow-[0_0_0_4px_rgba(255,255,255,0.94),0_0_0_9px_rgba(215,146,43,0.42),0_12px_28px_rgba(24,34,29,0.2)]',
-  candidate: 'border-[#d7922b]',
   completed: 'border-[#1f8a5b]',
   triangleBack: 'absolute bottom-[7px] left-1 z-[2] h-0 w-0 border-x-8 border-b-[14px] border-x-transparent',
   triangleFront: 'absolute bottom-[7px] left-2 z-[1] h-0 w-0 border-x-[10px] border-b-[20px] border-x-transparent',
@@ -74,14 +90,34 @@ const markerClass = {
 export function MountainMap(props: MountainMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<KakaoMap | null>(null);
-  const overlaysRef = useRef<KakaoCustomOverlay[]>([]);
+  const overlaysRef = useRef<Map<string, KakaoMarkerOverlayEntry>>(new Map());
+  const onMountainSelectRef = useRef(props.onMountainSelect);
+  const onCameraRequestHandledRef = useRef(props.onCameraRequestHandled ?? (() => undefined));
+  const lastFitResultsRevisionRef = useRef(0);
+  const lastResetCameraRevisionRef = useRef(0);
+  const lastCameraRequestRevisionRef = useRef(0);
+  const previousSelectedIdRef = useRef(props.selectedMountainId);
+  const previousHighlightedIdRef = useRef(props.highlightedId);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
-  const focusedMountain = useMemo(
-    () => props.mountains.find((mountain) => mountain.id === props.focusedMountainId),
-    [props.mountains, props.focusedMountainId]
+  const mountainIdsKey = useMemo(
+    () => props.mountains.map((mountain) => mountain.id).sort().join('|'),
+    [props.mountains],
   );
+  const completedIdsKey = useMemo(
+    () => [...props.completedIds].sort().join('|'),
+    [props.completedIds],
+  );
+  const completionCountsKey = useMemo(
+    () => [...props.completionCounts.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([mountainId, count]) => `${mountainId}:${count}`)
+      .join('|'),
+    [props.completionCounts],
+  );
+  onMountainSelectRef.current = props.onMountainSelect;
+  onCameraRequestHandledRef.current = props.onCameraRequestHandled ?? (() => undefined);
 
   useEffect(() => {
     if (!isKakaoMapConfigured || !containerRef.current) {
@@ -101,6 +137,9 @@ export function MountainMap(props: MountainMapProps) {
           level: getInitialMapLevel(),
           tileAnimation: true
         });
+        if (isMobileMapLayout()) {
+          mapRef.current.setMaxLevel(MOBILE_MAX_MAP_LEVEL);
+        }
         mapRef.current.setZoomable(true);
         mapRef.current.addControl(new maps.ZoomControl(), maps.ControlPosition.RIGHT);
         setMapReady(true);
@@ -112,8 +151,8 @@ export function MountainMap(props: MountainMapProps) {
       });
     return () => {
       isActive = false;
-      overlaysRef.current.forEach((overlay) => overlay.setMap(null));
-      overlaysRef.current = [];
+      overlaysRef.current.forEach(({ overlay }) => overlay.setMap(null));
+      overlaysRef.current.clear();
       mapRef.current = null;
     };
   }, []);
@@ -123,49 +162,149 @@ export function MountainMap(props: MountainMapProps) {
       return;
     }
 
-    overlaysRef.current.forEach((overlay) => overlay.setMap(null));
-    const nextOverlays = props.mountains.map((mountain) => {
+    overlaysRef.current.forEach(({ overlay }) => overlay.setMap(null));
+    const nextOverlays = new Map<string, KakaoMarkerOverlayEntry>();
+    props.mountains.forEach((mountain) => {
       const element = document.createElement('button');
       element.type = 'button';
       element.className = getMarkerClass(mountain, props, true);
       element.setAttribute('aria-label', `${mountain.name} 선택`);
-      appendMarkerGlyph(element, getMarkerTone(mountain, props));
-      appendMedals(element, props.completionCounts.get(mountain.id) ?? 0);
-      appendLabel(element, mountain.name, isMarkerActive(mountain, props));
+      const [triangleBack, triangleFront] = appendMarkerGlyph(element, getMarkerTone(mountain, props));
+      const medals = appendMedals(element, props.completionCounts.get(mountain.id) ?? 0);
+      const label = appendLabel(element, mountain.name, isMarkerActive(mountain, props));
       element.addEventListener('click', () => {
-        if (props.selectionMode) {
-          props.onCandidateToggle(mountain);
-        }
-        props.onMountainSelect(mountain);
+        onMountainSelectRef.current(mountain);
       });
 
       const overlay = new window.kakao.maps.CustomOverlay({
         position: new window.kakao.maps.LatLng(mountain.latitude, mountain.longitude),
         content: element,
-        yAnchor: 0.9,
+          yAnchor: 0.9,
         zIndex: props.highlightedId === mountain.id ? 10 : 1
       });
       overlay.setMap(mapRef.current);
-      return overlay;
+      nextOverlays.set(mountain.id, {
+        mountain,
+        element,
+        overlay,
+        triangleBack,
+        triangleFront,
+        medals,
+        label,
+      });
     });
     overlaysRef.current = nextOverlays;
+    previousSelectedIdRef.current = props.selectedMountainId;
+    previousHighlightedIdRef.current = props.highlightedId;
 
     return () => {
-      nextOverlays.forEach((overlay) => overlay.setMap(null));
+      nextOverlays.forEach(({ overlay }) => overlay.setMap(null));
       if (overlaysRef.current === nextOverlays) {
-        overlaysRef.current = [];
+        overlaysRef.current = new Map();
       }
     };
   }, [
     mapReady,
+    mountainIdsKey,
+  ]);
+
+  useEffect(() => {
+    if (!mapReady) {
+      return;
+    }
+
+    overlaysRef.current.forEach((entry) => updateMarkerOverlay(entry, props));
+  }, [
+    mapReady,
+    mountainIdsKey,
+    completedIdsKey,
+    completionCountsKey,
+  ]);
+
+  useEffect(() => {
+    if (!mapReady) {
+      return;
+    }
+
+    const changedIds = new Set([
+      previousSelectedIdRef.current,
+      props.selectedMountainId,
+      previousHighlightedIdRef.current,
+      props.highlightedId,
+    ]);
+    changedIds.forEach((mountainId) => {
+      if (!mountainId) {
+        return;
+      }
+      const entry = overlaysRef.current.get(mountainId);
+      if (entry) {
+        updateMarkerOverlay(entry, props);
+      }
+    });
+    previousSelectedIdRef.current = props.selectedMountainId;
+    previousHighlightedIdRef.current = props.highlightedId;
+  }, [mapReady, mountainIdsKey, props.highlightedId, props.selectedMountainId]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !containerRef.current || !window.kakao?.maps) {
+      return;
+    }
+
+    const resetCameraRevision = props.resetCameraRevision ?? 0;
+    if (resetCameraRevision !== lastResetCameraRevisionRef.current) {
+      lastResetCameraRevisionRef.current = resetCameraRevision;
+      lastFitResultsRevisionRef.current = props.fitResultsRevision;
+      mapRef.current.setCenter(
+        new window.kakao.maps.LatLng(INITIAL_MAP_CENTER.latitude, INITIAL_MAP_CENTER.longitude),
+      );
+      mapRef.current.setLevel(getInitialMapLevel());
+      return;
+    }
+
+    if (props.fitResultsRevision === lastFitResultsRevisionRef.current) {
+      return;
+    }
+
+    lastFitResultsRevisionRef.current = props.fitResultsRevision;
+    if (props.mountains.length === 0) {
+      return;
+    }
+
+    const map = mapRef.current;
+    if (props.mountains.length === 1) {
+      const mountain = props.mountains[0];
+      const position = new window.kakao.maps.LatLng(mountain.latitude, mountain.longitude);
+      const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+      if (prefersReducedMotion) {
+        map.setCenter(position);
+      } else {
+        map.panTo(position);
+      }
+      map.setLevel(SINGLE_RESULT_MAP_LEVEL, { animate: !prefersReducedMotion });
+      return;
+    }
+
+    const bounds = new window.kakao.maps.LatLngBounds();
+    props.mountains.forEach((mountain) => {
+      bounds.extend(new window.kakao.maps.LatLng(mountain.latitude, mountain.longitude));
+    });
+
+    const isMobile = window.matchMedia?.(MOBILE_MAP_QUERY).matches;
+    const mapHeight = containerRef.current.getBoundingClientRect().height || window.innerHeight;
+    map.setBounds(
+      bounds,
+      isMobile ? 88 : 64,
+      isMobile ? 32 : 64,
+      isMobile ? Math.min(320, Math.round(mapHeight * 0.42)) : 64,
+      isMobile ? 32 : 64,
+    );
+  }, [
+    mapReady,
+    mountainIdsKey,
+    props.fitResultsRevision,
     props.mountains,
-    props.selectedMountainId,
-    props.completedIds,
-    props.completionCounts,
-    props.candidateIds,
-    props.highlightedId,
-    props.refreshKey,
-    props.selectionMode
+    props.resetCameraRevision,
   ]);
 
   useEffect(() => {
@@ -192,23 +331,12 @@ export function MountainMap(props: MountainMapProps) {
     window.visualViewport?.addEventListener('resize', refreshMapLayout);
     window.visualViewport?.addEventListener('scroll', refreshMapLayout);
 
-    if (typeof ResizeObserver === 'undefined') {
-      return () => {
-        window.removeEventListener('resize', refreshMapLayout);
-        window.removeEventListener('orientationchange', refreshMapLayout);
-        window.visualViewport?.removeEventListener('resize', refreshMapLayout);
-        window.visualViewport?.removeEventListener('scroll', refreshMapLayout);
-        if (frameId !== null) {
-          window.cancelAnimationFrame(frameId);
-        }
-      };
-    }
-
-    const resizeObserver = new ResizeObserver(refreshMapLayout);
-    resizeObserver.observe(containerRef.current);
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(refreshMapLayout);
+    resizeObserver?.observe(containerRef.current);
 
     return () => {
-      resizeObserver.disconnect();
+      resizeObserver?.disconnect();
       window.removeEventListener('resize', refreshMapLayout);
       window.removeEventListener('orientationchange', refreshMapLayout);
       window.visualViewport?.removeEventListener('resize', refreshMapLayout);
@@ -226,13 +354,6 @@ export function MountainMap(props: MountainMapProps) {
 
     const refreshMapLayout = () => {
       mapRef.current?.relayout();
-      if (!focusedMountain || !mapRef.current) {
-        return;
-      }
-
-      const currentLevel = mapRef.current.getLevel();
-      mapRef.current.setCenter(new window.kakao.maps.LatLng(focusedMountain.latitude, focusedMountain.longitude));
-      mapRef.current.setLevel(currentLevel, { animate: false });
     };
 
     const frameId = window.requestAnimationFrame(refreshMapLayout);
@@ -242,28 +363,181 @@ export function MountainMap(props: MountainMapProps) {
       window.cancelAnimationFrame(frameId);
       window.clearTimeout(timeoutId);
     };
-  }, [focusedMountain, mapReady, props.layoutKey, props.refreshKey]);
+  }, [mapReady, props.layoutKey]);
 
+  /*
+   * cameraRequest pending -> sample persistent occluders -> pan/setCenter -> ACK
+   *                                  └─ missing mobile layout: retry one frame
+   * A selected marker alone never enters this path.
+   */
   useEffect(() => {
-    if (!mapReady || !focusedMountain || !mapRef.current || !window.kakao?.maps) {
+    const request = props.cameraRequest;
+    if (
+      !request
+      || request.revision === lastCameraRequestRevisionRef.current
+      || !mapReady
+      || !mapRef.current
+      || !containerRef.current
+      || !window.kakao?.maps
+    ) {
       return;
     }
 
-    const currentLevel = mapRef.current.getLevel();
-    mapRef.current.setCenter(new window.kakao.maps.LatLng(focusedMountain.latitude, focusedMountain.longitude));
-    mapRef.current.setLevel(currentLevel, { animate: false });
-  }, [mapReady, focusedMountain]);
+    let retryFrameId: number | null = null;
+    const executeRequest = (attempt: number) => {
+      const map = mapRef.current;
+      const container = containerRef.current;
+      const mountain = props.mountains.find((candidate) => candidate.id === request.mountainId);
+      if (!map || !container || !mountain || props.cameraRequest?.revision !== request.revision) {
+        if (!mountain) {
+          lastCameraRequestRevisionRef.current = request.revision;
+          onCameraRequestHandledRef.current(request.revision);
+        }
+        return;
+      }
+
+      const containerRect = container.getBoundingClientRect();
+      const persistentRects = Array.from(
+        document.querySelectorAll<HTMLElement>('[data-map-occluder="persistent"]'),
+      )
+        .map((element) => element.getBoundingClientRect())
+        .filter((rect) => rect.width > 0 && rect.height > 0);
+
+      if (isMobileMapLayout() && persistentRects.length === 0 && attempt === 0) {
+        retryFrameId = window.requestAnimationFrame(() => executeRequest(1));
+        return;
+      }
+
+      const position = new window.kakao.maps.LatLng(mountain.latitude, mountain.longitude);
+      const projection = map.getProjection();
+      const usesContainerProjection = Boolean(
+        projection.containerPointFromCoords && projection.coordsFromContainerPoint,
+      );
+      const markerPoint = usesContainerProjection
+        ? projection.containerPointFromCoords!(position)
+        : projection.pointFromCoords(position);
+      let visibleLeft = MAP_VISIBLE_MARGIN;
+      let visibleTop = MAP_VISIBLE_MARGIN;
+      let visibleRight = containerRect.width - MAP_VISIBLE_MARGIN;
+      let visibleBottom = containerRect.height - MAP_VISIBLE_MARGIN;
+
+      for (const rect of persistentRects) {
+        const overlapsHorizontally = rect.left < containerRect.right && rect.right > containerRect.left;
+        const overlapsVertically = rect.top < containerRect.bottom && rect.bottom > containerRect.top;
+        if (!overlapsHorizontally || !overlapsVertically) {
+          continue;
+        }
+
+        if (rect.top >= containerRect.top + containerRect.height / 2) {
+          visibleBottom = Math.min(
+            visibleBottom,
+            rect.top - containerRect.top - MAP_VISIBLE_MARGIN,
+          );
+        } else if (rect.bottom <= containerRect.top + containerRect.height / 2) {
+          visibleTop = Math.max(
+            visibleTop,
+            rect.bottom - containerRect.top + MAP_VISIBLE_MARGIN,
+          );
+        }
+        if (rect.left >= containerRect.left + containerRect.width / 2) {
+          visibleRight = Math.min(
+            visibleRight,
+            rect.left - containerRect.left - MAP_VISIBLE_MARGIN,
+          );
+        } else if (rect.right <= containerRect.left + containerRect.width / 2) {
+          visibleLeft = Math.max(
+            visibleLeft,
+            rect.right - containerRect.left + MAP_VISIBLE_MARGIN,
+          );
+        }
+      }
+
+      if (isMobileMapLayout() && persistentRects.length === 0) {
+        visibleBottom = Math.max(visibleTop, visibleBottom - 80);
+      }
+
+      const desiredPoint = {
+        x: Math.min(Math.max(markerPoint.x, visibleLeft), Math.max(visibleLeft, visibleRight)),
+        y: Math.min(Math.max(markerPoint.y, visibleTop), Math.max(visibleTop, visibleBottom)),
+      };
+      const isVisible = map.getBounds().contain(position)
+        && markerPoint.x === desiredPoint.x
+        && markerPoint.y === desiredPoint.y;
+
+      if (!isVisible) {
+        const centerPoint = usesContainerProjection
+          ? projection.containerPointFromCoords!(map.getCenter())
+          : projection.pointFromCoords(map.getCenter());
+        const nextCenterPoint = window.kakao.maps.Point
+          ? new window.kakao.maps.Point(
+              centerPoint.x + markerPoint.x - desiredPoint.x,
+              centerPoint.y + markerPoint.y - desiredPoint.y,
+            )
+          : {
+              x: centerPoint.x + markerPoint.x - desiredPoint.x,
+              y: centerPoint.y + markerPoint.y - desiredPoint.y,
+            };
+        const nextCenter = usesContainerProjection
+          ? projection.coordsFromContainerPoint!(nextCenterPoint)
+          : projection.coordsFromPoint(nextCenterPoint);
+        const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReducedMotion) {
+          map.setCenter(nextCenter);
+        } else {
+          map.panTo(nextCenter);
+        }
+      }
+
+      lastCameraRequestRevisionRef.current = request.revision;
+      onCameraRequestHandledRef.current(request.revision);
+    };
+
+    executeRequest(0);
+    return () => {
+      if (retryFrameId !== null) {
+        window.cancelAnimationFrame(retryFrameId);
+      }
+    };
+  }, [mapReady, mountainIdsKey, props.cameraRequest, props.mountains]);
+
+  useEffect(() => {
+    if (!mapError || !props.cameraRequest) {
+      return;
+    }
+    onCameraRequestHandledRef.current(props.cameraRequest.revision);
+  }, [mapError, props.cameraRequest]);
+
+  useEffect(() => {
+    if (isKakaoMapConfigured || !props.cameraRequest) {
+      return;
+    }
+    onCameraRequestHandledRef.current(props.cameraRequest.revision);
+  }, [props.cameraRequest]);
 
   if (!isKakaoMapConfigured || mapError) {
     return <FallbackMap {...props} mapError={mapError} />;
   }
 
-  return <div ref={containerRef} className={markerClass.map} aria-label="카카오 지도" />;
+  return (
+    <div
+      ref={containerRef}
+      className={markerClass.map}
+      data-discovery-map
+      tabIndex={-1}
+      aria-label="카카오 지도"
+    />
+  );
 }
 
 function FallbackMap(props: MountainMapProps & { mapError?: string | null }) {
   return (
-    <div className={markerClass.fallback} role="img" aria-label="개발용 100대 명산 지도">
+    <div
+      className={markerClass.fallback}
+      data-discovery-map
+      tabIndex={-1}
+      role="img"
+      aria-label="개발용 100대 명산 지도"
+    >
       <div className={markerClass.grid} />
       <div className={markerClass.label}>{props.mapError ?? 'Kakao Maps 키가 없어 개발용 지도를 표시합니다.'}</div>
       {props.mountains.map((mountain) => {
@@ -276,12 +550,7 @@ function FallbackMap(props: MountainMapProps & { mapError?: string | null }) {
             type="button"
             className={getMarkerClass(mountain, props)}
             style={{ left: `${left}%`, top: `${top}%` }}
-            onClick={() => {
-              if (props.selectionMode) {
-                props.onCandidateToggle(mountain);
-              }
-              props.onMountainSelect(mountain);
-            }}
+            onClick={() => props.onMountainSelect(mountain)}
             aria-label={`${mountain.name} 선택`}
             title={mountain.name}
           >
@@ -316,22 +585,21 @@ function MarkerMedals({ count }: { count: number }) {
   );
 }
 
-function appendMarkerGlyph(element: HTMLElement, tone: MarkerTone) {
-  for (const className of [cn(markerClass.triangleBack, tone.back), cn(markerClass.triangleFront, tone.front)]) {
+function appendMarkerGlyph(element: HTMLElement, tone: MarkerTone): [HTMLSpanElement, HTMLSpanElement] {
+  const shapes = [cn(markerClass.triangleBack, tone.back), cn(markerClass.triangleFront, tone.front)].map((className) => {
     const shape = document.createElement('span');
     shape.className = className;
     shape.setAttribute('aria-hidden', 'true');
     element.appendChild(shape);
-  }
+    return shape;
+  });
+
+  return [shapes[0], shapes[1]];
 }
 
 function appendMedals(element: HTMLElement, count: number) {
-  if (count === 0) {
-    return;
-  }
-
   const medals = document.createElement('span');
-  medals.className = markerClass.medals;
+  medals.className = cn(markerClass.medals, count === 0 && 'hidden');
   medals.setAttribute('aria-hidden', 'true');
 
   const medal = document.createElement('span');
@@ -339,6 +607,7 @@ function appendMedals(element: HTMLElement, count: number) {
   medals.appendChild(medal);
 
   element.appendChild(medals);
+  return medals;
 }
 
 function appendLabel(element: HTMLElement, name: string, active: boolean) {
@@ -346,6 +615,21 @@ function appendLabel(element: HTMLElement, name: string, active: boolean) {
   label.className = cn(markerClass.name, active && markerClass.selectedName);
   label.textContent = name;
   element.appendChild(label);
+  return label;
+}
+
+function updateMarkerOverlay(entry: KakaoMarkerOverlayEntry, props: MountainMapProps) {
+  const { mountain, element, overlay, triangleBack, triangleFront, medals, label } = entry;
+  const active = isMarkerActive(mountain, props);
+  const tone = getMarkerTone(mountain, props);
+  const completionCount = props.completionCounts.get(mountain.id) ?? 0;
+
+  element.className = getMarkerClass(mountain, props, true);
+  triangleBack.className = cn(markerClass.triangleBack, tone.back);
+  triangleFront.className = cn(markerClass.triangleFront, tone.front);
+  medals.className = cn(markerClass.medals, completionCount === 0 && 'hidden');
+  label.className = cn(markerClass.name, active && markerClass.selectedName);
+  overlay.setZIndex?.(active ? 10 : 1);
 }
 
 type MarkerTone = {
@@ -353,12 +637,9 @@ type MarkerTone = {
   front: string;
 };
 
-function getMarkerTone(mountain: Mountain, props: Pick<MountainMapProps, 'completedIds' | 'candidateIds' | 'highlightedId' | 'selectedMountainId'>): MarkerTone {
+function getMarkerTone(mountain: Mountain, props: Pick<MountainMapProps, 'completedIds' | 'highlightedId' | 'selectedMountainId'>): MarkerTone {
   if (isMarkerActive(mountain, props)) {
     return { back: 'border-b-[#d7922b]', front: 'border-b-[#c77a1a]' };
-  }
-  if (props.candidateIds.has(mountain.id)) {
-    return { back: 'border-b-[#d7922b]', front: 'border-b-[#d7922b]' };
   }
   if (props.completedIds.has(mountain.id)) {
     return { back: 'border-b-[#1f8a5b]', front: 'border-b-[#2f6b4f]' };
@@ -372,14 +653,13 @@ function isMarkerActive(mountain: Mountain, props: Pick<MountainMapProps, 'selec
 
 function getMarkerClass(
   mountain: Mountain,
-  props: Pick<MountainMapProps, 'selectedMountainId' | 'completedIds' | 'candidateIds' | 'highlightedId'>,
+  props: Pick<MountainMapProps, 'selectedMountainId' | 'completedIds' | 'highlightedId'>,
   isKakaoOverlay = false
 ) {
   const active = isMarkerActive(mountain, props);
   return cn(
     isKakaoOverlay ? markerClass.kakaoMarker : markerClass.marker,
     props.completedIds.has(mountain.id) && markerClass.completed,
-    props.candidateIds.has(mountain.id) && markerClass.candidate,
     active && (isKakaoOverlay ? markerClass.kakaoSelected : markerClass.selected)
   );
 }

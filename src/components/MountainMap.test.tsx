@@ -7,14 +7,32 @@ const kakaoMocks = vi.hoisted(() => {
   const relayout = vi.fn();
   const setCenter = vi.fn();
   const setLevel = vi.fn();
+  const setMaxLevel = vi.fn();
+  const setBounds = vi.fn();
+  const panTo = vi.fn();
+  const boundsContain = vi.fn(() => true);
+  const pointFromCoords = vi.fn((position: { latitude?: number; longitude?: number }) => ({
+    x: position.longitude === 126.969 ? 1200 : position.longitude === 127.8 ? 500 : 520,
+    y: position.latitude === 36.4 ? 350 : 320
+  }));
+  const coordsFromPoint = vi.fn((point: { x: number; y: number }) => ({ point }));
+  const boundsExtend = vi.fn();
   const setZoomable = vi.fn();
   const addControl = vi.fn();
-  const overlayInstances: Array<{ setMap: ReturnType<typeof vi.fn> }> = [];
+  const overlayInstances: Array<{
+    setMap: ReturnType<typeof vi.fn>;
+    setZIndex: ReturnType<typeof vi.fn>;
+  }> = [];
   const mapInstance = {
     relayout,
+    getCenter: vi.fn(() => ({ latitude: 36.4, longitude: 127.8 })),
+    getBounds: vi.fn(() => ({ contain: boundsContain })),
+    getProjection: vi.fn(() => ({ pointFromCoords, coordsFromPoint })),
     setCenter,
+    panTo,
     setLevel,
-    setBounds: vi.fn(),
+    setMaxLevel,
+    setBounds,
     getLevel: vi.fn(() => 12),
     setZoomable,
     addControl
@@ -23,7 +41,7 @@ const kakaoMocks = vi.hoisted(() => {
     return mapInstance;
   });
   const CustomOverlay = vi.fn(function () {
-    const overlay = { setMap: vi.fn() };
+    const overlay = { setMap: vi.fn(), setZIndex: vi.fn() };
     overlayInstances.push(overlay);
     return overlay;
   });
@@ -36,7 +54,9 @@ const kakaoMocks = vi.hoisted(() => {
     CustomOverlay,
     Marker: vi.fn(),
     Polyline: vi.fn(),
-    LatLngBounds: vi.fn(),
+    LatLngBounds: vi.fn(function () {
+      return { extend: boundsExtend, contain: boundsContain };
+    }),
     ZoomControl: vi.fn(function () {
       return {};
     }),
@@ -52,9 +72,16 @@ const kakaoMocks = vi.hoisted(() => {
     mapInstance,
     maps,
     overlayInstances,
+    boundsContain,
+    boundsExtend,
+    coordsFromPoint,
+    panTo,
+    pointFromCoords,
     relayout,
     setCenter,
+    setBounds,
     setLevel,
+    setMaxLevel,
     setZoomable
   };
 });
@@ -84,6 +111,7 @@ const mountains: Mountain[] = [
     id: 'm-1',
     name: 'Mountain One',
     province: 'Gangwon',
+    regionCodes: ['gangwon'],
     city: 'Hongcheon',
     latitude: 37.871,
     longitude: 127.961,
@@ -96,6 +124,7 @@ const mountains: Mountain[] = [
     id: 'm-2',
     name: 'Mountain Two',
     province: 'Gyeonggi',
+    regionCodes: ['seoul-gyeonggi'],
     city: 'Paju',
     latitude: 37.941,
     longitude: 126.969,
@@ -106,16 +135,33 @@ const mountains: Mountain[] = [
   }
 ];
 
-function renderMountainMap() {
+type MountainMapTestProps = {
+  mountains?: readonly Mountain[];
+  selectedMountainId?: string;
+  cameraRequest?: {
+    mountainId: string;
+    revision: number;
+    reason: 'list-selection' | 'random-winner';
+  };
+  highlightedId?: string;
+  fitResultsRevision?: number;
+  resetCameraRevision?: number;
+  layoutKey?: string;
+};
+
+function renderMountainMap(overrides: MountainMapTestProps = {}) {
   return render(
     <MountainMap
-      mountains={mountains}
+      mountains={overrides.mountains ?? mountains}
+      selectedMountainId={overrides.selectedMountainId}
+      cameraRequest={overrides.cameraRequest}
+      highlightedId={overrides.highlightedId}
+      fitResultsRevision={overrides.fitResultsRevision ?? 0}
+      resetCameraRevision={overrides.resetCameraRevision ?? 0}
+      layoutKey={overrides.layoutKey}
       completedIds={new Set()}
       completionCounts={new Map()}
-      candidateIds={new Set()}
-      selectionMode={false}
       onMountainSelect={() => undefined}
-      onCandidateToggle={() => undefined}
     />
   );
 }
@@ -141,12 +187,31 @@ describe('MountainMap', () => {
     kakaoMocks.overlayInstances.length = 0;
     kakaoMocks.relayout.mockClear();
     kakaoMocks.setCenter.mockClear();
+    kakaoMocks.setBounds.mockClear();
     kakaoMocks.setLevel.mockClear();
+    kakaoMocks.setMaxLevel.mockClear();
+    kakaoMocks.panTo.mockClear();
+    kakaoMocks.boundsContain.mockReset();
+    kakaoMocks.boundsContain.mockReturnValue(true);
+    kakaoMocks.boundsExtend.mockClear();
+    kakaoMocks.pointFromCoords.mockClear();
+    kakaoMocks.coordsFromPoint.mockClear();
     kakaoMocks.setZoomable.mockClear();
     kakaoMocks.addControl.mockClear();
     window.kakao = { maps: kakaoMocks.maps } as unknown as Window['kakao'];
     vi.stubGlobal('ResizeObserver', TestResizeObserver);
     vi.stubGlobal('matchMedia', createMatchMedia());
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 1000,
+      bottom: 700,
+      width: 1000,
+      height: 700,
+      toJSON: () => ({})
+    });
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       callback(0);
       return 1;
@@ -169,7 +234,7 @@ describe('MountainMap', () => {
     expect(kakaoMocks.Map.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ level: 12 }));
   });
 
-  it('uses the wider mobile initial map level on narrow screens', async () => {
+  it('caps the mobile map at the 64km level on narrow screens', async () => {
     vi.stubGlobal('matchMedia', createMatchMedia('(max-width: 900px)'));
 
     renderMountainMap();
@@ -179,6 +244,34 @@ describe('MountainMap', () => {
     });
 
     expect(kakaoMocks.Map.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ level: 13 }));
+    expect(kakaoMocks.setMaxLevel).toHaveBeenCalledWith(13);
+  });
+
+  it('restores the mobile initial camera instead of fitting all markers after a filter reset', async () => {
+    vi.stubGlobal('matchMedia', createMatchMedia('(max-width: 900px)'));
+    const { rerender } = renderMountainMap({
+      mountains: [mountains[0]],
+      fitResultsRevision: 1,
+    });
+    await waitFor(() => expect(kakaoMocks.Map).toHaveBeenCalledTimes(1));
+
+    kakaoMocks.setCenter.mockClear();
+    kakaoMocks.setLevel.mockClear();
+    kakaoMocks.setBounds.mockClear();
+    rerender(
+      <MountainMap
+        mountains={mountains}
+        fitResultsRevision={1}
+        resetCameraRevision={1}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    expect(kakaoMocks.setCenter).toHaveBeenCalledWith({ latitude: 36.4, longitude: 127.8 });
+    expect(kakaoMocks.setLevel).toHaveBeenCalledWith(13);
+    expect(kakaoMocks.setBounds).not.toHaveBeenCalled();
   });
 
   it('relayouts the Kakao map when the map container size changes after mount', async () => {
@@ -212,5 +305,283 @@ describe('MountainMap', () => {
     overlays.forEach((overlay) => {
       expect(overlay.setMap).toHaveBeenCalledWith(null);
     });
+  });
+
+  it('removes old overlays and creates only the filtered marker set', async () => {
+    const completedIds = new Set<string>();
+    const completionCounts = new Map<string, number>();
+    const { rerender } = render(
+      <MountainMap
+        mountains={mountains}
+        fitResultsRevision={0}
+        completedIds={completedIds}
+        completionCounts={completionCounts}
+        onMountainSelect={() => undefined}
+      />
+    );
+    await waitFor(() => expect(kakaoMocks.overlayInstances).toHaveLength(2));
+    const previousOverlays = [...kakaoMocks.overlayInstances];
+
+    rerender(
+      <MountainMap
+        mountains={[mountains[0]]}
+        fitResultsRevision={1}
+        completedIds={completedIds}
+        completionCounts={completionCounts}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    await waitFor(() => expect(kakaoMocks.overlayInstances).toHaveLength(3));
+    previousOverlays.forEach((overlay) => {
+      expect(overlay.setMap).toHaveBeenCalledWith(null);
+    });
+  });
+
+  it('does not recreate overlays when only result sorting changes', async () => {
+    const completedIds = new Set<string>();
+    const completionCounts = new Map<string, number>();
+    const onMountainSelect = () => undefined;
+    const { rerender } = render(
+      <MountainMap
+        mountains={mountains}
+        fitResultsRevision={0}
+        completedIds={completedIds}
+        completionCounts={completionCounts}
+        onMountainSelect={onMountainSelect}
+      />
+    );
+    await waitFor(() => expect(kakaoMocks.CustomOverlay).toHaveBeenCalledTimes(2));
+
+    rerender(
+      <MountainMap
+        mountains={[...mountains].reverse()}
+        fitResultsRevision={0}
+        completedIds={completedIds}
+        completionCounts={completionCounts}
+        onMountainSelect={onMountainSelect}
+      />
+    );
+
+    expect(kakaoMocks.CustomOverlay).toHaveBeenCalledTimes(2);
+    expect(kakaoMocks.setBounds).not.toHaveBeenCalled();
+  });
+
+  it('updates random recommendation highlighting without recreating overlays', async () => {
+    const { rerender } = renderMountainMap({ highlightedId: 'm-1' });
+    await waitFor(() => expect(kakaoMocks.CustomOverlay).toHaveBeenCalledTimes(2));
+
+    kakaoMocks.overlayInstances.forEach((overlay) => overlay.setZIndex.mockClear());
+    rerender(
+      <MountainMap
+        mountains={mountains}
+        highlightedId="m-2"
+        fitResultsRevision={0}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    expect(kakaoMocks.CustomOverlay).toHaveBeenCalledTimes(2);
+    expect(kakaoMocks.overlayInstances[0].setZIndex).toHaveBeenLastCalledWith(1);
+    expect(kakaoMocks.overlayInstances[1].setZIndex).toHaveBeenLastCalledWith(10);
+  });
+
+  it('updates only the affected marker when stable selection changes', async () => {
+    const { rerender } = renderMountainMap();
+    await waitFor(() => expect(kakaoMocks.CustomOverlay).toHaveBeenCalledTimes(2));
+    kakaoMocks.overlayInstances.forEach((overlay) => overlay.setZIndex.mockClear());
+
+    rerender(
+      <MountainMap
+        mountains={mountains}
+        selectedMountainId="m-1"
+        fitResultsRevision={0}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    expect(kakaoMocks.CustomOverlay).toHaveBeenCalledTimes(2);
+    expect(kakaoMocks.overlayInstances[0].setZIndex).toHaveBeenCalledTimes(1);
+    expect(kakaoMocks.overlayInstances[0].setZIndex).toHaveBeenLastCalledWith(10);
+    expect(kakaoMocks.overlayInstances[1].setZIndex).not.toHaveBeenCalled();
+  });
+
+  it('fits all result markers only when fitResultsRevision increases', async () => {
+    const { rerender } = renderMountainMap();
+    await waitFor(() => expect(kakaoMocks.Map).toHaveBeenCalledTimes(1));
+    expect(kakaoMocks.setBounds).not.toHaveBeenCalled();
+
+    rerender(
+      <MountainMap
+        mountains={mountains}
+        fitResultsRevision={1}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    expect(kakaoMocks.boundsExtend).toHaveBeenCalledTimes(2);
+    expect(kakaoMocks.setBounds).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <MountainMap
+        mountains={[...mountains].reverse()}
+        fitResultsRevision={1}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    expect(kakaoMocks.setBounds).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the current camera when an applied filter has no results', async () => {
+    const { rerender } = renderMountainMap();
+    await waitFor(() => expect(kakaoMocks.Map).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <MountainMap
+        mountains={[]}
+        fitResultsRevision={1}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    expect(kakaoMocks.setBounds).not.toHaveBeenCalled();
+    expect(kakaoMocks.panTo).not.toHaveBeenCalled();
+    expect(kakaoMocks.setLevel).not.toHaveBeenCalled();
+  });
+
+  it('centers a single applied result with a bounded zoom level', async () => {
+    const { rerender } = renderMountainMap();
+    await waitFor(() => expect(kakaoMocks.Map).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <MountainMap
+        mountains={[mountains[0]]}
+        fitResultsRevision={1}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    expect(kakaoMocks.panTo).toHaveBeenCalledTimes(1);
+    expect(kakaoMocks.setLevel).toHaveBeenCalledWith(7, { animate: true });
+  });
+
+  it('does not pan when the selected mountain is already visible', async () => {
+    const { rerender } = renderMountainMap();
+    await waitFor(() => expect(kakaoMocks.Map).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <MountainMap
+        mountains={mountains}
+        cameraRequest={{ mountainId: 'm-1', revision: 1, reason: 'list-selection' }}
+        fitResultsRevision={0}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    expect(kakaoMocks.panTo).not.toHaveBeenCalled();
+    expect(kakaoMocks.setLevel).not.toHaveBeenCalled();
+  });
+
+  it('does not pan for selection state alone without a semantic camera request', async () => {
+    const { rerender } = renderMountainMap();
+    await waitFor(() => expect(kakaoMocks.Map).toHaveBeenCalledTimes(1));
+    kakaoMocks.boundsContain.mockReturnValue(false);
+
+    rerender(
+      <MountainMap
+        mountains={mountains}
+        selectedMountainId="m-2"
+        fitResultsRevision={0}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    expect(kakaoMocks.panTo).not.toHaveBeenCalled();
+  });
+
+  it('calculates camera movement from persistent occluders even while they are inert', async () => {
+    const persistentInfoBar = document.createElement('div');
+    persistentInfoBar.dataset.mapOccluder = 'persistent';
+    persistentInfoBar.inert = true;
+    persistentInfoBar.setAttribute('aria-hidden', 'true');
+    persistentInfoBar.getBoundingClientRect = vi.fn(() => ({
+      x: 0,
+      y: 600,
+      left: 0,
+      top: 600,
+      right: 1000,
+      bottom: 700,
+      width: 1000,
+      height: 100,
+      toJSON: () => ({}),
+    }));
+    document.body.appendChild(persistentInfoBar);
+    kakaoMocks.pointFromCoords.mockImplementation(
+      (position: { latitude?: number; longitude?: number }) => ({
+        x: position.longitude === 127.8 ? 500 : 520,
+        y: position.latitude === 36.4 ? 350 : 650,
+      }),
+    );
+    const onCameraRequestHandled = vi.fn();
+    const { rerender } = renderMountainMap();
+    await waitFor(() => expect(kakaoMocks.Map).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <MountainMap
+        mountains={mountains}
+        cameraRequest={{ mountainId: 'm-1', revision: 7, reason: 'list-selection' }}
+        fitResultsRevision={0}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+        onCameraRequestHandled={onCameraRequestHandled}
+      />
+    );
+
+    await waitFor(() => expect(kakaoMocks.panTo).toHaveBeenCalledTimes(1));
+    expect(kakaoMocks.coordsFromPoint).toHaveBeenCalledWith({ x: 500, y: 448 });
+    expect(onCameraRequestHandled).toHaveBeenCalledWith(7);
+    persistentInfoBar.remove();
+  });
+
+  it('pans once without changing zoom when the selected mountain is outside the visible area', async () => {
+    const { rerender } = renderMountainMap();
+    await waitFor(() => expect(kakaoMocks.Map).toHaveBeenCalledTimes(1));
+    kakaoMocks.boundsContain.mockReturnValue(false);
+
+    rerender(
+      <MountainMap
+        mountains={mountains}
+        cameraRequest={{ mountainId: 'm-2', revision: 1, reason: 'list-selection' }}
+        fitResultsRevision={0}
+        completedIds={new Set()}
+        completionCounts={new Map()}
+        onMountainSelect={() => undefined}
+      />
+    );
+
+    await waitFor(() => expect(kakaoMocks.panTo).toHaveBeenCalledTimes(1));
+    expect(kakaoMocks.setLevel).not.toHaveBeenCalled();
+
+    act(() => resizeCallback?.([], new TestResizeObserver(() => undefined)));
+    expect(kakaoMocks.panTo).toHaveBeenCalledTimes(1);
+    expect(kakaoMocks.setCenter).not.toHaveBeenCalled();
   });
 });

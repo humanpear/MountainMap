@@ -6,6 +6,7 @@ declare global {
       maps: {
         load(callback: () => void): void;
         LatLng: new (latitude: number, longitude: number) => KakaoLatLng;
+        Point?: new (x: number, y: number) => KakaoPoint;
         Map: new (container: HTMLElement, options: KakaoMapOptions) => KakaoMap;
         CustomOverlay: new (options: KakaoCustomOverlayOptions) => KakaoCustomOverlay;
         Marker: new (options: KakaoMarkerOptions) => KakaoMarker;
@@ -33,9 +34,20 @@ declare global {
 
   type KakaoMap = {
     relayout(): void;
+    getCenter(): KakaoLatLng;
+    getBounds(): KakaoLatLngBounds;
+    getProjection(): KakaoMapProjection;
     setCenter(position: KakaoLatLng): void;
+    panTo(position: KakaoLatLng): void;
     setLevel(level: number, options?: KakaoMapSetLevelOptions): void;
-    setBounds(bounds: KakaoLatLngBounds): void;
+    setMaxLevel(level: number): void;
+    setBounds(
+      bounds: KakaoLatLngBounds,
+      paddingTop?: number,
+      paddingRight?: number,
+      paddingBottom?: number,
+      paddingLeft?: number,
+    ): void;
     getLevel(): number;
     setZoomable(zoomable: boolean): void;
     addControl(control: KakaoZoomControl, position: KakaoControlPosition): void;
@@ -43,6 +55,16 @@ declare global {
 
   type KakaoLatLngBounds = {
     extend(position: KakaoLatLng): void;
+    contain(position: KakaoLatLng): boolean;
+  };
+
+  type KakaoPoint = { x: number; y: number };
+
+  type KakaoMapProjection = {
+    pointFromCoords(position: KakaoLatLng): KakaoPoint;
+    coordsFromPoint(point: KakaoPoint): KakaoLatLng;
+    containerPointFromCoords?(position: KakaoLatLng): KakaoPoint;
+    coordsFromContainerPoint?(point: KakaoPoint): KakaoLatLng;
   };
 
   type KakaoZoomControl = object;
@@ -57,6 +79,7 @@ declare global {
 
   type KakaoCustomOverlay = {
     setMap(map: KakaoMap | null): void;
+    setZIndex?(zIndex: number): void;
   };
 
   type KakaoMarkerOptions = {

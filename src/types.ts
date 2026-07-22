@@ -1,7 +1,47 @@
+export const mountainRegionCodes = [
+  'seoul-gyeonggi',
+  'gangwon',
+  'chungnam',
+  'chungbuk',
+  'gyeongbuk',
+  'gyeongnam',
+  'jeonbuk',
+  'jeonnam',
+  'jeju',
+] as const;
+
+export type MountainRegionCode = (typeof mountainRegionCodes)[number];
+
+export const mountainReviewDifficulties = [
+  '쉬움',
+  '보통',
+  '약간 어려움',
+  '어려움',
+  '매우 어려움',
+] as const;
+
+export type MountainReviewDifficulty = (typeof mountainReviewDifficulties)[number];
+
+export type MountainDifficultySummary = {
+  mountainId: string;
+  reviewCount: number;
+  averageScore: number;
+};
+
+export function isMountainReviewDifficulty(
+  value: unknown,
+): value is MountainReviewDifficulty {
+  return (
+    typeof value === 'string' &&
+    (mountainReviewDifficulties as readonly string[]).includes(value)
+  );
+}
+
 export type Mountain = {
   id: string;
   name: string;
   province: string;
+  regionCodes: MountainRegionCode[];
   city: string;
   latitude: number;
   longitude: number;
@@ -87,8 +127,6 @@ export type MountainGuide = {
   verificationLinks?: MountainGuideLink[];
   notes?: string;
 };
-
-export type RandomMode = 'all' | 'incomplete' | 'selected';
 
 export type RandomResult = {
   winner: Mountain;
