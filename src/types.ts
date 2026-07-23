@@ -55,6 +55,8 @@ export type CompletionRecord = {
   id?: string;
   mountainId: string;
   completedAt: string;
+  climbedOn?: string | null;
+  photoUrl?: string | null;
 };
 
 export type MountainGuideStatus = 'draft' | 'verified';

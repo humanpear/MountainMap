@@ -1,4 +1,6 @@
--- Run this once if completed_mountains was created with
+-- Deprecated: the current product treats completion as a binary state per mountain.
+-- Use enforce_unique_completed_mountains.sql for the current schema.
+-- This historical migration was used when completed_mountains was created with
 -- primary key (user_id, mountain_id). This changes completion records from
 -- "one row per mountain" to "one row per climb", which allows multiple medals.
 

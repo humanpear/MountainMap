@@ -33,9 +33,10 @@ describe("MountainDetailPage scroll-reactive hero", () => {
       <MountainDetailPage
         mountain={mountain}
         isCompleted={false}
+        isCompletionPending={false}
         onBack={vi.fn()}
         onShowOnMap={vi.fn()}
-        onToggleCompleted={vi.fn()}
+        onRequestCompletion={vi.fn()}
       />,
     );
 

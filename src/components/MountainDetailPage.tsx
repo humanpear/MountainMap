@@ -25,8 +25,10 @@
   X,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+import { CompletionButton } from "./CompletionButton";
 import {
   useEffect,
+  useLayoutEffect,
   useCallback,
   useMemo,
   useRef,
@@ -72,11 +74,12 @@ import type {
 type MountainDetailPageProps = {
   mountain: Mountain;
   isCompleted: boolean;
+  isCompletionPending: boolean;
   session?: Session | null;
   onBack: () => void;
   onReviewDataChange?: () => void;
   onShowOnMap: (mountain: Mountain) => void;
-  onToggleCompleted: (mountain: Mountain) => void;
+  onRequestCompletion: (mountain: Mountain) => void;
 };
 
 type CourseDetailTab = "overview" | "gallery";
@@ -515,11 +518,12 @@ function formatReviewDate(value: string) {
 export function MountainDetailPage({
   mountain,
   isCompleted,
+  isCompletionPending,
   session = null,
   onBack,
   onReviewDataChange,
   onShowOnMap,
-  onToggleCompleted,
+  onRequestCompletion,
 }: MountainDetailPageProps) {
   const guide = getMountainGuide(mountain);
   const sortedRoutes = useMemo(
@@ -562,11 +566,12 @@ export function MountainDetailPage({
       heroImage={guide.heroImage}
       courseMapImage={guide.courseMapImage}
       isCompleted={isCompleted}
+      isCompletionPending={isCompletionPending}
       session={session}
       onBack={onBack}
       onReviewDataChange={onReviewDataChange}
       onShowOnMap={onShowOnMap}
-      onToggleCompleted={onToggleCompleted}
+      onRequestCompletion={onRequestCompletion}
       onRouteOpen={(route) => setActiveRouteName(route.name)}
     />
   );
@@ -582,11 +587,12 @@ function MountainMainDetailView({
   heroImage: guideHeroImage,
   courseMapImage,
   isCompleted,
+  isCompletionPending,
   session,
   onBack,
   onReviewDataChange,
   onShowOnMap,
-  onToggleCompleted,
+  onRequestCompletion,
   onRouteOpen,
 }: {
   mountain: Mountain;
@@ -598,17 +604,23 @@ function MountainMainDetailView({
   heroImage?: MountainGuideImage;
   courseMapImage?: MountainGuideImage;
   isCompleted: boolean;
+  isCompletionPending: boolean;
   session: Session | null;
   onBack: () => void;
   onReviewDataChange?: () => void;
   onShowOnMap: (mountain: Mountain) => void;
-  onToggleCompleted: (mountain: Mountain) => void;
+  onRequestCompletion: (mountain: Mountain) => void;
   onRouteOpen: (route: MountainGuideRoute) => void;
 }) {
   const heroImage = getMountainMainHeroImage(mountain.id, guideHeroImage);
   const recommendedRoute = routes[0];
   const sectionRef = useRef<HTMLElement | null>(null);
   const heroContentRef = useRef<HTMLDivElement | null>(null);
+  const elevationBadgeRef = useRef<HTMLSpanElement | null>(null);
+  const [completionButtonSize, setCompletionButtonSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
   const [mainTab, setMainTab] = useState<MountainMainTab>("courses");
   const [reviewDifficultyLabelsByRoute, setReviewDifficultyLabelsByRoute] =
     useState<RouteDifficultyLabelMap>({});
@@ -628,6 +640,39 @@ function MountainMainDetailView({
     },
     [],
   );
+
+  useLayoutEffect(() => {
+    const badge = elevationBadgeRef.current;
+    if (!badge) {
+      return;
+    }
+
+    const updateCompletionButtonSize = () => {
+      const bounds = badge.getBoundingClientRect();
+      if (bounds.width <= 0 || bounds.height <= 0) {
+        return;
+      }
+
+      const nextSize = {
+        width: Math.round(bounds.width * 100) / 100,
+        height: Math.round(bounds.height * 100) / 100,
+      };
+      setCompletionButtonSize((currentSize) =>
+        currentSize?.width === nextSize.width && currentSize.height === nextSize.height
+          ? currentSize
+          : nextSize,
+      );
+    };
+
+    updateCompletionButtonSize();
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new ResizeObserver(updateCompletionButtonSize);
+    observer.observe(badge);
+    return () => observer.disconnect();
+  }, [mountain.id]);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -796,22 +841,24 @@ function MountainMainDetailView({
             <div className="grid min-h-[384px] grid-cols-[minmax(0,1fr)_304px] grid-rows-[auto_auto] items-end gap-x-[58px] gap-y-0 pt-5 max-[900px]:min-h-0 max-[900px]:grid-cols-1 max-[900px]:grid-rows-none max-[900px]:gap-5 max-[900px]:pt-6 max-[560px]:gap-4">
               <div className="col-start-1 row-start-1 max-w-[760px] max-[900px]:col-start-auto max-[900px]:row-start-auto">
                 <div className="mb-10 flex flex-wrap items-center gap-3 max-[900px]:mb-5 max-[560px]:gap-2">
-                  <span className="inline-flex min-h-[42px] items-center rounded-[5px] bg-[#00385d] px-3.5 text-[22px] font-black leading-none text-white shadow-heroPanel max-[560px]:min-h-9 max-[560px]:px-3 max-[560px]:text-lg">
+                  <span
+                    ref={elevationBadgeRef}
+                    className="inline-flex min-h-[42px] items-center bg-[#00385d] px-3.5 text-[22px] font-black leading-none text-white shadow-heroPanel max-[560px]:min-h-9 max-[560px]:px-3 max-[560px]:text-lg"
+                    data-mountain-elevation-badge
+                  >
                     {mountain.elevationMeters.toLocaleString()}m
                   </span>
-                  <button
-                    className={cn(
-                       "inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 rounded-md border px-3.5 text-sm font-extrabold shadow-heroPanel transition max-[560px]:min-h-9 max-[560px]:px-3 max-[560px]:text-[13px]",
-                      isCompleted
-                        ? "border-[#1f8a5b] bg-[#1f8a5b] text-white"
-                        : "border-white/70 bg-black/30 text-white hover:bg-black/45",
-                    )}
-                    type="button"
-                    onClick={() => onToggleCompleted(mountain)}
-                  >
-                    <Check size={17} />
-                    {isCompleted ? "등반완료 해제" : "등반완료"}
-                  </button>
+                  <CompletionButton
+                    key={mountain.id}
+                    completionKey={mountain.id}
+                    mountainName={mountain.name}
+                    isCompleted={isCompleted}
+                    isPending={isCompletionPending}
+                    onRequestComplete={() => onRequestCompletion(mountain)}
+                    variant="hero"
+                    restingWidth={completionButtonSize?.width}
+                    restingHeight={completionButtonSize?.height}
+                  />
                 </div>
               </div>
                <div className="col-start-1 row-start-2 flex max-w-[760px] self-stretch flex-col justify-between gap-8 max-[900px]:col-start-auto max-[900px]:row-start-auto max-[900px]:gap-5 max-[560px]:gap-4">

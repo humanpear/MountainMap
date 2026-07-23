@@ -27,7 +27,10 @@ create table if not exists public.completed_mountains (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   mountain_id text not null,
-  completed_at timestamptz not null default now()
+  completed_at timestamptz not null default now(),
+  climbed_on date not null default current_date,
+  photo_url text,
+  constraint completed_mountains_user_mountain_key unique (user_id, mountain_id)
 );
 
 create index if not exists completed_mountains_user_mountain_idx
@@ -72,6 +75,13 @@ create policy "Users can insert their completed mountains"
   on public.completed_mountains
   for insert
   to authenticated
+  with check ((select auth.uid()) = user_id);
+
+create policy "Users can update their completed mountains"
+  on public.completed_mountains
+  for update
+  to authenticated
+  using ((select auth.uid()) = user_id)
   with check ((select auth.uid()) = user_id);
 
 create policy "Users can delete their completed mountains"

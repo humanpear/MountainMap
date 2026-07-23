@@ -11,7 +11,6 @@ import {
 import type { Session } from '@supabase/supabase-js';
 import {
   Camera,
-  Check,
   ChevronRight,
   Edit3,
   LogIn,
@@ -25,7 +24,9 @@ import {
   UserRound,
   X
 } from 'lucide-react';
+import { CompletionRecordModal, type CompletionRecordDraft } from './components/CompletionRecordModal';
 import { MountainDetailPage } from './components/MountainDetailPage';
+import { completionMedalImagePath } from './constants/assets';
 import {
   MobileMountainInfoBar,
   MountainDiscoveryControls,
@@ -50,6 +51,7 @@ import { cn } from './lib/classNames';
 import { createAppFeedback } from './services/appFeedback';
 import { getOAuthRedirectUrl } from './services/authRedirect';
 import { getCompletionErrorMessage } from './services/completionErrors';
+import { saveCompletionRecord } from './services/completionRecords';
 import { isSupabaseConfigured } from './services/env';
 import {
   fetchMountainDifficultySummaries,
@@ -104,7 +106,9 @@ function getLatestCompletionRecord(records: CompletionRecord[]) {
       return record;
     }
 
-    return new Date(record.completedAt).getTime() > new Date(latestRecord.completedAt).getTime() ? record : latestRecord;
+    const recordDate = record.climbedOn ?? record.completedAt;
+    const latestDate = latestRecord.climbedOn ?? latestRecord.completedAt;
+    return new Date(recordDate).getTime() > new Date(latestDate).getTime() ? record : latestRecord;
   }, null);
 }
 
@@ -288,10 +292,6 @@ const appClass = {
   mapStage: 'relative h-full min-h-0 min-w-0 overflow-hidden',
   detailHeader: 'flex items-start justify-between gap-4',
   eyebrow: 'm-0 mb-[3px] text-xs font-bold leading-4 text-[#627168]',
-  completeButton:
-    'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 font-extrabold',
-  completeButtonIdle: 'border-[#d8e0da] bg-white text-[#18221d]',
-  completeButtonActive: 'border-[#1f8a5b] bg-[#1f8a5b] text-white',
   meta:
     'my-5 grid gap-3 rounded-lg border border-[#d8e0da] bg-[#f7faf8] p-4 [&_dd]:m-0 [&_dd]:font-bold [&_dt]:text-xs [&_dt]:font-black [&_dt]:text-[#627168]',
   primaryAction:
@@ -336,6 +336,9 @@ export default function App() {
   const [myPageTab, setMyPageTab] = useState<MyPageTab>(() => getMyPageTabRoute());
   const [completionRecords, setCompletionRecords] = useState<CompletionRecord[]>([]);
   const [completionDataStatus, setCompletionDataStatus] = useState<CompletionDataStatus>('signed-out');
+  const [pendingCompletionIds, setPendingCompletionIds] = useState<Set<string>>(() => new Set());
+  const [completionModalMountainId, setCompletionModalMountainId] = useState<string | null>(null);
+  const [completionModalError, setCompletionModalError] = useState<string | null>(null);
   const [resultDataRevision, setResultDataRevision] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -362,6 +365,7 @@ export default function App() {
   const authUserIdRef = useRef<string | null>(null);
   const difficultyRequestIdRef = useRef(0);
   const completionRequestIdRef = useRef(0);
+  const completionInFlightRef = useRef<Set<string>>(new Set());
   const sidebarPhotoRequestIdRef = useRef(0);
   const difficultySummaryStateRef = useRef<DifficultySummaryState>({ status: 'idle' });
   const reviewSummaryDirtyRef = useRef(false);
@@ -546,6 +550,10 @@ export default function App() {
     }
 
     authUserIdRef.current = nextUserId;
+    completionInFlightRef.current.clear();
+    setPendingCompletionIds(new Set());
+    setCompletionModalMountainId(null);
+    setCompletionModalError(null);
     dispatchDiscovery({
       type: 'AUTH_IDENTITY_CHANGED',
       isAuthenticated: nextUserId !== null,
@@ -629,10 +637,11 @@ export default function App() {
     ? mountains.find((mountain) => mountain.id === latestCompletionRecord.mountainId) ?? null
     : null;
   const latestCompletedDateLabel = latestCompletionRecord
-    ? `${formatAccountDate(latestCompletionRecord.completedAt)} 산행 완료`
+    ? `${formatAccountDate(latestCompletionRecord.climbedOn ?? latestCompletionRecord.completedAt)} 산행 완료`
     : '완료한 산이 없습니다';
   const latestCompletedMountainName = latestCompletedMountain?.name ?? '기록 없음';
-  const latestCompletedHeroImage = latestCompletedMountain ? getMountainHeroImage(latestCompletedMountain) : null;
+  const latestCompletedHeroImage = latestCompletionRecord?.photoUrl
+    ?? (latestCompletedMountain ? getMountainHeroImage(latestCompletedMountain) : null);
   const completionCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const record of completionRecords) {
@@ -856,7 +865,7 @@ export default function App() {
       try {
         const { data, error } = await supabase
           .from('completed_mountains')
-          .select('id, mountain_id, completed_at')
+          .select('id, mountain_id, completed_at, climbed_on, photo_url')
           .eq('user_id', userId);
 
         if (requestId !== completionRequestIdRef.current) {
@@ -873,7 +882,9 @@ export default function App() {
           (data ?? []).map((row) => ({
             id: row.id,
             mountainId: row.mountain_id,
-            completedAt: row.completed_at
+            completedAt: row.completed_at,
+            climbedOn: row.climbed_on ?? null,
+            photoUrl: row.photo_url ?? null,
           }))
         );
         setCompletionDataStatus('ready');
@@ -897,47 +908,92 @@ export default function App() {
     };
   }, [session?.user.id]);
 
-  const toggleCompleted = async (mountain: Mountain) => {
+  const completeMountain = async (
+    mountain: Mountain,
+    draft: CompletionRecordDraft,
+  ): Promise<boolean> => {
     if (!session?.user.id || !supabase) {
       setMessage('등반 기록을 저장하려면 Google로 로그인하세요.');
-      return;
+      return false;
     }
 
     if (completionDataStatus !== 'ready') {
       setMessage('등정 기록을 불러온 뒤 다시 시도해 주세요.');
-      return;
+      return false;
     }
 
-    const previousRecords = completionRecords;
-    const isCompleted = completedIds.has(mountain.id);
+    if (completedIds.has(mountain.id) || completionInFlightRef.current.has(mountain.id)) {
+      return false;
+    }
 
-    if (isCompleted) {
-      setCompletionRecords((records) => records.filter((record) => record.mountainId !== mountain.id));
-      const { error } = await supabase
-        .from('completed_mountains')
-        .delete()
-        .eq('user_id', session.user.id)
-        .eq('mountain_id', mountain.id);
+    const userId = session.user.id;
+    completionInFlightRef.current.add(mountain.id);
+    setPendingCompletionIds((current) => new Set(current).add(mountain.id));
+    setMessage(null);
 
-      if (error) {
-        setCompletionRecords(previousRecords);
-        setMessage(getCompletionErrorMessage(error, 'delete'));
+    try {
+      const savedRecord = await saveCompletionRecord({
+        userId,
+        mountainId: mountain.id,
+        climbedOn: draft.climbedOn,
+        photoFile: draft.photoFile,
+      });
+
+      if (authUserIdRef.current !== userId) {
+        return false;
       }
+
+      setCompletionRecords((records) => [
+        ...records.filter((record) => record.mountainId !== mountain.id),
+        savedRecord,
+      ]);
+      return true;
+    } catch (error) {
+      const errorMessage = getCompletionErrorMessage(
+        error instanceof Error ? { message: error.message } : (error ?? {}),
+        'save',
+      );
+      setCompletionModalError(errorMessage);
+      setMessage(errorMessage);
+      return false;
+    } finally {
+      completionInFlightRef.current.delete(mountain.id);
+      setPendingCompletionIds((current) => {
+        const next = new Set(current);
+        next.delete(mountain.id);
+        return next;
+      });
+    }
+  };
+
+  const requestCompletion = (mountain: Mountain) => {
+    if (!session?.user.id || !supabase) {
+      setMessage('등반 기록을 저장하려면 Google로 로그인하세요.');
       return;
     }
-
-    const nextRecord = { mountainId: mountain.id, completedAt: new Date().toISOString() };
-    setCompletionRecords((records) => [...records, nextRecord]);
-    const { error } = await supabase.from('completed_mountains').insert({
-      user_id: session.user.id,
-      mountain_id: mountain.id,
-      completed_at: nextRecord.completedAt
-    });
-
-    if (error) {
-      setCompletionRecords(previousRecords);
-      setMessage(getCompletionErrorMessage(error, 'save'));
+    if (completionDataStatus !== 'ready') {
+      setMessage('등정 기록을 불러온 뒤 다시 시도해 주세요.');
+      return;
     }
+    if (completedIds.has(mountain.id)) {
+      return;
+    }
+    setMessage(null);
+    setCompletionModalError(null);
+    setCompletionModalMountainId(mountain.id);
+  };
+
+  const completionModalMountain = completionModalMountainId
+    ? mountains.find((mountain) => mountain.id === completionModalMountainId) ?? null
+    : null;
+
+  const submitCompletionRecord = (draft: CompletionRecordDraft) => {
+    const mountain = completionModalMountain;
+    if (!mountain) {
+      return;
+    }
+    setCompletionModalError(null);
+    void completeMountain(mountain, draft);
   };
 
   const handleDiscoveryAction = useCallback((action: DiscoveryAction) => {
@@ -1383,7 +1439,9 @@ export default function App() {
                       <img
                         className={appClass.accountRecentImage}
                         src={latestCompletedHeroImage}
-                        alt={`${latestCompletedMountain.name} 대표 이미지`}
+                        alt={latestCompletionRecord?.photoUrl
+                          ? `${latestCompletedMountain.name} 등반 기록 사진`
+                          : `${latestCompletedMountain.name} 대표 이미지`}
                       />
                     ) : null}
                   </section>
@@ -1454,11 +1512,12 @@ export default function App() {
         <MountainDetailPage
           mountain={detailMountain}
           isCompleted={completedIds.has(detailMountain.id)}
+          isCompletionPending={pendingCompletionIds.has(detailMountain.id)}
           session={session}
           onBack={closeMountainDetail}
           onReviewDataChange={markReviewDataChanged}
           onShowOnMap={showMountainOnMap}
-          onToggleCompleted={toggleCompleted}
+          onRequestCompletion={requestCompletion}
         />
       ) : (
         <section
@@ -1541,18 +1600,17 @@ export default function App() {
                     </h2>
                   </div>
                   <div className="flex flex-none items-center gap-2">
-                    <button
-                      className={cn(
-                        appClass.completeButton,
-                        completedIds.has(selectedMountain.id) ? appClass.completeButtonActive : appClass.completeButtonIdle
-                      )}
-                      type="button"
-                      onClick={() => toggleCompleted(selectedMountain)}
-                      aria-label={`${selectedMountain.name} 등반 완료 표시`}
-                    >
-                      <Check size={18} />
-                      <span>등반완료</span>
-                    </button>
+                    {completedIds.has(selectedMountain.id) ? (
+                      <span
+                        className="inline-grid h-10 w-10 place-items-center"
+                      >
+                        <img
+                          className="h-9 w-9 object-contain"
+                          src={completionMedalImagePath}
+                          alt={`${selectedMountain.name} 등반 완료`}
+                        />
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
@@ -1624,6 +1682,20 @@ export default function App() {
             <X size={16} />
           </button>
         </div>
+      ) : null}
+
+      {completionModalMountain ? (
+        <CompletionRecordModal
+          key={completionModalMountain.id}
+          mountain={completionModalMountain}
+          isSubmitting={pendingCompletionIds.has(completionModalMountain.id)}
+          errorMessage={completionModalError}
+          onClose={() => {
+            setCompletionModalMountainId(null);
+            setCompletionModalError(null);
+          }}
+          onSubmit={submitCompletionRecord}
+        />
       ) : null}
 
       <button

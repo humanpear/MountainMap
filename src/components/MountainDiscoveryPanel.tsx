@@ -1478,9 +1478,9 @@ export function MountainDiscoveryPanel({
                             {isAuthenticated && completionDataStatus === 'ready' ? (
                               <span className={completedIds.has(mountain.id) ? 'text-[#237a1f]' : undefined}>
                                 {completedIds.has(mountain.id) ? (
-                                  <span className="inline-flex items-center gap-1"><Check size={14} />등정 완료</span>
+                                  <span className="inline-flex items-center gap-1"><Check size={14} />등반 완료</span>
                                 ) : (
-                                  '미등정'
+                                  '미등반'
                                 )}
                               </span>
                             ) : null}

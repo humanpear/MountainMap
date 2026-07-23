@@ -289,6 +289,7 @@ type MountainGuideRouteStop = {
 - **Primary font:** SUIT Variable.
 - **Fallback:** `"SUIT Variable", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`.
 - **Numbers/data:** Geist.
+- **Font weight:** Unless a design explicitly calls for a heavier weight, use `600` (semibold) as the maximum font weight. Reserve bold, extrabold, and black for specifically approved emphasis.
 - **Do not use:** thin 300-weight body text, 12px body labels, negative letter-spacing.
 
 | Token | Mobile | Desktop | Usage |

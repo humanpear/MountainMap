@@ -164,6 +164,8 @@ describe('MountainDiscoveryPanel', () => {
     const mountainButton = screen.getByRole('button', { name: /강원산/ });
     expect(mountainButton).toHaveTextContent('강원도 춘천시');
     expect(within(mountainButton).getByText('900m')).toHaveClass('text-[#245c46]');
+    expect(screen.getByText('등반 완료')).toBeInTheDocument();
+    expect(screen.getByText('미등반')).toBeInTheDocument();
     expect(within(mountainButton).getByText('보통')).toHaveClass(
       'rounded-full',
       'border-[#cfe4d4]',

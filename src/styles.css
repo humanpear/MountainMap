@@ -207,6 +207,367 @@ button {
   }
 }
 
+.completion-button {
+  display: inline-flex;
+  width: var(--completion-button-resting-width, 112px);
+  min-width: 44px;
+  min-height: var(--completion-button-resting-height, 44px);
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    width 360ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-radius 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 260ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.completion-button--incomplete {
+  width: 80px;
+}
+
+.completion-button--icon-only {
+  width: 44px;
+  border-radius: 999px;
+  padding-inline: 0;
+}
+
+.completion-button--surface {
+  border-color: #d8e0da;
+  background: #fff;
+  color: #18221d;
+}
+
+.completion-button--surface:not(:disabled):hover {
+  border-color: #245c46;
+  background: #f5f7f4;
+}
+
+.completion-button--hero {
+  width: var(--completion-button-resting-width, 112px);
+  min-height: var(--completion-button-resting-height, 44px);
+  padding-inline: 4px;
+  border-color: rgb(255 255 255 / 70%);
+  background: rgb(0 0 0 / 30%);
+  color: #fff;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+
+.completion-button--hero.completion-button--incomplete {
+  width: var(--completion-button-resting-width, 112px);
+}
+
+.completion-button--hero.completion-button--icon-only {
+  width: 44px;
+}
+
+.completion-button--hero.completion-button--completed:not(.completion-button--icon-only) {
+  width: max(calc(var(--completion-button-resting-width, 112px) + 16px), 92px);
+  padding-inline: 8px;
+}
+
+.completion-button--hero:not(:disabled):hover {
+  background: rgb(0 0 0 / 45%);
+}
+
+.completion-button--completed {
+  border-color: #245c46;
+  background: #245c46;
+  color: #fff;
+}
+
+.completion-button--saving {
+  cursor: progress;
+}
+
+.completion-button--surface.completion-button--saving {
+  border-color: #aebdb4;
+  background: #eef3f0;
+  color: #245c46;
+}
+
+.completion-button--hero.completion-button--saving {
+  background: rgb(0 0 0 / 45%);
+}
+
+.completion-button:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.completion-button--saving:disabled {
+  cursor: progress;
+}
+
+.completion-button__content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transform-origin: center;
+  transition: transform 110ms cubic-bezier(0.22, 0.75, 0.25, 1);
+}
+
+.completion-button--icon-only .completion-button__content {
+  gap: 0;
+}
+
+.completion-button__label {
+  white-space: nowrap;
+}
+
+.completion-button--revealing .completion-button__label {
+  animation: completion-label-reveal 300ms 110ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.completion-button:not(:disabled):active .completion-button__content {
+  transform: translateY(1px) scaleX(1.015) scaleY(0.94);
+}
+
+.completion-button__icon,
+.completion-button__success {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  place-items: center;
+}
+
+.completion-button__icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.completion-button--hero .completion-button__content {
+  gap: 4px;
+}
+
+.completion-button--hero .completion-button__label {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.completion-button--hero .completion-button__icon,
+.completion-button--hero .completion-button__success {
+  width: 16px;
+  height: 16px;
+  flex-basis: 16px;
+}
+
+.completion-button--hero .completion-button__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (min-width: 901px) {
+  .completion-button--hero {
+    font-weight: 600;
+  }
+
+  .completion-button--hero .completion-button__label {
+    font-size: 16px;
+  }
+
+  .completion-button--hero .completion-button__icon,
+  .completion-button--hero .completion-button__success {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
+  }
+
+  .completion-button--hero .completion-button__icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .completion-button--hero.completion-button--completed:not(.completion-button--icon-only) {
+    width: max(calc(var(--completion-button-resting-width, 112px) + 16px), 104px);
+  }
+}
+
+.completion-button__spinner {
+  stroke-width: 2.4;
+  animation: completion-spinner-orbit 720ms linear infinite;
+}
+
+.completion-button__spinner circle {
+  stroke-dasharray: 36 15;
+  transform-origin: center;
+  animation: completion-spinner-pulse 720ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.completion-button__success {
+  transform-origin: center;
+  animation: completion-check-pop 620ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.completion-button__success-ring {
+  stroke-width: 2;
+  stroke-dasharray: 57;
+  stroke-dashoffset: 57;
+  animation: completion-ring-draw 280ms ease-out forwards;
+}
+
+.completion-button__success-check {
+  stroke-width: 2.6;
+  stroke-dasharray: 14;
+  stroke-dashoffset: 14;
+  animation: completion-check-draw 220ms 120ms ease-out forwards;
+}
+
+@keyframes completion-spinner-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes completion-spinner-pulse {
+  0%,
+  100% {
+    transform: scale(0.92);
+  }
+
+  50% {
+    transform: scale(1);
+  }
+}
+
+@keyframes completion-check-pop {
+  0% {
+    transform: scale(0.4) rotate(-8deg);
+  }
+
+  52% {
+    transform: scale(1.15) rotate(2deg);
+  }
+
+  76% {
+    transform: scale(0.97) rotate(-1deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes completion-ring-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes completion-check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes completion-label-reveal {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.completion-record-modal-backdrop {
+  animation: completion-modal-backdrop-in 180ms ease-out both;
+}
+
+.completion-record-modal-backdrop--closing {
+  animation: completion-modal-backdrop-out 180ms ease-in both;
+  pointer-events: none;
+}
+
+.completion-record-modal {
+  animation: completion-modal-zoom-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: center;
+}
+
+.completion-record-modal--closing {
+  animation: completion-modal-zoom-out 180ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes completion-modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes completion-modal-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes completion-modal-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes completion-modal-zoom-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .completion-button,
+  .completion-button__content,
+  .completion-button__spinner,
+  .completion-button__spinner circle,
+  .completion-button__success,
+  .completion-button__success-ring,
+  .completion-button__success-check {
+    animation: none;
+    transition: none;
+  }
+
+  .completion-record-modal-backdrop,
+  .completion-record-modal {
+    animation: none;
+  }
+
+  .completion-button--revealing .completion-button__label {
+    animation: none;
+  }
+
+  .completion-button__success-ring,
+  .completion-button__success-check {
+    stroke-dashoffset: 0;
+  }
+}
+
 @media (max-width: 560px) {
   .app-feedback-button[data-mobile-info-visible='true'] {
     bottom: calc(24px + var(--mobile-info-bar-height, 0px));

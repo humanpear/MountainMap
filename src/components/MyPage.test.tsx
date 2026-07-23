@@ -124,6 +124,8 @@ describe("MyPage", () => {
         id: "completion-1",
         mountainId: "0000000002",
         completedAt: "2026-06-01T00:00:00.000Z",
+        climbedOn: "2026-05-24",
+        photoUrl: "https://example.com/gari-summit.jpg",
         mountain: {
           id: "0000000002",
           name: "가리산",
@@ -157,18 +159,39 @@ describe("MyPage", () => {
         updatedAt: "2026-06-01T00:00:00.000Z",
       },
     ]);
+    myPageMocks.deleteCompletedMountain.mockResolvedValue(undefined);
 
     renderMyPage({ activeTab: "completed" });
 
     expect(await screen.findByRole("heading", { name: "가리산" })).toBeInTheDocument();
     expect(screen.getByText("100대 명산 중 1% 완료")).toBeInTheDocument();
     expect(screen.getByText("등산 완료")).toBeInTheDocument();
-    expect(screen.getByText(/완료 날짜/)).toBeInTheDocument();
+    expect(screen.getByText(/완료 날짜.*2026.*05.*24/)).toBeInTheDocument();
     expect(screen.queryByText("1회")).not.toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByAltText("가리산 대표 이미지").getAttribute("src")).toContain(
-        "/mountain-images/0000000002/hero.png",
+      expect(screen.getByAltText("가리산 등반 기록 사진")).toHaveAttribute(
+        "src",
+        "https://example.com/gari-summit.jpg",
+      );
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "완료 해제" }));
+    const confirmationToast = screen.getByRole("alertdialog", { name: "등반 완료를 해제할까요?" });
+    expect(within(confirmationToast).getByText(/가리산.*완료 날짜와 사진 기록/)).toBeInTheDocument();
+    expect(myPageMocks.deleteCompletedMountain).not.toHaveBeenCalled();
+
+    fireEvent.click(within(confirmationToast).getByRole("button", { name: "취소" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(myPageMocks.deleteCompletedMountain).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "완료 해제" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "완료 해제" }));
+    await waitFor(() => {
+      expect(myPageMocks.deleteCompletedMountain).toHaveBeenCalledWith(
+        "user-1",
+        "0000000002",
+        "https://example.com/gari-summit.jpg",
       );
     });
   });

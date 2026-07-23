@@ -7,6 +7,7 @@ import {
 } from "../types";
 import { fetchPublicProfiles } from "./profiles";
 import { supabase } from "./supabase";
+import { deleteCompletionPhoto } from "./completionRecords";
 
 export type UserCompletedMountain = CompletionRecord & {
   mountain: Mountain | null;
@@ -35,6 +36,8 @@ type CompletedMountainRow = {
   id?: string;
   mountain_id: string;
   completed_at: string;
+  climbed_on?: string | null;
+  photo_url?: string | null;
 };
 
 type ReviewRow = {
@@ -66,7 +69,7 @@ export async function fetchUserCompletedMountains(userId: string): Promise<UserC
   const client = requireSupabase();
   const { data, error } = await client
     .from("completed_mountains")
-    .select("id,mountain_id,completed_at")
+    .select("id,mountain_id,completed_at,climbed_on,photo_url")
     .eq("user_id", userId)
     .order("completed_at", { ascending: false });
 
@@ -80,12 +83,14 @@ export async function fetchUserCompletedMountains(userId: string): Promise<UserC
       id: row.id,
       mountainId: row.mountain_id,
       completedAt: row.completed_at,
+      climbedOn: row.climbed_on ?? null,
+      photoUrl: row.photo_url ?? null,
       mountain,
     };
   });
 }
 
-export async function deleteCompletedMountain(userId: string, mountainId: string) {
+export async function deleteCompletedMountain(userId: string, mountainId: string, photoUrl?: string | null) {
   const client = requireSupabase();
   const { error } = await client
     .from("completed_mountains")
@@ -95,6 +100,10 @@ export async function deleteCompletedMountain(userId: string, mountainId: string
 
   if (error) {
     throw error;
+  }
+
+  if (photoUrl) {
+    await deleteCompletionPhoto(photoUrl).catch(() => undefined);
   }
 }
 
