@@ -183,8 +183,8 @@ const pageClass = {
     "inline-flex h-11 min-h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg border border-[#d8e0da] bg-white text-[#18221d] transition hover:bg-[#eef3f0]",
   empty:
     "grid min-h-28 place-items-center rounded-lg border border-dashed border-[#d8e0da] bg-[#f7faf8] px-3 text-center text-[13px] font-bold leading-[18px] text-[#5d6a62]",
-  status:
-    "rounded-lg border border-[#d8e0da] bg-[#f7faf8] px-3 py-2 text-[13px] font-bold leading-[18px] text-[#5d6a62]",
+  confirmationToast:
+    "fixed bottom-6 right-6 z-[60] grid w-[min(360px,calc(100%-32px))] gap-3 rounded-xl border border-[#d8e0da] bg-white p-4 shadow-[0_18px_50px_rgba(24,34,29,0.22)] max-[560px]:bottom-4 max-[560px]:right-4",
 };
 
 export function MyPage({
@@ -206,9 +206,9 @@ export function MyPage({
   const [completedMountains, setCompletedMountains] = useState<UserCompletedMountain[]>([]);
   const [reviews, setReviews] = useState<UserReviewSummary[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [message, setMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [removingMountainId, setRemovingMountainId] = useState<string | null>(null);
+  const [pendingRemovalMountainId, setPendingRemovalMountainId] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -217,8 +217,6 @@ export function MyPage({
 
     async function loadMyPage() {
       setLoadState("loading");
-      setMessage(null);
-
       try {
         const [nextProfile, nextCompletedMountains, nextReviews] = await Promise.all([
           fetchOrCreateUserProfile(session.user),
@@ -238,12 +236,11 @@ export function MyPage({
         setCompletedMountains(nextCompletedMountains);
         setReviews(nextReviews);
         setLoadState("ready");
-      } catch (error) {
+      } catch {
         if (!isActive) {
           return;
         }
 
-        setMessage(error instanceof Error ? error.message : "마이페이지 정보를 불러오지 못했습니다.");
         setLoadState("error");
       }
     }
@@ -263,9 +260,13 @@ export function MyPage({
   const displayNameLabel = profile?.displayName || "내 산행 기록";
   const recentMountainName = completedSummary[0]?.mountain?.name ?? "기록 없음";
   const recentMountainDescription = completedSummary[0]?.completedAt
-    ? `${formatDate(completedSummary[0].completedAt)} 산행 완료`
+    ? `${formatDate(completedSummary[0].climbedOn ?? completedSummary[0].completedAt)} 산행 완료`
     : "기록이 쌓이면 표시됩니다.";
+  const pendingRemovalMountain = pendingRemovalMountainId
+    ? completedSummary.find((record) => record.mountainId === pendingRemovalMountainId) ?? null
+    : null;
   const openTab = (tab: MyPageTab) => {
+    setPendingRemovalMountainId(null);
     onTabChange?.(tab);
   };
 
@@ -277,10 +278,8 @@ export function MyPage({
     const nextDisplayName = sanitizeDisplayName(displayName);
     const previousProfile = profile;
     setIsSaving(true);
-    setMessage(null);
 
     try {
-      let didCleanupFail = false;
       const nextProfile = await saveUserProfile({
         id: profile.id,
         email: profile.email,
@@ -304,12 +303,11 @@ export function MyPage({
         try {
           await deleteProfileAvatar(previousProfile.id, previousProfile.avatarUrl);
         } catch {
-          didCleanupFail = true;
+          // Saving the new profile should remain successful even if cleanup fails.
         }
       }
-      setMessage(didCleanupFail ? "프로필은 저장했지만 이전 프로필 사진 삭제에 실패했습니다." : "프로필을 저장했습니다.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "프로필 저장에 실패했습니다.");
+    } catch {
+      // The save button returns to its idle state so the user can retry.
     } finally {
       setIsSaving(false);
     }
@@ -321,7 +319,6 @@ export function MyPage({
     }
 
     setIsUploadingAvatar(true);
-    setMessage(null);
 
     try {
       const pendingAvatarUrl = avatarKind === "custom" && avatarUrl !== profile.avatarUrl ? avatarUrl : null;
@@ -335,9 +332,8 @@ export function MyPage({
       }
       setAvatarUrl(nextAvatarUrl);
       setAvatarKind("custom");
-      setMessage("새 프로필 사진을 선택했습니다. 저장을 눌러 반영해 주세요.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "프로필 사진 업로드에 실패했습니다.");
+    } catch {
+      // The upload control returns to its idle state so the user can retry.
     } finally {
       setIsUploadingAvatar(false);
       if (fileInputRef.current) {
@@ -348,17 +344,16 @@ export function MyPage({
 
   const removeCompleted = async (mountainId: string) => {
     setRemovingMountainId(mountainId);
-    setMessage(null);
 
     try {
-      await deleteCompletedMountain(session.user.id, mountainId);
+      const completion = completedMountains.find((record) => record.mountainId === mountainId);
+      await deleteCompletedMountain(session.user.id, mountainId, completion?.photoUrl);
       setCompletedMountains((currentMountains) =>
         currentMountains.filter((record) => record.mountainId !== mountainId),
       );
       onCompletionRecordsChange(completionRecords.filter((record) => record.mountainId !== mountainId));
-      setMessage("등반 완료 기록을 해제했습니다.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "등반 기록 삭제에 실패했습니다.");
+    } catch {
+      // Keep the existing record visible when deletion fails so the user can retry.
     } finally {
       setRemovingMountainId(null);
     }
@@ -388,7 +383,7 @@ export function MyPage({
       completedMountains={completedSummary}
       removingMountainId={removingMountainId}
       onOpenMountain={onOpenMountain}
-      onRemoveCompleted={(mountainId) => void removeCompleted(mountainId)}
+      onRemoveCompleted={setPendingRemovalMountainId}
     />
   );
 
@@ -399,7 +394,6 @@ export function MyPage({
       onReviewsChange={setReviews}
       onReviewDataChange={onReviewDataChange}
       onOpenMountain={onOpenMountain}
-      onStatusMessage={setMessage}
     />
   );
 
@@ -470,12 +464,6 @@ export function MyPage({
           </dl>
         </header>
 
-        {message ? (
-          <div className={pageClass.status} role="status">
-            {message}
-          </div>
-        ) : null}
-
         <div className={pageClass.bodyGrid}>
           <aside className={pageClass.sidePanel}>
             <h2 className={pageClass.sideTitle}>마이페이지 메뉴</h2>
@@ -518,6 +506,44 @@ export function MyPage({
             )}
           </div>
         </div>
+
+        {pendingRemovalMountainId ? (
+          <div
+            className={pageClass.confirmationToast}
+            role="alertdialog"
+            aria-labelledby="completion-removal-title"
+            aria-describedby="completion-removal-description"
+          >
+            <div className="grid gap-1">
+              <h2 id="completion-removal-title" className="m-0 text-[16px] font-semibold leading-6 text-[#18221d]">
+                등반 완료를 해제할까요?
+              </h2>
+              <p id="completion-removal-description" className="m-0 text-[14px] leading-5 text-[#5d6a62]">
+                {pendingRemovalMountain?.mountain?.name ?? "선택한 산"}의 완료 날짜와 사진 기록이 삭제됩니다.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-3 text-[14px] font-semibold text-[#18221d]"
+                type="button"
+                onClick={() => setPendingRemovalMountainId(null)}
+              >
+                취소
+              </button>
+              <button
+                className="min-h-11 rounded-lg border border-[#b14a3d] bg-[#b14a3d] px-3 text-[14px] font-semibold text-white"
+                type="button"
+                onClick={() => {
+                  const mountainId = pendingRemovalMountainId;
+                  setPendingRemovalMountainId(null);
+                  void removeCompleted(mountainId);
+                }}
+              >
+                완료 해제
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -703,8 +729,8 @@ function CompletedMountainsPanel({
                 {record.mountain ? (
                   <img
                     className={pageClass.completedImage}
-                    src={getCompletedMountainHeroImage(record.mountain)}
-                    alt={`${record.mountain.name} 대표 이미지`}
+                    src={record.photoUrl ?? getCompletedMountainHeroImage(record.mountain)}
+                    alt={record.photoUrl ? `${record.mountain.name} 등반 기록 사진` : `${record.mountain.name} 대표 이미지`}
                   />
                 ) : null}
                 <div className="grid min-w-0 gap-2.5">
@@ -717,7 +743,7 @@ function CompletedMountainsPanel({
                     </div>
                     <span className={pageClass.tag}>등산 완료</span>
                   </div>
-                  <p className={cn(pageClass.muted, "font-bold")}>완료 날짜 {formatDate(record.completedAt)}</p>
+                  <p className={cn(pageClass.muted, "font-bold")}>완료 날짜 {formatDate(record.climbedOn ?? record.completedAt)}</p>
                   <div className="flex flex-wrap gap-2">
                     {record.mountain ? (
                       <button className={pageClass.compactButton} type="button" onClick={() => onOpenMountain(record.mountain!)}>
@@ -830,14 +856,12 @@ function EditableUserReviewsPanel({
   onReviewsChange,
   onReviewDataChange,
   onOpenMountain,
-  onStatusMessage,
 }: {
   reviews: UserReviewSummary[];
   currentUserId: string;
   onReviewsChange: (reviews: UserReviewSummary[]) => void;
   onReviewDataChange?: () => void;
   onOpenMountain: (mountain: Mountain) => void;
-  onStatusMessage: (message: string | null) => void;
 }) {
   const [editingReview, setEditingReview] = useState<UserReviewSummary | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -909,7 +933,6 @@ function EditableUserReviewsPanel({
       setIsMobileReviewSheetVisible(false);
       window.setTimeout(() => setIsMobileReviewSheetVisible(true), 24);
     }
-    onStatusMessage(null);
   };
 
   const openReviewLightbox = (review: UserReviewSummary, imageIndex: number) => {
@@ -949,7 +972,6 @@ function EditableUserReviewsPanel({
 
     setIsSubmitting(true);
     setFormMessage(null);
-    onStatusMessage(null);
 
     try {
       const updatedReview = await updateMountainReview({
@@ -968,7 +990,6 @@ function EditableUserReviewsPanel({
       onReviewsChange(reviews.map((review) => (review.id === nextReview.id ? nextReview : review)));
       onReviewDataChange?.();
       closeEditor();
-      onStatusMessage("한줄평을 수정했습니다.");
     } catch (error) {
       setFormMessage(error instanceof Error ? error.message : "한줄평 수정에 실패했습니다.");
     } finally {
@@ -987,7 +1008,6 @@ function EditableUserReviewsPanel({
     }
 
     setDeletingReviewId(review.id);
-    onStatusMessage(null);
 
     try {
       await deleteMountainReview(toMountainReview(review));
@@ -996,9 +1016,8 @@ function EditableUserReviewsPanel({
       if (editingReview?.id === review.id) {
         closeEditor();
       }
-      onStatusMessage("한줄평을 삭제했습니다.");
-    } catch (error) {
-      onStatusMessage(error instanceof Error ? error.message : "한줄평 삭제에 실패했습니다.");
+    } catch {
+      // Keep the review visible when deletion fails so the user can retry.
     } finally {
       setDeletingReviewId(null);
     }
@@ -2217,6 +2236,8 @@ type CompletedMountainSummary = {
   mountainId: string;
   mountain: Mountain | null;
   completedAt: string;
+  climbedOn: string | null;
+  photoUrl: string | null;
 };
 
 function summarizeCompletedMountains(records: UserCompletedMountain[]): CompletedMountainSummary[] {
@@ -2230,17 +2251,23 @@ function summarizeCompletedMountains(records: UserCompletedMountain[]): Complete
         mountainId: record.mountainId,
         mountain: record.mountain,
         completedAt: record.completedAt,
+        climbedOn: record.climbedOn ?? null,
+        photoUrl: record.photoUrl ?? null,
       });
       continue;
     }
 
     if (new Date(record.completedAt).getTime() > new Date(existing.completedAt).getTime()) {
       existing.completedAt = record.completedAt;
+      existing.climbedOn = record.climbedOn ?? null;
+      existing.photoUrl = record.photoUrl ?? null;
     }
   }
 
   return Array.from(summaryMap.values()).sort(
-    (left, right) => new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime(),
+    (left, right) =>
+      new Date(right.climbedOn ?? right.completedAt).getTime()
+      - new Date(left.climbedOn ?? left.completedAt).getTime(),
   );
 }
 

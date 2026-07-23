@@ -31,6 +31,10 @@ const randomSoundMocks = vi.hoisted(() => ({
   playRouletteTick: vi.fn()
 }));
 
+const completionRecordMocks = vi.hoisted(() => ({
+  saveCompletionRecord: vi.fn(),
+}));
+
 vi.mock('./components/MountainMap', () => ({
   MountainMap: ({
     mountains: mapMountains,
@@ -68,25 +72,31 @@ vi.mock('./components/MountainDetailPage', () => ({
   MountainDetailPage: ({
     mountain,
     isCompleted,
+    isCompletionPending,
     onBack,
     onReviewDataChange,
     onShowOnMap,
-    onToggleCompleted,
+    onRequestCompletion,
   }: {
     mountain: (typeof mountains)[number];
     isCompleted: boolean;
+    isCompletionPending: boolean;
     onBack: () => void;
     onReviewDataChange?: () => void;
     onShowOnMap: (mountain: (typeof mountains)[number]) => void;
-    onToggleCompleted: (mountain: (typeof mountains)[number]) => void;
+    onRequestCompletion: (mountain: (typeof mountains)[number]) => void;
   }) => (
     <div>
       산 상세
       <button type="button" onClick={onReviewDataChange}>한줄평 변경</button>
       <button type="button" onClick={onBack}>상세에서 지도 복귀</button>
       <button type="button" onClick={() => onShowOnMap(mountain)}>지도에서 보기</button>
-      <button type="button" onClick={() => onToggleCompleted(mountain)}>
-        {isCompleted ? '산 상세 등반 완료 해제' : '산 상세 등반 완료 표시'}
+      <button
+        type="button"
+        disabled={isCompleted || isCompletionPending}
+        onClick={() => onRequestCompletion(mountain)}
+      >
+        {isCompleted ? '산 상세 등반 완료됨' : isCompletionPending ? '산 상세 저장 중' : '산 상세 등반 완료 표시'}
       </button>
     </div>
   )
@@ -125,6 +135,10 @@ vi.mock('./services/authRedirect', () => ({
 vi.mock('./services/randomSounds', () => ({
   playFanfare: randomSoundMocks.playFanfare,
   playRouletteTick: randomSoundMocks.playRouletteTick
+}));
+
+vi.mock('./services/completionRecords', () => ({
+  saveCompletionRecord: completionRecordMocks.saveCompletionRecord,
 }));
 
 vi.mock('./services/supabase', () => ({
@@ -205,6 +219,7 @@ describe('App account menu', () => {
     mountainReviewMocks.fetchMountainReviews.mockReset();
     randomSoundMocks.playFanfare.mockReset();
     randomSoundMocks.playRouletteTick.mockReset();
+    completionRecordMocks.saveCompletionRecord.mockReset();
 
     const session = createSession();
     supabaseMocks.getSession.mockResolvedValue({ data: { session } });
@@ -222,6 +237,13 @@ describe('App account menu', () => {
     myPageMocks.fetchUserReviews.mockResolvedValue([{ id: 'review-1' }, { id: 'review-2' }]);
     mountainReviewMocks.fetchMountainDifficultySummaries.mockResolvedValue([]);
     mountainReviewMocks.fetchMountainReviews.mockResolvedValue([]);
+    completionRecordMocks.saveCompletionRecord.mockResolvedValue({
+      id: 'completion-new',
+      mountainId: '0000000001',
+      completedAt: '2026-07-23T00:00:00.000Z',
+      climbedOn: '2026-07-20',
+      photoUrl: 'https://example.com/completion.jpg',
+    });
     mockCompletedMountainsQuery();
   });
 
@@ -687,7 +709,7 @@ describe('App account menu', () => {
     expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
   });
 
-  it('keeps the selected desktop detail when completion data removes it from results', async () => {
+  it('keeps the selected desktop detail and blocks completion removal outside My Page', async () => {
     const completedMountain = mountains.find((mountain) => mountain.id === '0000000001')!;
     const completionQuery = {
       select: vi.fn(() => ({
@@ -699,11 +721,7 @@ describe('App account menu', () => {
         })),
       })),
     };
-    const deleteChain = { eq: vi.fn() };
-    deleteChain.eq.mockReturnValueOnce(deleteChain).mockResolvedValueOnce({ error: null });
-    supabaseMocks.from
-      .mockReturnValueOnce(completionQuery)
-      .mockReturnValueOnce({ delete: vi.fn(() => deleteChain) });
+    supabaseMocks.from.mockReturnValueOnce(completionQuery);
     render(<App />);
 
     fireEvent.click(await screen.findByRole('button', { name: '필터' }));
@@ -716,8 +734,8 @@ describe('App account menu', () => {
     fireEvent.click(screen.getByRole('button', { name: '정보 상세페이지' }));
     expect(await screen.findByText('산 상세')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '산 상세 등반 완료 해제' }));
-    await waitFor(() => expect(deleteChain.eq).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('button', { name: '산 상세 등반 완료됨' })).toBeDisabled();
+    expect(supabaseMocks.from).toHaveBeenCalledTimes(1);
 
     window.history.replaceState(null, '', '/');
     fireEvent.popState(window, { state: null });
@@ -736,41 +754,58 @@ describe('App account menu', () => {
       select: vi.fn(() => ({
         eq: vi.fn(() => Promise.resolve({
           data: [
-            { id: 'completion-1', mountain_id: '0000000001', completed_at: '2026-06-01T00:00:00.000Z' },
+            { id: 'completion-existing', mountain_id: '0000000002', completed_at: '2026-06-01T00:00:00.000Z' },
           ],
           error: null,
         })),
       })),
     };
-    const deleteChain = {
-      eq: vi.fn(),
-    };
-    deleteChain.eq
-      .mockReturnValueOnce(deleteChain)
-      .mockResolvedValueOnce({ error: null });
-    const deleteQuery = {
-      delete: vi.fn(() => deleteChain),
-    };
-    supabaseMocks.from
-      .mockReturnValueOnce(completionQuery)
-      .mockReturnValueOnce(deleteQuery);
+    completionRecordMocks.saveCompletionRecord.mockResolvedValue({
+      id: 'completion-new',
+      mountainId: completedMountain.id,
+      completedAt: '2026-06-03T00:00:00.000Z',
+      climbedOn: '2026-05-28',
+      photoUrl: 'https://example.com/completed-gari.jpg',
+    });
+    supabaseMocks.from.mockReturnValueOnce(completionQuery);
     render(<App />);
 
     fireEvent.click(await screen.findByRole('button', { name: '필터' }));
     openDiscoveryFilterCard('등정 상태');
-    const completedFilter = screen.getByRole('radio', { name: '등정 완료' });
-    await waitFor(() => expect(completedFilter).toBeEnabled());
-    fireEvent.click(completedFilter);
-    fireEvent.click(screen.getByRole('button', { name: '1개 산 보기' }));
+    const incompleteFilter = screen.getByRole('radio', { name: '미등정' });
+    await waitFor(() => expect(incompleteFilter).toBeEnabled());
+    fireEvent.click(incompleteFilter);
+    fireEvent.click(screen.getByRole('button', { name: `${mountains.length - 1}개 산 보기` }));
     fireEvent.click(screen.getByRole('button', { name: new RegExp(completedMountain.name) }));
     expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: `${completedMountain.name} 등반 완료 표시` }));
+    expect(screen.queryByRole('button', { name: `${completedMountain.name} 등반 완료로 기록` })).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: `${completedMountain.name} 등반 완료` })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '정보 상세페이지' }));
+    fireEvent.click(await screen.findByRole('button', { name: '산 상세 등반 완료 표시' }));
+    expect(screen.getByRole('dialog', { name: `${completedMountain.name}의 순간을 남겨주세요` })).toBeInTheDocument();
+    const photo = new File(['photo'], 'summit.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText(/등반 사진/), { target: { files: [photo] } });
+    fireEvent.change(screen.getByLabelText('등반 날짜'), { target: { value: '2026-05-28' } });
+    fireEvent.click(screen.getByRole('button', { name: '등반 완료' }));
 
+    await waitFor(() => {
+      expect(completionRecordMocks.saveCompletionRecord).toHaveBeenCalledWith({
+        userId: 'user-1',
+        mountainId: completedMountain.id,
+        climbedOn: '2026-05-28',
+        photoFile: photo,
+      });
+      expect(screen.getByRole('button', { name: '산 상세 등반 완료됨' })).toBeDisabled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '상세에서 지도 복귀' }));
     await waitFor(() => {
       expect(screen.getByRole('complementary', { name: '선택한 산 정보' })).toBeInTheDocument();
       expect(screen.getByLabelText('mock-map')).toHaveAttribute('data-selected-mountain-id', completedMountain.id);
       expect(screen.getByLabelText('mock-map')).toHaveAttribute('data-fit-results-revision', '3');
+      expect(screen.getByRole('img', { name: `${completedMountain.name} 등반 완료` })).toBeInTheDocument();
+      expect(screen.queryByText('등반 완료로 기록했어요.')).not.toBeInTheDocument();
     });
   });
 

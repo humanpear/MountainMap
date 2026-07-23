@@ -11,9 +11,10 @@ describe('MountainDetailPage mountain guides', () => {
         <MountainDetailPage
           mountain={mountain}
           isCompleted={false}
+          isCompletionPending={false}
           onBack={() => undefined}
           onShowOnMap={() => undefined}
-          onToggleCompleted={() => undefined}
+          onRequestCompletion={() => undefined}
         />
       );
 
@@ -44,9 +45,10 @@ describe('MountainDetailPage mountain guides', () => {
         <MountainDetailPage
           mountain={mountain!}
           isCompleted={false}
+          isCompletionPending={false}
           onBack={() => undefined}
           onShowOnMap={() => undefined}
-          onToggleCompleted={() => undefined}
+          onRequestCompletion={() => undefined}
         />
       );
 

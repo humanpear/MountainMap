@@ -109,10 +109,11 @@ function renderMountainDetail(session: Session | null = createSession()) {
     <MountainDetailPage
       mountain={mountain}
       isCompleted={false}
+      isCompletionPending={false}
       session={session}
       onBack={() => undefined}
       onShowOnMap={() => undefined}
-      onToggleCompleted={() => undefined}
+      onRequestCompletion={() => undefined}
     />,
   );
 
