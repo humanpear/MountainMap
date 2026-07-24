@@ -290,15 +290,14 @@ const appClass = {
   workspace:
     'relative grid h-[calc(var(--app-visible-height,100dvh)-var(--app-header-height,68px))] min-h-0 overflow-hidden transition-[grid-template-columns] duration-200 ease-out max-[900px]:grid-cols-1',
   mapStage: 'relative h-full min-h-0 min-w-0 overflow-hidden',
-  detailHeader: 'flex items-start justify-between gap-4',
   eyebrow: 'm-0 mb-[3px] text-xs font-bold leading-4 text-[#627168]',
   meta:
-    'my-5 grid gap-3 rounded-lg border border-[#d8e0da] bg-[#f7faf8] p-4 [&_dd]:m-0 [&_dd]:font-semibold [&_dt]:text-sm [&_dt]:font-semibold [&_dt]:text-[#627168]',
+    'my-4 grid grid-cols-2 gap-x-4 gap-y-3 border-y border-[#d8e0da] py-4 [&>div]:min-w-0 [&>div:last-child]:col-span-2 [&>div:last-child]:border-t [&>div:last-child]:border-[#e5ebe7] [&>div:last-child]:pt-3 [&_dd]:m-0 [&_dd]:font-semibold [&_dt]:text-sm [&_dt]:font-semibold [&_dt]:text-[#627168]',
   primaryAction:
     'mt-4 inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#2f6b4f] bg-[#2f6b4f] px-4 font-semibold text-white',
-  sidebarPhotos: 'mt-5',
+  sidebarPhotos: 'mt-4',
   sidebarPhotoGrid:
-    'mt-2 grid grid-cols-3 gap-2 [&>*]:block [&_img]:aspect-square [&_img]:w-full [&_img]:rounded-md [&_img]:object-cover',
+    'mt-2 grid grid-cols-3 gap-2 [&>*]:block [&_img]:aspect-[4/3] [&_img]:w-full [&_img]:rounded-md [&_img]:object-cover',
   sidebarPhotoEmpty:
     'mt-2 grid min-h-[94px] place-items-center rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] px-3 text-center text-sm font-semibold leading-5 text-[#5d6a62]',
   toast:
