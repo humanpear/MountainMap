@@ -1307,7 +1307,7 @@ export function MountainDiscoveryPanel({
               data-results-sheet-header
             >
               <h2
-                className="m-0 flex min-w-0 flex-none items-baseline gap-1.5 text-sm font-normal text-[#18221d]"
+                className="m-0 ml-2.5 flex min-w-0 flex-none items-baseline gap-1.5 text-sm font-normal text-[#18221d] max-[900px]:ml-3"
                 aria-label={`${hasFilters ? '결과' : '전체'} ${resultMountains.length.toLocaleString()}개`}
                 data-discovery-focus="results-heading"
                 tabIndex={-1}
@@ -1430,7 +1430,7 @@ export function MountainDiscoveryPanel({
                         className={cn(
                           'grid min-h-[120px] w-full grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-0 border-b border-[#d8e0da] bg-white p-3 text-left text-[#18221d] transition hover:bg-[#f5f7f4] focus-visible:bg-[#eef3f0]',
                           state.selectedMountainId === mountain.id
-                            && 'bg-[#eef3f0] shadow-[inset_4px_0_0_#d7922b]',
+                            && 'bg-[#f5f7f4] shadow-[inset_5px_0_0_#245c46]',
                           shouldVirtualizeResults && 'absolute left-0 top-0',
                         )}
                         style={shouldVirtualizeResults
@@ -1466,7 +1466,7 @@ export function MountainDiscoveryPanel({
                           <span className="truncate text-sm font-medium text-[#5d6a62]">
                             {getMountainLocationLabel(mountain)}
                           </span>
-                          <span className="flex flex-wrap items-center gap-2 text-sm font-bold text-[#5d6a62]">
+                          <span className="flex items-center justify-between gap-2 text-sm font-bold text-[#5d6a62]">
                             <span
                               className={cn(
                                 'inline-flex min-h-7 items-center rounded-full border px-2.5 text-[12px] font-semibold text-[#2d3932]',
@@ -1534,7 +1534,7 @@ export function MountainDiscoveryPanel({
               data-detail-sheet-header
             >
               <button
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-transparent px-3 text-sm font-bold text-[#18221d] transition-colors hover:text-[#245c46]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-transparent px-3 text-base font-bold text-[#18221d] transition-colors hover:text-[#245c46]"
                 type="button"
                 onClick={() => onAction({ type: 'RETURN_TO_RESULTS' })}
               >
