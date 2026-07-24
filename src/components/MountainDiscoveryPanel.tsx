@@ -202,7 +202,8 @@ function getSelectionSummary<T>(
 }
 
 const confettiPieces = Array.from({ length: 34 }, (_, index) => index);
-const virtualResultItemHeight = 120;
+const mobileVirtualResultItemHeight = 120;
+const desktopVirtualResultItemHeight = 132;
 const virtualResultOverscan = 4;
 const virtualResultThreshold = 30;
 const defaultResultListViewportHeight = 704;
@@ -221,10 +222,10 @@ function getMountainImage(mountain: Mountain) {
   return `/mountain-images/${mountain.id}/list.jpg`;
 }
 
-function getVirtualResultStart(scrollTop: number) {
+function getVirtualResultStart(scrollTop: number, itemHeight: number) {
   return Math.max(
     0,
-    Math.floor(Math.max(0, scrollTop) / virtualResultItemHeight) - virtualResultOverscan,
+    Math.floor(Math.max(0, scrollTop) / itemHeight) - virtualResultOverscan,
   );
 }
 
@@ -260,6 +261,28 @@ function useMobileDiscoveryLayout() {
   }, []);
 
   return isMobile;
+}
+
+function useLargeDesktopDiscoveryLayout() {
+  const [isLargeDesktop, setIsLargeDesktop] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(min-width: 1360px)').matches
+      : false,
+  );
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(min-width: 1360px)');
+    const update = () => setIsLargeDesktop(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener?.('change', update);
+    return () => mediaQuery.removeEventListener?.('change', update);
+  }, []);
+
+  return isLargeDesktop;
 }
 
 export type InfoBarSwipeAction = 'open-detail' | 'clear-selection';
@@ -1009,6 +1032,11 @@ export function MountainDiscoveryPanel({
   onSelectMountain,
   onRandomRecommend,
 }: MountainDiscoveryPanelProps) {
+  const isMobile = useMobileDiscoveryLayout();
+  const isLargeDesktop = useLargeDesktopDiscoveryLayout();
+  const resultItemHeight = isLargeDesktop
+    ? desktopVirtualResultItemHeight
+    : mobileVirtualResultItemHeight;
   const listRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
   const resultScrollTopRef = useRef(state.resultScrollTop);
@@ -1016,10 +1044,9 @@ export function MountainDiscoveryPanel({
   const mobilePanelCloseTimerRef = useRef<number | null>(null);
   const [resultListViewportHeight, setResultListViewportHeight] = useState(defaultResultListViewportHeight);
   const [virtualResultStart, setVirtualResultStart] = useState(() =>
-    getVirtualResultStart(state.resultScrollTop),
+    getVirtualResultStart(state.resultScrollTop, resultItemHeight),
   );
   const [isMobilePanelClosing, setIsMobilePanelClosing] = useState(false);
-  const isMobile = useMobileDiscoveryLayout();
   const panelView = state.view.kind === 'filters' ? state.view.returnView : state.view;
   const isDesktopDefaultResults = !isMobile
     && panelView.kind === 'closed'
@@ -1045,7 +1072,7 @@ export function MountainDiscoveryPanel({
     ? Math.min(
         resultMountains.length,
         renderedVirtualResultStart
-          + Math.ceil(resultListViewportHeight / virtualResultItemHeight)
+          + Math.ceil(resultListViewportHeight / resultItemHeight)
           + virtualResultOverscan * 2,
       )
     : resultMountains.length;
@@ -1080,12 +1107,12 @@ export function MountainDiscoveryPanel({
 
     resultScrollFrameRef.current = window.requestAnimationFrame(() => {
       resultScrollFrameRef.current = null;
-      const nextStart = getVirtualResultStart(resultScrollTopRef.current);
+      const nextStart = getVirtualResultStart(resultScrollTopRef.current, resultItemHeight);
       setVirtualResultStart((currentStart) =>
         currentStart === nextStart ? currentStart : nextStart,
       );
     });
-  }, []);
+  }, [resultItemHeight]);
 
   useEffect(() => () => {
     if (resultScrollFrameRef.current !== null) {
@@ -1108,10 +1135,10 @@ export function MountainDiscoveryPanel({
     if (isResults && listRef.current) {
       const restoredScrollTop = state.resultScrollTop;
       resultScrollTopRef.current = restoredScrollTop;
-      setVirtualResultStart(getVirtualResultStart(restoredScrollTop));
+      setVirtualResultStart(getVirtualResultStart(restoredScrollTop, resultItemHeight));
       listRef.current.scrollTop = restoredScrollTop;
     }
-  }, [isResults, resultMountains, state.resultScrollTop]);
+  }, [isResults, resultItemHeight, resultMountains, state.resultScrollTop]);
 
   useEffect(() => {
     const request = state.resultRevealRequest;
@@ -1132,10 +1159,10 @@ export function MountainDiscoveryPanel({
      * target index -> scrollTop -> virtual start -> next-frame card verification
      */
     if (shouldVirtualizeResults) {
-      const nextScrollTop = Math.max(0, targetIndex * virtualResultItemHeight);
+      const nextScrollTop = Math.max(0, targetIndex * resultItemHeight);
       resultScrollTopRef.current = nextScrollTop;
       list.scrollTop = nextScrollTop;
-      setVirtualResultStart(getVirtualResultStart(nextScrollTop));
+      setVirtualResultStart(getVirtualResultStart(nextScrollTop, resultItemHeight));
     }
 
     let retryFrameId: number | null = null;
@@ -1165,6 +1192,7 @@ export function MountainDiscoveryPanel({
   }, [
     isResults,
     onAction,
+    resultItemHeight,
     resultMountains,
     shouldVirtualizeResults,
     state.resultRevealRequest,
@@ -1307,7 +1335,7 @@ export function MountainDiscoveryPanel({
               data-results-sheet-header
             >
               <h2
-                className="m-0 flex min-w-0 flex-none items-baseline gap-1.5 text-sm font-normal text-[#18221d]"
+                className="m-0 ml-2.5 flex min-w-0 flex-none items-baseline gap-1.5 text-sm font-normal text-[#18221d] max-[900px]:ml-3"
                 aria-label={`${hasFilters ? '결과' : '전체'} ${resultMountains.length.toLocaleString()}개`}
                 data-discovery-focus="results-heading"
                 tabIndex={-1}
@@ -1317,32 +1345,16 @@ export function MountainDiscoveryPanel({
                   {resultMountains.length.toLocaleString()}개
                 </strong>
               </h2>
-              <div className="ml-auto flex min-w-0 items-center justify-end gap-1">
+              {isMobile ? (
                 <button
-                  className="inline-flex min-h-9 min-w-0 flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-[#245c46] bg-[#245c46] px-2 text-[13px] font-bold text-white disabled:cursor-not-allowed disabled:border-[#8a9790] disabled:bg-[#8a9790]"
+                  className="ml-auto inline-flex h-11 w-11 flex-none items-center justify-center rounded-lg border-0 bg-transparent transition-colors hover:bg-[#eef3f0]"
                   type="button"
-                  onClick={() => {
-                    persistResultScrollPosition();
-                    onRandomRecommend();
-                  }}
-                  disabled={resultMountains.length === 0}
+                  onClick={closePanel}
+                  aria-label="산 찾기 결과 닫기"
                 >
-                  <Shuffle className="flex-none" size={16} />
-                  {resultMountains.length > 0
-                    ? '등반할 산 랜덤 돌리기'
-                    : '추천할 산이 없어요'}
+                  <X size={19} />
                 </button>
-                {isMobile ? (
-                  <button
-                    className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-lg border-0 bg-transparent transition-colors hover:bg-[#eef3f0]"
-                    type="button"
-                    onClick={closePanel}
-                    aria-label="산 찾기 결과 닫기"
-                  >
-                    <X size={19} />
-                  </button>
-                ) : null}
-              </div>
+              ) : null}
             </header>
 
             <div
@@ -1350,7 +1362,7 @@ export function MountainDiscoveryPanel({
               data-results-toolbar
             >
               <button
-                className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] max-[900px]:min-h-9"
+                className="inline-flex min-h-11 flex-none items-center justify-center gap-2 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-semibold text-[#18221d]"
                 data-results-filter-button
                 type="button"
                 onClick={() => {
@@ -1366,7 +1378,7 @@ export function MountainDiscoveryPanel({
               </label>
               <select
                 id="mountain-result-sort"
-                className="min-h-11 min-w-0 flex-1 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-bold text-[#18221d] max-[900px]:min-h-9"
+                className="min-h-11 min-w-0 flex-1 rounded-lg border border-[#d8e0da] bg-white px-3 text-sm font-semibold text-[#18221d]"
                 value={state.sort}
                 onChange={(event) =>
                   onAction({
@@ -1379,6 +1391,26 @@ export function MountainDiscoveryPanel({
                 <option value="elevation-asc">낮은 산 순</option>
                 <option value="elevation-desc">높은 산 순</option>
               </select>
+              <span
+                className="h-7 w-px flex-none bg-[#d8e0da]"
+                data-results-random-divider
+                aria-hidden="true"
+              />
+              <button
+                className="ml-auto inline-flex min-h-11 min-w-0 flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-[#245c46] bg-[#245c46] px-2.5 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:border-[#8a9790] disabled:bg-[#8a9790]"
+                type="button"
+                onClick={() => {
+                  persistResultScrollPosition();
+                  onRandomRecommend();
+                }}
+                disabled={resultMountains.length === 0}
+                aria-label={resultMountains.length > 0
+                  ? '등반할 산 랜덤 돌리기'
+                  : '추천할 산이 없어요'}
+              >
+                <Shuffle className="flex-none" size={16} />
+                {resultMountains.length > 0 ? '등반할 산 랜덤 돌리기' : '추천 불가'}
+              </button>
             </div>
 
             {resultMountains.length === 0 ? (
@@ -1415,7 +1447,7 @@ export function MountainDiscoveryPanel({
                 <div
                   className={shouldVirtualizeResults ? 'relative w-full' : undefined}
                   style={shouldVirtualizeResults
-                    ? { height: `${resultMountains.length * virtualResultItemHeight}px` }
+                    ? { height: `${resultMountains.length * resultItemHeight}px` }
                     : undefined}
                 >
                   {visibleResultMountains.map((mountain, visibleIndex) => {
@@ -1428,15 +1460,15 @@ export function MountainDiscoveryPanel({
                       <button
                         key={mountain.id}
                         className={cn(
-                          'grid min-h-[120px] w-full grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-0 border-b border-[#d8e0da] bg-white p-3 text-left text-[#18221d] transition hover:bg-[#f5f7f4] focus-visible:bg-[#eef3f0]',
+                          'grid min-h-[120px] w-full grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-0 border-b border-[#d8e0da] bg-white p-3 text-left text-[#18221d] transition hover:bg-[#f5f7f4] focus-visible:bg-[#eef3f0] min-[1360px]:min-h-[132px] min-[1360px]:gap-4 min-[1360px]:p-4',
                           state.selectedMountainId === mountain.id
-                            && 'bg-[#eef3f0] shadow-[inset_4px_0_0_#d7922b]',
+                            && 'bg-[#f5f7f4] shadow-[inset_5px_0_0_#245c46]',
                           shouldVirtualizeResults && 'absolute left-0 top-0',
                         )}
                         style={shouldVirtualizeResults
                           ? {
-                              transform: `translateY(${resultIndex * virtualResultItemHeight}px)`,
-                              height: `${virtualResultItemHeight}px`,
+                              transform: `translateY(${resultIndex * resultItemHeight}px)`,
+                              height: `${resultItemHeight}px`,
                             }
                           : undefined}
                         type="button"
@@ -1448,7 +1480,7 @@ export function MountainDiscoveryPanel({
                         }}
                       >
                         <img
-                          className="h-24 w-auto max-w-[192px] rounded-lg bg-[#eef3f0] object-contain"
+                          className="h-24 w-auto max-w-[192px] rounded-lg bg-[#eef3f0] object-contain min-[1360px]:h-[104px] min-[1360px]:w-[184px] min-[1360px]:max-w-none min-[1360px]:object-cover"
                           src={getMountainImage(mountain)}
                           alt=""
                           width={384}
@@ -1458,18 +1490,18 @@ export function MountainDiscoveryPanel({
                         />
                         <span className="grid min-w-0 content-center gap-1.5">
                           <span className="flex items-baseline justify-between gap-3">
-                            <strong className="truncate text-[17px] font-black leading-6">{mountain.name}</strong>
-                            <span className="font-numeric flex-none text-base font-black text-[#245c46]">
+                            <strong className="truncate text-[17px] font-black leading-6 min-[1360px]:text-lg min-[1360px]:font-semibold">{mountain.name}</strong>
+                            <span className="font-numeric flex-none text-base font-black text-[#245c46] min-[1360px]:text-[17px] min-[1360px]:font-semibold">
                               {mountain.elevationMeters.toLocaleString()}m
                             </span>
                           </span>
-                          <span className="truncate text-sm font-medium text-[#5d6a62]">
+                          <span className="truncate text-sm font-medium text-[#5d6a62] min-[1360px]:text-base">
                             {getMountainLocationLabel(mountain)}
                           </span>
-                          <span className="flex flex-wrap items-center gap-2 text-sm font-bold text-[#5d6a62]">
+                          <span className="flex items-center justify-between gap-2 text-sm font-bold text-[#5d6a62] min-[1360px]:font-semibold">
                             <span
                               className={cn(
-                                'inline-flex min-h-7 items-center rounded-full border px-2.5 text-[12px] font-semibold text-[#2d3932]',
+                                'inline-flex min-h-7 items-center rounded-full border px-2.5 text-[12px] font-semibold text-[#2d3932] min-[1360px]:text-sm',
                                 getReviewDifficultyBadgeClass(difficultyLabel),
                               )}
                             >
@@ -1534,7 +1566,7 @@ export function MountainDiscoveryPanel({
               data-detail-sheet-header
             >
               <button
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-transparent px-3 text-sm font-bold text-[#18221d] transition-colors hover:text-[#245c46]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-transparent px-3 text-base font-semibold text-[#18221d] transition-colors hover:text-[#245c46]"
                 type="button"
                 onClick={() => onAction({ type: 'RETURN_TO_RESULTS' })}
               >

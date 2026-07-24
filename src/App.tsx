@@ -290,17 +290,16 @@ const appClass = {
   workspace:
     'relative grid h-[calc(var(--app-visible-height,100dvh)-var(--app-header-height,68px))] min-h-0 overflow-hidden transition-[grid-template-columns] duration-200 ease-out max-[900px]:grid-cols-1',
   mapStage: 'relative h-full min-h-0 min-w-0 overflow-hidden',
-  detailHeader: 'flex items-start justify-between gap-4',
   eyebrow: 'm-0 mb-[3px] text-xs font-bold leading-4 text-[#627168]',
   meta:
-    'my-5 grid gap-3 rounded-lg border border-[#d8e0da] bg-[#f7faf8] p-4 [&_dd]:m-0 [&_dd]:font-bold [&_dt]:text-xs [&_dt]:font-black [&_dt]:text-[#627168]',
+    'mb-4 mt-0 grid grid-cols-2 gap-x-4 gap-y-3 border-y border-[#d8e0da] py-4 [&>div]:min-w-0 [&>div:last-child]:col-span-2 [&>div:last-child]:border-t [&>div:last-child]:border-[#e5ebe7] [&>div:last-child]:pt-3 [&_dd]:m-0 [&_dd]:font-semibold [&_dt]:text-sm [&_dt]:font-semibold [&_dt]:text-[#627168]',
   primaryAction:
-    'mt-4 inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#2f6b4f] bg-[#2f6b4f] px-4 font-extrabold text-white',
-  sidebarPhotos: 'mt-5',
+    'mt-4 inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#2f6b4f] bg-[#2f6b4f] px-4 font-semibold text-white',
+  sidebarPhotos: 'mt-4',
   sidebarPhotoGrid:
-    'mt-2 grid grid-cols-3 gap-2 [&>*]:block [&_img]:aspect-square [&_img]:w-full [&_img]:rounded-md [&_img]:object-cover',
+    'mt-2 grid grid-cols-3 gap-2 [&>*]:block [&_img]:aspect-[4/3] [&_img]:w-full [&_img]:rounded-md [&_img]:object-cover',
   sidebarPhotoEmpty:
-    'mt-2 grid min-h-[94px] place-items-center rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] px-3 text-center text-sm font-bold leading-5 text-[#5d6a62]',
+    'mt-2 grid min-h-[94px] place-items-center rounded-md border border-dashed border-[#d8e0da] bg-[#f7faf8] px-3 text-center text-sm font-semibold leading-5 text-[#5d6a62]',
   toast:
     'fixed bottom-5 left-5 z-[5] flex max-w-[min(420px,calc(100vw-40px))] items-center gap-2.5 rounded-lg border border-[#d8e0da] bg-white py-2.5 pl-3.5 pr-2.5 shadow-[0_16px_50px_rgba(24,34,29,0.14)]',
   toastButton:
@@ -1523,7 +1522,7 @@ export default function App() {
         <section
           className={cn(
             appClass.workspace,
-            'grid-cols-[minmax(0,1fr)_360px]'
+            'grid-cols-[minmax(0,1fr)_clamp(360px,29vw,420px)]'
           )}
           aria-label="100대 명산 지도"
         >
@@ -1584,26 +1583,33 @@ export default function App() {
               onRandomRecommend={runRandomPick}
               detailContent={selectedMountain ? (
                 <>
-                <div className={appClass.detailHeader}>
-                  <div>
-                    <p className={appClass.eyebrow}>{selectedMountain.province}</p>
-                    <h2
-                      className="m-0 text-[19px] font-black leading-[24px] max-[560px]:text-[17px] max-[560px]:leading-[22px]"
-                      data-discovery-focus="detail-heading"
-                      tabIndex={-1}
-                    >
-                      <MountainNameWithHanja
-                        mountain={selectedMountain}
-                        className="flex-wrap"
-                        hanjaClassName="text-[13px] font-bold text-[#627168]"
-                      />
-                    </h2>
-                  </div>
-                  <div className="flex flex-none items-center gap-2">
-                    {completedIds.has(selectedMountain.id) ? (
-                      <span
-                        className="inline-grid h-10 w-10 place-items-center"
+                <div className="relative -mx-5 -mt-5 h-44 overflow-hidden bg-[#06263a] max-[560px]:-mx-4 max-[560px]:-mt-4 max-[560px]:h-40">
+                  <img
+                    className="absolute inset-0 h-full w-full object-cover"
+                    src={getMountainHeroImage(selectedMountain)}
+                    alt={`${selectedMountain.name} 대표 이미지`}
+                  />
+                  <div
+                    className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,23,43,0.08)_10%,rgba(0,23,43,0.82)_100%)]"
+                    aria-hidden="true"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 max-[560px]:p-4">
+                    <div className="min-w-0">
+                      <p className="m-0 mb-1 text-sm font-semibold text-white/80">{selectedMountain.province}</p>
+                      <h2
+                        className="m-0 text-2xl font-semibold leading-7 text-white"
+                        data-discovery-focus="detail-heading"
+                        tabIndex={-1}
                       >
+                        <MountainNameWithHanja
+                          mountain={selectedMountain}
+                          className="flex-wrap"
+                          hanjaClassName="text-sm font-semibold text-white/75"
+                        />
+                      </h2>
+                    </div>
+                    {completedIds.has(selectedMountain.id) ? (
+                      <span className="inline-grid h-10 w-10 flex-none place-items-center rounded-full bg-white/60">
                         <img
                           className="h-9 w-9 object-contain"
                           src={completionMedalImagePath}
@@ -1630,7 +1636,7 @@ export default function App() {
                 </dl>
                 <p className="mt-4 leading-7 text-[#627168]">{selectedMountain.shortDescription}</p>
                 <section className={appClass.sidebarPhotos} aria-label="최신 한줄평 사진">
-                  <h3 className="text-[15px] font-black leading-5">최신 한줄평 사진</h3>
+                  <h3 className="text-base font-semibold leading-6">최신 한줄평 사진</h3>
                   {sidebarPhotoState.status === 'loading'
                   || sidebarPhotoState.status === 'idle'
                   || sidebarPhotoState.mountainId !== selectedMountain.id ? (

@@ -158,8 +158,11 @@ describe('MountainDiscoveryPanel', () => {
     expect(heading).toHaveClass('text-sm', 'font-normal', 'text-[#18221d]');
     expect(within(heading).getByText('2개')).toHaveClass('text-xl', 'font-semibold', 'text-[#245c46]');
     const randomButton = screen.getByRole('button', { name: '등반할 산 랜덤 돌리기' });
-    expect(randomButton.closest('header')).toBeInTheDocument();
-    expect(randomButton).toHaveClass('min-h-9', 'flex-none', 'px-2');
+    const toolbar = randomButton.closest('[data-results-toolbar]');
+    expect(toolbar).toBeInTheDocument();
+    expect(toolbar?.querySelector('[data-results-random-divider]')).toBeInTheDocument();
+    expect(randomButton).toHaveClass('ml-auto', 'min-h-11', 'flex-none', 'px-2.5');
+    expect(randomButton).toHaveTextContent('등반할 산 랜덤 돌리기');
     expect(randomButton).not.toHaveClass('flex-1');
     const mountainButton = screen.getByRole('button', { name: /강원산/ });
     expect(mountainButton).toHaveTextContent('강원도 춘천시');
@@ -551,18 +554,19 @@ describe('MountainDiscoveryPanel', () => {
       'max-[900px]:py-2',
     );
     expect(resultDialog.querySelector('[data-results-filter-button]')).toHaveClass(
-      'max-[900px]:min-h-9',
+      'min-h-11',
     );
     expect(within(resultDialog).getByLabelText('결과 정렬')).toHaveClass(
-      'max-[900px]:min-h-9',
+      'min-h-11',
     );
     expect(resultDialog).toHaveClass(
       'max-[900px]:animate-[discovery-sheet-in_280ms_cubic-bezier(0.22,1,0.36,1)_both]',
     );
     const randomButton = screen.getByRole('button', { name: '등반할 산 랜덤 돌리기' });
-    const closeButton = screen.getByRole('button', { name: '산 찾기 결과 닫기' });
-    expect(randomButton.parentElement).toBe(closeButton.parentElement);
-    expect(randomButton.parentElement).toHaveClass('ml-auto', 'justify-end');
+    const resultsToolbar = resultDialog.querySelector('[data-results-toolbar]');
+    expect(resultsToolbar).toContainElement(randomButton);
+    expect(resultsToolbar?.querySelector('[data-results-random-divider]')).toBeInTheDocument();
+    expect(randomButton).toHaveClass('ml-auto');
 
     fireEvent.click(screen.getByRole('button', { name: '필터 수정' }));
     expect(await screen.findByRole('dialog', { name: '조건으로 찾기' })).toBeInTheDocument();
@@ -644,15 +648,15 @@ describe('MountainDiscoveryPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: '필터' }));
     fireEvent.click(screen.getByRole('button', { name: '2개 산 보기' }));
     const dialog = await screen.findByRole('dialog', { name: '산 찾기 결과' });
-    const randomButton = screen.getByRole('button', { name: '등반할 산 랜덤 돌리기' });
+    const closeButton = screen.getByRole('button', { name: '산 찾기 결과 닫기' });
     const lastResult = screen.getByRole('button', { name: /경기산/ });
 
-    randomButton.focus();
+    closeButton.focus();
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
     expect(lastResult).toHaveFocus();
 
     fireEvent.keyDown(document, { key: 'Tab' });
-    expect(randomButton).toHaveFocus();
+    expect(closeButton).toHaveFocus();
 
     fireEvent.click(screen.getByRole('button', { name: '산 찾기 패널 닫기' }));
     await waitFor(() => {
