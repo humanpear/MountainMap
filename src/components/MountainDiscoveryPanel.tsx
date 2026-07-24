@@ -1534,7 +1534,7 @@ export function MountainDiscoveryPanel({
               data-detail-sheet-header
             >
               <button
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-transparent px-3 text-base font-bold text-[#18221d] transition-colors hover:text-[#245c46]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-transparent px-3 text-base font-semibold text-[#18221d] transition-colors hover:text-[#245c46]"
                 type="button"
                 onClick={() => onAction({ type: 'RETURN_TO_RESULTS' })}
               >
