@@ -292,7 +292,7 @@ const appClass = {
   mapStage: 'relative h-full min-h-0 min-w-0 overflow-hidden',
   eyebrow: 'm-0 mb-[3px] text-xs font-bold leading-4 text-[#627168]',
   meta:
-    'my-4 grid grid-cols-2 gap-x-4 gap-y-3 border-y border-[#d8e0da] py-4 [&>div]:min-w-0 [&>div:last-child]:col-span-2 [&>div:last-child]:border-t [&>div:last-child]:border-[#e5ebe7] [&>div:last-child]:pt-3 [&_dd]:m-0 [&_dd]:font-semibold [&_dt]:text-sm [&_dt]:font-semibold [&_dt]:text-[#627168]',
+    'mb-4 mt-0 grid grid-cols-2 gap-x-4 gap-y-3 border-y border-[#d8e0da] py-4 [&>div]:min-w-0 [&>div:last-child]:col-span-2 [&>div:last-child]:border-t [&>div:last-child]:border-[#e5ebe7] [&>div:last-child]:pt-3 [&_dd]:m-0 [&_dd]:font-semibold [&_dt]:text-sm [&_dt]:font-semibold [&_dt]:text-[#627168]',
   primaryAction:
     'mt-4 inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#2f6b4f] bg-[#2f6b4f] px-4 font-semibold text-white',
   sidebarPhotos: 'mt-4',
@@ -1522,7 +1522,7 @@ export default function App() {
         <section
           className={cn(
             appClass.workspace,
-            'grid-cols-[minmax(0,1fr)_360px]'
+            'grid-cols-[minmax(0,1fr)_clamp(360px,29vw,420px)]'
           )}
           aria-label="100대 명산 지도"
         >
@@ -1583,7 +1583,7 @@ export default function App() {
               onRandomRecommend={runRandomPick}
               detailContent={selectedMountain ? (
                 <>
-                <div className="relative -mx-5 -mt-5 mb-5 h-40 overflow-hidden bg-[#06263a] max-[560px]:-mx-4 max-[560px]:-mt-4 max-[560px]:h-36">
+                <div className="relative -mx-5 -mt-5 h-44 overflow-hidden bg-[#06263a] max-[560px]:-mx-4 max-[560px]:-mt-4 max-[560px]:h-40">
                   <img
                     className="absolute inset-0 h-full w-full object-cover"
                     src={getMountainHeroImage(selectedMountain)}
@@ -1609,7 +1609,7 @@ export default function App() {
                       </h2>
                     </div>
                     {completedIds.has(selectedMountain.id) ? (
-                      <span className="inline-grid h-10 w-10 flex-none place-items-center rounded-full bg-white/90">
+                      <span className="inline-grid h-10 w-10 flex-none place-items-center rounded-full bg-white/60">
                         <img
                           className="h-9 w-9 object-contain"
                           src={completionMedalImagePath}
