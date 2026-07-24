@@ -1584,26 +1584,33 @@ export default function App() {
               onRandomRecommend={runRandomPick}
               detailContent={selectedMountain ? (
                 <>
-                <div className={appClass.detailHeader}>
-                  <div>
-                    <p className={appClass.eyebrow}>{selectedMountain.province}</p>
-                    <h2
-                      className="m-0 text-[19px] font-black leading-[24px] max-[560px]:text-[17px] max-[560px]:leading-[22px]"
-                      data-discovery-focus="detail-heading"
-                      tabIndex={-1}
-                    >
-                      <MountainNameWithHanja
-                        mountain={selectedMountain}
-                        className="flex-wrap"
-                        hanjaClassName="text-[13px] font-bold text-[#627168]"
-                      />
-                    </h2>
-                  </div>
-                  <div className="flex flex-none items-center gap-2">
-                    {completedIds.has(selectedMountain.id) ? (
-                      <span
-                        className="inline-grid h-10 w-10 place-items-center"
+                <div className="relative -mx-5 -mt-5 mb-5 h-40 overflow-hidden bg-[#06263a] max-[560px]:-mx-4 max-[560px]:-mt-4 max-[560px]:h-36">
+                  <img
+                    className="absolute inset-0 h-full w-full object-cover"
+                    src={getMountainHeroImage(selectedMountain)}
+                    alt={`${selectedMountain.name} 대표 이미지`}
+                  />
+                  <div
+                    className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,23,43,0.08)_10%,rgba(0,23,43,0.82)_100%)]"
+                    aria-hidden="true"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 max-[560px]:p-4">
+                    <div className="min-w-0">
+                      <p className="m-0 mb-1 text-sm font-semibold text-white/80">{selectedMountain.province}</p>
+                      <h2
+                        className="m-0 text-2xl font-semibold leading-7 text-white"
+                        data-discovery-focus="detail-heading"
+                        tabIndex={-1}
                       >
+                        <MountainNameWithHanja
+                          mountain={selectedMountain}
+                          className="flex-wrap"
+                          hanjaClassName="text-sm font-semibold text-white/75"
+                        />
+                      </h2>
+                    </div>
+                    {completedIds.has(selectedMountain.id) ? (
+                      <span className="inline-grid h-10 w-10 flex-none place-items-center rounded-full bg-white/90">
                         <img
                           className="h-9 w-9 object-contain"
                           src={completionMedalImagePath}
