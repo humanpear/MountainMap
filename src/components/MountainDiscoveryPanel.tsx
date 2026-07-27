@@ -1490,7 +1490,7 @@ export function MountainDiscoveryPanel({
                         />
                         <span className="grid min-w-0 content-center gap-1.5">
                           <span className="flex items-baseline justify-between gap-3">
-                            <strong className="truncate text-[17px] font-black leading-6 min-[1360px]:text-lg min-[1360px]:font-semibold">{mountain.name}</strong>
+                            <strong className="truncate text-[17px] font-black leading-6 min-[1360px]:text-lg">{mountain.name}</strong>
                             <span className="font-numeric flex-none text-base font-black text-[#245c46] min-[1360px]:text-[17px] min-[1360px]:font-semibold">
                               {mountain.elevationMeters.toLocaleString()}m
                             </span>
