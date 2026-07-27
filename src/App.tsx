@@ -25,6 +25,7 @@ import {
   X
 } from 'lucide-react';
 import { CompletionRecordModal, type CompletionRecordDraft } from './components/CompletionRecordModal';
+import { GoogleSignInDialog } from './components/GoogleSignInDialog';
 import { MountainDetailPage } from './components/MountainDetailPage';
 import { completionMedalImagePath } from './constants/assets';
 import {
@@ -49,10 +50,9 @@ import {
 import { getRandomTickDelays, pickRandomMountain } from './game/random';
 import { cn } from './lib/classNames';
 import { createAppFeedback } from './services/appFeedback';
-import { getOAuthRedirectUrl } from './services/authRedirect';
 import { getCompletionErrorMessage } from './services/completionErrors';
 import { saveCompletionRecord } from './services/completionRecords';
-import { isSupabaseConfigured } from './services/env';
+import { isGoogleIdentityConfigured, isSupabaseConfigured } from './services/env';
 import {
   fetchMountainDifficultySummaries,
   fetchMountainReviews,
@@ -239,11 +239,11 @@ const appClass = {
   topbarActions:
     'flex min-w-0 items-center justify-end gap-2.5 max-[900px]:contents',
   brand:
-    'inline-flex min-h-11 min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent text-[19px] font-black text-white max-[900px]:col-start-1 max-[900px]:row-start-1 max-[900px]:justify-start max-[900px]:gap-1.5 max-[900px]:text-[15px] [&_span]:truncate [&_svg]:text-white',
+    'inline-flex min-h-11 min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent text-xl font-black text-white max-[900px]:col-start-1 max-[900px]:row-start-1 max-[900px]:justify-start max-[900px]:gap-1.5 max-[900px]:text-base [&_span]:truncate [&_svg]:text-white',
   search:
-    'relative grid min-h-11 w-[252px] grid-cols-[minmax(0,1fr)_44px] rounded-[9px] bg-white transition-[opacity,transform] duration-200 ease-out max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:ml-1 max-[900px]:min-h-11 max-[900px]:w-full max-[900px]:origin-right max-[900px]:grid-cols-1',
+    'relative grid min-h-11 w-[252px] grid-cols-[minmax(0,1fr)_44px] rounded-[9px] bg-white transition-[opacity,transform] duration-200 ease-out max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:ml-1 max-[900px]:min-h-11 max-[900px]:w-full max-[900px]:origin-right max-[900px]:grid-cols-1 max-[900px]:bg-transparent',
   searchInput:
-    'min-w-0 rounded-l-[9px] border-0 px-4 text-[13px] text-[#18221d] outline-none placeholder:text-[#627168] max-[900px]:rounded-[9px] max-[900px]:text-base',
+    'min-w-0 rounded-l-[9px] border-0 px-4 text-[13px] text-[#18221d] outline-none placeholder:text-[#627168] max-[900px]:h-10 max-[900px]:self-center max-[900px]:rounded-[9px] max-[900px]:bg-white max-[900px]:text-base',
   searchButton: 'inline-flex cursor-pointer items-center justify-center rounded-r-[9px] border-0 bg-white text-[#00172b]',
   searchSuggestions:
     'absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[min(360px,calc(100vh-96px))] overflow-y-auto rounded-lg border border-[#d8e0da] bg-white py-1.5 text-[#18221d] shadow-[0_18px_48px_rgba(0,0,0,0.18)] max-[900px]:max-h-[min(320px,calc(100dvh-86px))]',
@@ -307,7 +307,7 @@ const appClass = {
   setupNote:
     'fixed bottom-[92px] right-5 z-[5] max-w-[360px] rounded-lg border border-[#d8e0da] bg-white px-3.5 py-3 text-[13px] text-[#627168] shadow-[0_16px_50px_rgba(24,34,29,0.14)] max-[560px]:left-5 max-[560px]:max-w-none',
   feedbackButton:
-    'app-feedback-button fixed bottom-5 right-[380px] z-[6] inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-4 font-extrabold text-white shadow-[0_16px_50px_rgba(24,34,29,0.2)] transition-[bottom,background-color] hover:bg-[#1f4e39] max-[900px]:right-5 max-[900px]:z-[4] max-[560px]:bottom-3 max-[560px]:right-3 max-[560px]:h-12 max-[560px]:w-12 max-[560px]:rounded-full max-[560px]:px-0',
+    'app-feedback-button fixed bottom-5 right-[calc(clamp(360px,29vw,420px)_+_20px)] z-[6] inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#245c46] bg-[#245c46] px-4 font-extrabold text-white shadow-[0_16px_50px_rgba(24,34,29,0.2)] transition-[bottom,background-color] hover:bg-[#1f4e39] max-[900px]:right-5 max-[900px]:z-[4] max-[560px]:bottom-3 max-[560px]:right-3 max-[560px]:h-12 max-[560px]:w-12 max-[560px]:rounded-full max-[560px]:px-0',
   feedbackModal:
     'relative grid w-[min(520px,100%)] gap-4 rounded-xl border border-[#d8e0da] bg-white p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] animate-[modal-pop_180ms_ease-out] max-[560px]:gap-3 max-[560px]:p-4',
   feedbackClose:
@@ -318,7 +318,7 @@ const appClass = {
     'min-h-11 rounded-lg border border-[#d8e0da] bg-white px-3 text-base text-[#18221d] outline-none focus:border-[#245c46] max-[560px]:min-h-10 max-[560px]:text-sm',
   feedbackTextarea:
     'min-h-32 resize-y rounded-lg border border-[#d8e0da] bg-white px-3 py-2.5 text-base leading-7 text-[#18221d] outline-none focus:border-[#245c46] max-[560px]:min-h-28 max-[560px]:py-2 max-[560px]:text-sm max-[560px]:leading-6',
-  feedbackActions: 'flex justify-end gap-2 max-[560px]:grid',
+  feedbackActions: 'flex justify-end gap-2 max-[560px]:grid max-[560px]:grid-cols-2',
   feedbackCancel:
     'inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-[#d8e0da] bg-white px-4 font-extrabold text-[#18221d] max-[560px]:min-h-10 max-[560px]:text-sm',
   feedbackSubmit:
@@ -351,6 +351,7 @@ export default function App() {
   const [isAccountMenuClosing, setIsAccountMenuClosing] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isGoogleSignInOpen, setIsGoogleSignInOpen] = useState(false);
   const [accountSummary, setAccountSummary] = useState<AccountSummaryState>({
     status: 'idle',
     profile: null,
@@ -1131,23 +1132,25 @@ export default function App() {
     refreshChangedReviewSummaries();
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = () => {
     if (!supabase) {
       setMessage('Google 로그인을 사용하려면 Supabase 설정이 필요합니다.');
       return;
     }
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: getOAuthRedirectUrl()
-      }
-    });
-
-    if (error) {
-      setMessage(error.message);
+    if (!isGoogleIdentityConfigured) {
+      setMessage('Google 로그인 설정이 없습니다. VITE_GOOGLE_CLIENT_ID를 확인해 주세요.');
+      return;
     }
+
+    setMessage(null);
+    setIsGoogleSignInOpen(true);
   };
+
+  const handleGoogleSignInSuccess = useCallback(() => {
+    setIsGoogleSignInOpen(false);
+    setMessage(null);
+  }, []);
 
   const signOut = async () => {
     if (!supabase) {
@@ -1295,9 +1298,9 @@ export default function App() {
     >
       <header ref={headerRef} className={appClass.topbar}>
         <div className={appClass.topbarInner}>
-          <button className={appClass.brand} type="button" onClick={navigateHome} aria-label="지도로 이동">
-            <img className="h-8 w-auto object-contain brightness-0 invert max-[900px]:h-7" src="/logo-mountain.png" alt="" aria-hidden="true" />
-            <span className={cn(isMobileSearchOpen && 'max-[900px]:hidden')}>대한민국 100대 명산</span>
+          <button className={appClass.brand} type="button" onClick={navigateHome} aria-label="봉우리모아 홈으로 이동">
+            <img className="h-[34px] w-auto object-contain brightness-0 invert max-[900px]:h-[30px]" src="/logo-mountain.png" alt="" aria-hidden="true" />
+            <span className={cn(isMobileSearchOpen && 'max-[900px]:hidden')}>봉우리모아</span>
           </button>
           <div className={appClass.topbarActions}>
             <form
@@ -1769,6 +1772,14 @@ export default function App() {
             </div>
           </section>
         </div>
+      ) : null}
+
+      {!session ? (
+        <GoogleSignInDialog
+          isOpen={isGoogleSignInOpen}
+          onClose={() => setIsGoogleSignInOpen(false)}
+          onSuccess={handleGoogleSignInSuccess}
+        />
       ) : null}
 
       {!isSupabaseConfigured ? (

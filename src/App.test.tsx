@@ -8,7 +8,6 @@ import { getRandomTickDelays } from './game/random';
 const supabaseMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   onAuthStateChange: vi.fn(),
-  signInWithOAuth: vi.fn(),
   signOut: vi.fn(),
   from: vi.fn()
 }));
@@ -102,12 +101,30 @@ vi.mock('./components/MountainDetailPage', () => ({
   )
 }));
 
+vi.mock('./components/GoogleSignInDialog', () => ({
+  GoogleSignInDialog: ({
+    isOpen,
+    onClose,
+    onSuccess,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+  }) => isOpen ? (
+    <div role="dialog" aria-label="Google 로그인">
+      <button type="button" onClick={onSuccess}>Google 로그인 성공</button>
+      <button type="button" onClick={onClose}>로그인 창 닫기</button>
+    </div>
+  ) : null
+}));
+
 vi.mock('./components/MyPage', () => ({
   MyPage: ({ activeTab }: { activeTab: string }) => <div>마이페이지 탭 {activeTab}</div>
 }));
 
 vi.mock('./services/env', () => ({
-  isSupabaseConfigured: true
+  isSupabaseConfigured: true,
+  isGoogleIdentityConfigured: true
 }));
 
 vi.mock('./services/profiles', () => ({
@@ -128,10 +145,6 @@ vi.mock('./services/appFeedback', () => ({
   createAppFeedback: vi.fn()
 }));
 
-vi.mock('./services/authRedirect', () => ({
-  getOAuthRedirectUrl: () => 'http://localhost/'
-}));
-
 vi.mock('./services/randomSounds', () => ({
   playFanfare: randomSoundMocks.playFanfare,
   playRouletteTick: randomSoundMocks.playRouletteTick
@@ -146,7 +159,6 @@ vi.mock('./services/supabase', () => ({
     auth: {
       getSession: supabaseMocks.getSession,
       onAuthStateChange: supabaseMocks.onAuthStateChange,
-      signInWithOAuth: supabaseMocks.signInWithOAuth,
       signOut: supabaseMocks.signOut
     },
     from: supabaseMocks.from
@@ -210,7 +222,6 @@ describe('App account menu', () => {
     window.history.replaceState(null, '', '/');
     supabaseMocks.getSession.mockReset();
     supabaseMocks.onAuthStateChange.mockReset();
-    supabaseMocks.signInWithOAuth.mockReset();
     supabaseMocks.signOut.mockReset();
     supabaseMocks.from.mockReset();
     profileMocks.fetchOrCreateUserProfile.mockReset();
@@ -245,6 +256,17 @@ describe('App account menu', () => {
       photoUrl: 'https://example.com/completion.jpg',
     });
     mockCompletedMountainsQuery();
+  });
+
+  it('opens the Google sign-in dialog without starting an OAuth redirect', async () => {
+    supabaseMocks.getSession.mockResolvedValue({ data: { session: null } });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '로그인' }));
+    expect(screen.getByRole('dialog', { name: 'Google 로그인' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Google 로그인 성공' }));
+    expect(screen.queryByRole('dialog', { name: 'Google 로그인' })).not.toBeInTheDocument();
   });
 
   it('opens the account menu and navigates to MyPage tabs from menu actions', async () => {

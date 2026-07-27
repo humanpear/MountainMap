@@ -1,4 +1,4 @@
-# Design System - MountianMap
+# Design System - 봉우리모아
 
 ## Product Context
 
@@ -28,7 +28,7 @@
 상단 메뉴는 첨부 이미지보다 더 단순하게 만든다.
 
 - 유지:
-  - `대한민국 100대 명산` 로고
+  - `봉우리모아` 로고
   - `산 이름을 검색하세요` 검색바
 - 제거:
   - `100대 명산`
@@ -370,3 +370,4 @@ type MountainGuideRouteStop = {
 | 2026-05-15 | Split mountain detail and course detail | The two attached images represent different product screens. |
 | 2026-05-15 | Top navigation becomes logo + search only | User explicitly requested removal of the other top menu items. |
 | 2026-05-15 | Use Kakao map Polyline with user-entered coordinates | Course geometry should be stable and not depend on runtime routing APIs. |
+| 2026-07-27 | 브랜드명과 운영 도메인을 `봉우리모아`, `bongmoa.com`으로 확정 | 사용자에게 노출되는 제품명과 운영 URL을 하나의 브랜드로 통일한다. |
