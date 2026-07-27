@@ -246,7 +246,7 @@ const appClass = {
     'min-w-0 rounded-l-[9px] border-0 px-4 text-[13px] text-[#18221d] outline-none placeholder:text-[#627168] max-[900px]:h-10 max-[900px]:self-center max-[900px]:rounded-[9px] max-[900px]:bg-white max-[900px]:text-base',
   searchButton: 'inline-flex cursor-pointer items-center justify-center rounded-r-[9px] border-0 bg-white text-[#00172b]',
   searchSuggestions:
-    'absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[min(360px,calc(100vh-96px))] overflow-y-auto rounded-lg border border-[#d8e0da] bg-white py-1.5 text-[#18221d] shadow-[0_18px_48px_rgba(0,0,0,0.18)] max-[900px]:max-h-[min(320px,calc(100dvh-86px))]',
+    'absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[min(360px,calc(100vh-96px))] overflow-y-auto rounded-lg border border-[#d8e0da] bg-white py-1.5 text-[#18221d] shadow-[0_18px_48px_rgba(0,0,0,0.18)] max-[900px]:max-h-[min(320px,calc(100dvh-86px))] max-[900px]:overscroll-contain max-[900px]:touch-pan-y',
   searchSuggestionButton:
     'grid w-full cursor-pointer grid-cols-[max-content_minmax(0,1fr)] items-center gap-2 border-0 bg-white px-3 py-2.5 text-left transition hover:bg-[#f4f8f6] focus:bg-[#f4f8f6] focus:outline-none',
   searchSuggestionName: 'whitespace-nowrap text-[12px] font-semibold leading-4 text-[#18221d] max-[900px]:text-[13px]',
@@ -257,7 +257,7 @@ const appClass = {
     'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3.5 text-sm font-extrabold text-white transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-55 max-[900px]:w-11 max-[900px]:border-0 max-[900px]:bg-transparent max-[900px]:px-0 max-[900px]:text-[13px] max-[900px]:hover:bg-transparent',
   accountMenuWrap: 'relative max-[900px]:col-start-4 max-[900px]:row-start-1',
   accountMenu:
-    'absolute right-0 top-[calc(100%+10px)] z-20 grid w-[344px] max-w-[calc(100vw-24px)] origin-top-right gap-2.5 rounded-xl border border-[#d8e0da] bg-[#fbfcfb] p-2.5 text-[#18221d] shadow-[0_18px_56px_rgba(0,0,0,0.16)] max-[560px]:right-[-4px] max-[560px]:w-[min(70vw,256px)] max-[560px]:gap-1.5 max-[560px]:p-1.5',
+    'absolute right-0 top-[calc(100%+10px)] z-20 grid w-[344px] max-w-[calc(100vw-24px)] origin-top-right gap-2.5 rounded-xl border border-[#d8e0da] bg-[#fbfcfb] p-2.5 text-[#18221d] shadow-[0_18px_56px_rgba(0,0,0,0.16)] max-[900px]:max-h-[calc(var(--app-visible-height,100dvh)-var(--app-header-height,68px)-12px)] max-[900px]:overflow-y-auto max-[900px]:overscroll-contain max-[900px]:touch-pan-y max-[560px]:right-[-4px] max-[560px]:w-[min(70vw,256px)] max-[560px]:gap-1.5 max-[560px]:p-1.5',
   accountMenuProfile: 'flex min-w-0 items-center gap-3 px-1.5 pb-1.5 pt-1 max-[560px]:gap-2.5 max-[560px]:px-1 max-[560px]:pb-1 max-[560px]:pt-0.5',
   accountMenuAvatar:
     'h-16 w-16 flex-none rounded-full border-[3px] border-white bg-[#eef3f0] object-cover shadow-[0_0_0_2px_#d8e0da,0_8px_20px_rgba(24,34,29,0.12)] max-[560px]:h-11 max-[560px]:w-11',
@@ -591,6 +591,24 @@ export default function App() {
     return () => window.cancelAnimationFrame(frameId);
   }, [discoveryState.focusRequest]);
   const detailMountain = mountains.find((mountain) => mountain.id === detailMountainId);
+  const isMapWorkspaceVisible = !detailMountain && !(isMyPageOpen && session);
+  const shouldLockDocumentScroll =
+    isMapWorkspaceVisible
+    || isAccountMenuOpen
+    || isAccountMenuClosing
+    || isMobileSearchOpen
+    || isGoogleSignInOpen;
+
+  useEffect(() => {
+    if (!shouldLockDocumentScroll) {
+      return;
+    }
+
+    const root = document.documentElement;
+    root.classList.add('app-document-scroll-locked');
+    return () => root.classList.remove('app-document-scroll-locked');
+  }, [shouldLockDocumentScroll]);
+
   const completedIds = useMemo(() => new Set(completionRecords.map((record) => record.mountainId)), [completionRecords]);
   const resultMountains = useMemo(
     () => {

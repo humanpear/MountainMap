@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/mountains/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/my-page",
+      "destination": "/index.html"
+    }
+  ]
+}

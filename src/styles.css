@@ -25,6 +25,15 @@ body {
   word-break: keep-all;
 }
 
+@media (max-width: 900px) {
+  html.app-document-scroll-locked,
+  html.app-document-scroll-locked body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+}
+
 button {
   font: inherit;
 }
