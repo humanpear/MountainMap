@@ -273,9 +273,15 @@ describe('App account menu', () => {
     render(<App />);
 
     const myPageButton = await screen.findByRole('button', { name: '마이페이지' });
+    expect(document.documentElement).toHaveClass('app-document-scroll-locked');
     fireEvent.click(myPageButton);
 
     const accountMenu = await screen.findByRole('menu', { name: '마이페이지 메뉴' });
+    expect(accountMenu).toHaveClass(
+      'max-[900px]:overflow-y-auto',
+      'max-[900px]:overscroll-contain',
+      'max-[900px]:touch-pan-y',
+    );
     expect(within(accountMenu).getByText('테스트 등산객')).toBeInTheDocument();
     expect(within(accountMenu).queryByText('100대 명산 도전 중')).not.toBeInTheDocument();
     expect(within(accountMenu).getByText('2 / 100')).toBeInTheDocument();
@@ -294,6 +300,7 @@ describe('App account menu', () => {
     await waitFor(() => {
       expect(window.location.pathname).toBe('/my-page');
       expect(window.location.search).toBe('?tab=profile');
+      expect(document.documentElement).not.toHaveClass('app-document-scroll-locked');
     });
     expect(screen.getByText('마이페이지 탭 profile')).toBeInTheDocument();
   });
