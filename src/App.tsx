@@ -239,7 +239,7 @@ const appClass = {
   topbarActions:
     'flex min-w-0 items-center justify-end gap-2.5 max-[900px]:contents',
   brand:
-    'inline-flex min-h-11 min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent text-xl font-black text-white max-[900px]:col-start-1 max-[900px]:row-start-1 max-[900px]:justify-start max-[900px]:gap-1.5 max-[900px]:text-base [&_span]:truncate [&_svg]:text-white',
+    'inline-flex min-h-11 min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent text-2xl font-black text-white max-[900px]:col-start-1 max-[900px]:row-start-1 max-[900px]:justify-start max-[900px]:gap-1.5 max-[900px]:text-xl [&>span]:truncate [&_svg]:text-white',
   search:
     'relative grid min-h-11 w-[252px] grid-cols-[minmax(0,1fr)_44px] rounded-[9px] bg-white transition-[opacity,transform] duration-200 ease-out max-[900px]:col-start-2 max-[900px]:row-start-1 max-[900px]:ml-1 max-[900px]:min-h-11 max-[900px]:w-full max-[900px]:origin-right max-[900px]:grid-cols-1 max-[900px]:bg-transparent',
   searchInput:
@@ -1318,7 +1318,9 @@ export default function App() {
         <div className={appClass.topbarInner}>
           <button className={appClass.brand} type="button" onClick={navigateHome} aria-label="봉우리모아 홈으로 이동">
             <img className="h-[34px] w-auto object-contain brightness-0 invert max-[900px]:h-[30px]" src="/logo-mountain.png" alt="" aria-hidden="true" />
-            <span className={cn(isMobileSearchOpen && 'max-[900px]:hidden')}>봉우리모아</span>
+            <span className={cn('self-end tracking-[0.04em]', isMobileSearchOpen && 'max-[900px]:hidden')}>
+              봉<span className="text-[50%]">우리</span>모아
+            </span>
           </button>
           <div className={appClass.topbarActions}>
             <form
