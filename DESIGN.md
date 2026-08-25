@@ -43,6 +43,10 @@
 - Mobile:
   - 로고와 검색바를 세로 또는 2열로 배치하되 터치 타깃은 44px 이상.
   - 검색바가 너무 좁아지면 로고 아래로 내려도 된다.
+- 브랜드 워드마크:
+  - `봉우리모아`는 `봉`과 `모아` 사이의 `우리`를 주변 글자의 50% 크기로 표시하고, 하단선을 맞춰 하나의 로고타입으로 읽히게 한다.
+  - Desktop은 24px, Mobile은 20px을 사용하며 자간은 `0.04em`으로 둔다.
+  - 워드마크의 `font-black`은 브랜드 표시에만 허용하는 예외이며 일반 제목과 본문에는 확장하지 않는다.
 
 ## Mountain Detail Main Page
 
@@ -371,3 +375,5 @@ type MountainGuideRouteStop = {
 | 2026-05-15 | Top navigation becomes logo + search only | User explicitly requested removal of the other top menu items. |
 | 2026-05-15 | Use Kakao map Polyline with user-entered coordinates | Course geometry should be stable and not depend on runtime routing APIs. |
 | 2026-07-27 | 브랜드명과 운영 도메인을 `봉우리모아`, `bongmoa.com`으로 확정 | 사용자에게 노출되는 제품명과 운영 URL을 하나의 브랜드로 통일한다. |
+| 2026-08-25 | 헤더 워드마크에서 `우리`를 축소한 브랜드 전용 타이포그래피 사용 | 작은 화면에서도 `봉`과 `모아`를 강하게 읽히게 하면서 전체 브랜드명을 유지한다. |
+| 2026-08-25 | 소셜 공유 제목과 `public/opengraph.png`를 봉우리모아 브랜드 계약으로 고정 | 공유 링크에서도 서비스명, 설명, `bongmoa.com` 출처가 일관되게 보이도록 한다. |

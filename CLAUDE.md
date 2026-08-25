@@ -38,6 +38,11 @@ Key routing rules:
 - [`PROJECT_DATA_NOTES.md`](./PROJECT_DATA_NOTES.md): source and runtime data policies
 - [`GSTACK_CODEX_USAGE.md`](./GSTACK_CODEX_USAGE.md): local gstack usage guide
 - [`pibma-nogit-design-20260506-165651.md`](./pibma-nogit-design-20260506-165651.md): original random-centered MVP design record
+- [`docs/climb-completion-feedback-plan.md`](./docs/climb-completion-feedback-plan.md): climb-completion feedback and removal-path plan
 - [`docs/mountain-guide-data-workflow.md`](./docs/mountain-guide-data-workflow.md): mountain guide data workflow
 - [`docs/my-page-b-implementation-plan.md`](./docs/my-page-b-implementation-plan.md): My Page B implementation record
 - [`docs/mountain-discovery-implementation-workflow.md`](./docs/mountain-discovery-implementation-workflow.md): mountain discovery implementation and release record
+- [`public/course-feedback-icons/README.md`](./public/course-feedback-icons/README.md): course feedback icon asset contract
+- [`public/course-images/README.md`](./public/course-images/README.md): course-map image cache contract
+- [`public/mountain-images/README.md`](./public/mountain-images/README.md): mountain hero image asset contract
+- [`public/weather-icons/README.md`](./public/weather-icons/README.md): weather icon asset contract
