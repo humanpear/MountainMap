@@ -689,8 +689,7 @@ export default function App() {
     discoveryState.view.kind === 'random-running';
   const isMobileDiscoverySurfaceOpen = discoveryState.view.kind !== 'closed';
   const accountProfile = accountSummary.profile;
-  const accountDisplayName =
-    accountProfile?.displayName || session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || '내 계정';
+  const accountDisplayName = accountProfile?.displayName || '내 계정';
   const accountAvatarUrl = accountProfile?.avatarUrl || getDefaultAvatarUrl(accountProfile?.avatarKind);
   const syncAccountProfile = useCallback((profile: UserProfile) => {
     setAccountSummary((current) => ({
@@ -1536,6 +1535,7 @@ export default function App() {
           isCompleted={completedIds.has(detailMountain.id)}
           isCompletionPending={pendingCompletionIds.has(detailMountain.id)}
           session={session}
+          profileDisplayName={accountProfile?.displayName ?? null}
           onBack={closeMountainDetail}
           onReviewDataChange={markReviewDataChanged}
           onShowOnMap={showMountainOnMap}

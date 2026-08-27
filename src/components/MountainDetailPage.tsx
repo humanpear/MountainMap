@@ -76,6 +76,7 @@ type MountainDetailPageProps = {
   isCompleted: boolean;
   isCompletionPending: boolean;
   session?: Session | null;
+  profileDisplayName?: string | null;
   onBack: () => void;
   onReviewDataChange?: () => void;
   onShowOnMap: (mountain: Mountain) => void;
@@ -520,6 +521,7 @@ export function MountainDetailPage({
   isCompleted,
   isCompletionPending,
   session = null,
+  profileDisplayName = null,
   onBack,
   onReviewDataChange,
   onShowOnMap,
@@ -568,6 +570,7 @@ export function MountainDetailPage({
       isCompleted={isCompleted}
       isCompletionPending={isCompletionPending}
       session={session}
+      profileDisplayName={profileDisplayName}
       onBack={onBack}
       onReviewDataChange={onReviewDataChange}
       onShowOnMap={onShowOnMap}
@@ -589,6 +592,7 @@ function MountainMainDetailView({
   isCompleted,
   isCompletionPending,
   session,
+  profileDisplayName,
   onBack,
   onReviewDataChange,
   onShowOnMap,
@@ -606,6 +610,7 @@ function MountainMainDetailView({
   isCompleted: boolean;
   isCompletionPending: boolean;
   session: Session | null;
+  profileDisplayName: string | null;
   onBack: () => void;
   onReviewDataChange?: () => void;
   onShowOnMap: (mountain: Mountain) => void;
@@ -932,6 +937,7 @@ function MountainMainDetailView({
               mountain={mountain}
               routes={routes}
               session={session}
+              profileDisplayName={profileDisplayName}
               mode={mainTab === "reviews" ? "full" : "preview"}
               onShowAllReviews={() => setMainTab("reviews")}
               onReviewDataChange={onReviewDataChange}
@@ -1321,6 +1327,7 @@ function CourseFeedbackSection({
   mountain,
   routes,
   session,
+  profileDisplayName,
   mode,
   onShowAllReviews,
   onReviewDataChange,
@@ -1329,6 +1336,7 @@ function CourseFeedbackSection({
   mountain: Mountain;
   routes: MountainGuideRoute[];
   session: Session | null;
+  profileDisplayName: string | null;
   mode: "preview" | "full";
   onShowAllReviews: () => void;
   onReviewDataChange?: () => void;
@@ -1591,7 +1599,7 @@ function CourseFeedbackSection({
           routeName: selectedRoute ? selectedRoute.name : manualCourseRouteName,
           routeStartPoint: routeStartPoint || null,
           routeEndPoint: routeEndPoint || null,
-          authorName: getReviewAuthorName(session),
+          authorName: getReviewAuthorName(profileDisplayName),
           difficulty,
           durationMinutes,
           durationLabel,
@@ -3593,17 +3601,8 @@ function getReviewSummary(
   };
 }
 
-function getReviewAuthorName(session: Session | null) {
-  const metadata = session?.user.user_metadata;
-  const metadataName =
-    typeof metadata?.full_name === "string"
-      ? metadata.full_name
-      : typeof metadata?.name === "string"
-        ? metadata.name
-        : "";
-  const emailName = session?.user.email?.split("@")[0] ?? "";
-
-  return metadataName.trim() || emailName.trim() || "등산객";
+function getReviewAuthorName(profileDisplayName: string | null) {
+  return profileDisplayName?.trim() || "등산객";
 }
 
 function getReviewErrorMessage(error: unknown, action: "load" | "save" | "update" | "delete") {

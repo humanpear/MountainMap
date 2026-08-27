@@ -111,6 +111,7 @@ function renderMountainDetail(session: Session | null = createSession()) {
       isCompleted={false}
       isCompletionPending={false}
       session={session}
+      profileDisplayName="푸른능선4827"
       onBack={() => undefined}
       onShowOnMap={() => undefined}
       onRequestCompletion={() => undefined}
@@ -926,6 +927,7 @@ describe("MountainDetailPage course feedback", () => {
           routeStartPoint,
           routeEndPoint,
           userId: "user-1",
+          authorName: "푸른능선4827",
         }),
       );
     });

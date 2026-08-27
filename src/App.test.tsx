@@ -305,6 +305,18 @@ describe('App account menu', () => {
     expect(screen.getByText('마이페이지 탭 profile')).toBeInTheDocument();
   });
 
+  it('does not expose Google identity metadata while the public profile is loading', async () => {
+    profileMocks.fetchOrCreateUserProfile.mockReturnValue(new Promise(() => undefined));
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '마이페이지' }));
+
+    const accountMenu = await screen.findByRole('menu', { name: '마이페이지 메뉴' });
+    expect(within(accountMenu).getByText('내 계정')).toBeInTheDocument();
+    expect(within(accountMenu).queryByText('테스트 등산객')).not.toBeInTheDocument();
+    expect(within(accountMenu).queryByText('user-1')).not.toBeInTheDocument();
+  });
+
   it('navigates to completed and reviews tabs from account menu actions', async () => {
     render(<App />);
 
