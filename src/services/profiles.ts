@@ -11,6 +11,33 @@ export const defaultProfileAvatars = [
   { id: "default-5", label: "밤 산행", url: "/profile-avatars/avatar-5.svg" },
 ] as const;
 
+export const defaultDisplayNamePhrases = [
+  "푸른능선",
+  "고요한산길",
+  "힘찬봉우리",
+  "맑은계곡",
+  "빛나는정상",
+  "반가운산새",
+  "싱그러운숲길",
+  "따뜻한햇살",
+  "든든한소나무",
+  "자유로운바람",
+  "포근한구름",
+  "새벽오솔길",
+  "초록등산화",
+  "맑은샘물",
+  "붉은노을",
+  "은빛억새",
+  "봄날진달래",
+  "여름숲길",
+  "가을단풍",
+  "겨울설산",
+  "높은하늘",
+  "굽이진능선",
+  "작은돌탑",
+  "먼산메아리",
+] as const;
+
 export type UserProfile = {
   id: string;
   email: string | null;
@@ -55,26 +82,20 @@ export function sanitizeDisplayName(name: string) {
   return name.trim().replace(/\s+/g, " ");
 }
 
-export function getDefaultDisplayName(user: Pick<User, "email" | "user_metadata">) {
-  const metadata = user.user_metadata;
-  const metadataName =
-    typeof metadata?.full_name === "string"
-      ? metadata.full_name
-      : typeof metadata?.name === "string"
-        ? metadata.name
-        : "";
-  const emailName = user.email?.split("@")[0] ?? "";
+export function createDefaultDisplayName(random = Math.random) {
+  const phraseIndex = getRandomIndex(defaultDisplayNamePhrases.length, random);
+  const number = getRandomIndex(10_000, random).toString().padStart(4, "0");
 
-  return sanitizeDisplayName(metadataName || emailName || "등산객");
+  return `${defaultDisplayNamePhrases[phraseIndex]}${number}`;
 }
 
 export function getDefaultAvatarUrl(avatarKind = "default-1") {
   return defaultProfileAvatars.find((avatar) => avatar.id === avatarKind)?.url ?? defaultProfileAvatars[0].url;
 }
 
-function mapProfile(row: ProfileRow, fallbackUser?: Pick<User, "email" | "user_metadata">): UserProfile {
+function mapProfile(row: ProfileRow): UserProfile {
   const avatarKind = row.avatar_kind || "default-1";
-  const displayName = sanitizeDisplayName(row.display_name || (fallbackUser ? getDefaultDisplayName(fallbackUser) : "등산객"));
+  const displayName = sanitizeDisplayName(row.display_name || "등산객");
 
   return {
     id: row.id,
@@ -100,10 +121,10 @@ export async function fetchOrCreateUserProfile(user: User) {
   }
 
   if (data) {
-    return mapProfile(data as ProfileRow, user);
+    return mapProfile(data as ProfileRow);
   }
 
-  const displayName = getDefaultDisplayName(user);
+  const displayName = createDefaultDisplayName();
   const avatarKind = "default-1";
   const { data: inserted, error: insertError } = await client
     .from("profiles")
@@ -119,10 +140,31 @@ export async function fetchOrCreateUserProfile(user: User) {
     .single();
 
   if (insertError) {
+    if (insertError.code === "23505") {
+      const { data: concurrentProfile, error: concurrentError } = await client
+        .from("profiles")
+        .select("id,email,display_name,display_name_normalized,avatar_url,avatar_kind,updated_at")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (concurrentError) {
+        throw concurrentError;
+      }
+
+      if (concurrentProfile) {
+        return mapProfile(concurrentProfile as ProfileRow);
+      }
+    }
+
     throw insertError;
   }
 
-  return mapProfile(inserted as ProfileRow, user);
+  return mapProfile(inserted as ProfileRow);
+}
+
+function getRandomIndex(length: number, random: () => number) {
+  const value = Math.min(Math.max(random(), 0), 1 - Number.EPSILON);
+  return Math.floor(value * length);
 }
 
 export async function saveUserProfile(profile: Pick<UserProfile, "id" | "email" | "displayName" | "avatarUrl" | "avatarKind">) {
