@@ -38,7 +38,8 @@ export function pickRandomMountain(options: RandomOptions): RandomResult | null 
       return winner;
     }
 
-    return candidates[index % candidates.length];
+    // Keep the animation independent of list order and the already chosen winner.
+    return candidates[Math.floor(random() * candidates.length)] ?? candidates[0];
   });
 
   return { winner, sequence };

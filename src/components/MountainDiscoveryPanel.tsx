@@ -698,10 +698,10 @@ export function MountainDiscoveryControls({
           </button>
         </div>
 
-        <div
+        <form
           id="mountain-discovery-filters"
           className={cn(
-            'filter-scroll-region min-h-0 w-full flex-auto overflow-y-auto opacity-0',
+            'flex min-h-0 w-full flex-auto flex-col overflow-hidden opacity-0',
             isFilterOpen
               ? 'visible animate-[filter-content-fade_120ms_ease-out_160ms_forwards]'
               : 'invisible',
@@ -709,7 +709,9 @@ export function MountainDiscoveryControls({
           )}
           aria-hidden={!isFilterOpen}
           inert={!isFilterOpen}
+          onSubmit={applyFilters}
         >
+          <div className="filter-scroll-region min-h-0 flex-auto overflow-y-auto overscroll-contain">
             <h2 id="mountain-discovery-filter-title" className="sr-only">
               조건으로 찾기
             </h2>
@@ -731,7 +733,7 @@ export function MountainDiscoveryControls({
               </p>
             </div>
 
-            <form className="grid gap-3 bg-white px-3 pb-3" onSubmit={applyFilters}>
+            <div className="grid gap-3 bg-white px-3 pb-3">
               <FilterAccordionCard
                 section="region"
                 label="지역"
@@ -906,30 +908,31 @@ export function MountainDiscoveryControls({
                   </p>
                 ) : null}
               </FilterAccordionCard>
+            </div>
+          </div>
 
-              <div
-                className="sticky bottom-0 -mx-3 border-t border-[#d8e0da] bg-white px-3 pt-3"
-                data-filter-actions
+          <div
+            className="flex-none border-t border-[#d8e0da] bg-white p-3 max-[900px]:pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+            data-filter-actions
+          >
+            <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-2.5">
+              <button
+                className="h-11 min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-sm font-bold text-[#18221d]"
+                type="button"
+                onClick={closeFilters}
               >
-                <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-2.5">
-                  <button
-                    className="min-h-11 rounded-lg border border-[#d8e0da] bg-white px-4 text-sm font-bold text-[#18221d]"
-                    type="button"
-                    onClick={closeFilters}
-                  >
-                    취소
-                  </button>
-                  <button
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-[#245c46] px-4 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#245c46]"
-                    type="submit"
-                  >
-                    <Search size={18} />
-                    {draftResultCount.toLocaleString()}개 산 보기
-                  </button>
-                </div>
-              </div>
-            </form>
-        </div>
+                취소
+              </button>
+              <button
+                className="inline-flex h-11 min-h-11 items-center justify-center gap-2 rounded-lg border-0 bg-[#245c46] px-4 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#245c46]"
+                type="submit"
+              >
+                <Search size={18} />
+                {draftResultCount.toLocaleString()}개 산 보기
+              </button>
+            </div>
+          </div>
+        </form>
       </section>
 
       {state.view.kind === 'closed' && hasAppliedFilters(state) ? (
