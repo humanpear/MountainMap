@@ -253,9 +253,8 @@ describe('MountainDiscoveryPanel', () => {
     expect(expandedHeader).toHaveClass('h-11', 'rounded-none');
     expect(expandedHeader?.querySelector('button')).toHaveClass('text-sm', 'font-bold');
     expect(dialog.querySelector('#mountain-discovery-filters')).toHaveClass(
-      'filter-scroll-region',
       'flex-auto',
-      'overflow-y-auto',
+      'overflow-hidden',
       'opacity-0',
       'animate-[filter-content-fade_120ms_ease-out_160ms_forwards]',
     );
